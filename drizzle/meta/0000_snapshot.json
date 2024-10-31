@@ -149,12 +149,8 @@
           "name": "items_container_id_storage_locations_storage_location_id_fk",
           "tableFrom": "items",
           "tableTo": "storage_locations",
-          "columnsFrom": [
-            "container_id"
-          ],
-          "columnsTo": [
-            "storage_location_id"
-          ],
+          "columnsFrom": ["container_id"],
+          "columnsTo": ["storage_location_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -162,12 +158,8 @@
           "name": "items_character_id_characters_character_id_fk",
           "tableFrom": "items",
           "tableTo": "characters",
-          "columnsFrom": [
-            "character_id"
-          ],
-          "columnsTo": [
-            "character_id"
-          ],
+          "columnsFrom": ["character_id"],
+          "columnsTo": ["character_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -215,12 +207,8 @@
           "name": "ledger_character_id_characters_character_id_fk",
           "tableFrom": "ledger",
           "tableTo": "characters",
-          "columnsFrom": [
-            "character_id"
-          ],
-          "columnsTo": [
-            "character_id"
-          ],
+          "columnsFrom": ["character_id"],
+          "columnsTo": ["character_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -296,12 +284,8 @@
           "name": "storage_locations_character_id_characters_character_id_fk",
           "tableFrom": "storage_locations",
           "tableTo": "characters",
-          "columnsFrom": [
-            "character_id"
-          ],
-          "columnsTo": [
-            "character_id"
-          ],
+          "columnsFrom": ["character_id"],
+          "columnsTo": ["character_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

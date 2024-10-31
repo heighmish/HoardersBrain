@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm/sql";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const charactersTable = sqliteTable("characters", {
   character_id: integer("character_id").primaryKey(),
@@ -51,3 +51,7 @@ export const ledger = sqliteTable("ledger", {
   ),
   timestamp: text().default(sql`(CURRENT_TIMESTAMP)`),
 });
+
+export type Character = typeof charactersTable.$inferSelect;
+export type Storage = typeof storageLocationsTable.$inferSelect;
+export type Item = typeof itemsTable.$inferSelect;

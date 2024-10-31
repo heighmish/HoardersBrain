@@ -1,31 +1,35 @@
-import { Button, Text, TextInput, View } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
-import { charactersTable } from "../db/schema";
+import { LAST_CHARACTER_ID } from "@/constants/StorageKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LAST_CHARACTER_ID } from "@/constants/StorageKeys";
+import { eq } from "drizzle-orm";
+import React, { useEffect, useState } from "react";
+import { Button, Text, TextInput, View } from "react-native";
+import Inventory from "../components/Inventory";
+import { Character, charactersTable } from "../db/schema";
 
 export default function Index() {
   const db = useDatabase();
 
-  const [currentCharacterId, setCurrentCharacterId] = useState<null | string>(
-    null,
-  );
   const [charNameInput, setCharNameInput] = useState<string>("");
+  const [char, setChar] = useState<Character>();
 
   useEffect(() => {
-    const loadLastCharacterId = async () => {
+    const loadLastCharacter = async () => {
       try {
-        setCurrentCharacterId(await AsyncStorage.getItem(LAST_CHARACTER_ID));
+        const charId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
+        const character = await db
+          .select()
+          .from(charactersTable)
+          .where(eq(charactersTable.character_id, Number(charId)));
+        setChar(character[0]);
       } catch (error) {
         console.error("Error loading last used character id", error);
-        setCurrentCharacterId(null);
       }
     };
-    loadLastCharacterId();
-  }, []);
+    loadLastCharacter();
+  }, [db]);
 
-  if (currentCharacterId === null) {
+  if (!char) {
     return (
       <View>
         <Text>Please create a character</Text>
@@ -44,12 +48,17 @@ export default function Index() {
               })
               .returning({
                 id: charactersTable.character_id,
-                name: charactersTable.name,
               });
 
-            const charId = createdChar[0].id.toString();
-            setCurrentCharacterId(charId);
-            await AsyncStorage.setItem(LAST_CHARACTER_ID, charId);
+            const charId = createdChar[0].id;
+            await AsyncStorage.setItem(LAST_CHARACTER_ID, charId.toString());
+
+            const characterData = await db
+              .select()
+              .from(charactersTable)
+              .where(eq(charactersTable.character_id, charId));
+
+            setChar(characterData[0]);
           }}
         />
       </View>
@@ -67,7 +76,7 @@ export default function Index() {
         justifyContent: "center",
       }}
     >
-      <Text>Main page</Text>
+      <Inventory character={char} />
     </View>
   );
 }
