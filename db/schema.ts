@@ -1,45 +1,53 @@
-import { sqliteTable, text, integer} from 'drizzle-orm/sqlite-core';
+import { sql } from "drizzle-orm/sql";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const characters = sqliteTable('characters', {
-  character_id: integer('character_id').primaryKey(),
-  name: text('name').notNull(),
-  copper: integer('copper').default(0),
-  silver: integer('silver').default(0),
-  gold: integer('gold').default(0),
-  platinum: integer('platinum').default(0),
-  max_encumbrance: integer('max_encumbrance').notNull(),
+export const charactersTable = sqliteTable("characters", {
+  character_id: integer("character_id").primaryKey(),
+  name: text("name").notNull(),
+  copper: integer("copper").default(0).notNull(),
+  silver: integer("silver").default(0).notNull(),
+  gold: integer("gold").default(0).notNull(),
+  platinum: integer("platinum").default(0).notNull(),
+  max_encumbrance: integer("max_encumbrance").default(100).notNull(),
 });
 
-export const items = sqliteTable('items', {
-  item_id: integer('item_id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  item_type: text('item_type').notNull(), // e.g., stable, consumable
-  weight: integer('weight').notNull(),
-  rarity: text('rarity'),
-  properties: json('properties'), // JSON for flexible item properties
-  container_id: integer('container_id'), // Links to the container
-  character_id: integer('character_id').notNull(), // Owner of the item
-  quantity: integer('quantity').default(1), // Useful for consumables
+export const itemsTable = sqliteTable("items", {
+  item_id: integer("item_id").primaryKey(),
+  storage_location_id: integer("container_id").references(
+    () => storageLocationsTable.storage_location_id,
+  ),
+  character_id: integer("character_id").references(
+    () => charactersTable.character_id,
+  ),
+  name: text("name").notNull(),
+  description: text("description"),
+  item_type: text("item_type").notNull(),
+  weight: integer("weight").notNull(),
+  rarity: text("rarity").notNull(),
+  properties: text("properties", { mode: "json" }),
+  quantity: integer("quantity").default(1),
 });
 
-export const storageLocations = sqliteTable('storage_locations', {
-  storage_location_id: integer('storage_location_id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  weight: integer('weight').notNull(), // Dynamic weight
-  fixed_weight: integer('fixed_weight'), // Specific weight if applicable
-  is_fixed_weight: boolean('is_fixed_weight').default(false), // TRUE if weight is constant
-  rarity: text('rarity'),
-  properties: json('properties'), // JSON for flexible container properties
-  character_id: integer('character_id').notNull(), // Owner of the container
-  parent_location_id: integer('parent_location_id'), // For nested containers
+export const storageLocationsTable = sqliteTable("storage_locations", {
+  storage_location_id: integer("storage_location_id").primaryKey(),
+  character_id: integer("character_id").references(
+    () => charactersTable.character_id,
+  ),
+  name: text("name").notNull(),
+  description: text("description"),
+  weight: integer("weight").notNull(),
+  is_fixed_weight: integer("is_fixed_weight", {
+    mode: "boolean",
+  }).default(false),
+  rarity: text("rarity").notNull(),
+  properties: text("properties", { mode: "json" }),
 });
 
-export const transactions = sqliteTable('transactions', {
-  transaction_id: integer('transaction_id').primaryKey(),
-  message: text('message').notNull(), // e.g., "Used a potion of healing"
-  character_id: integer('character_id').notNull(), // Who made the transaction
-  created_at: timestamp('created_at').defaultNow(), // When the transaction occurred
-  involved_money: boolean('involved_money').default(false), // Boolean to check if money was involved
+export const ledger = sqliteTable("ledger", {
+  ledger_id: integer("ledger_id").primaryKey(),
+  message: text("message").notNull(),
+  character_id: integer("character_id").references(
+    () => charactersTable.character_id,
+  ),
+  timestamp: text().default(sql`(CURRENT_TIMESTAMP)`),
 });

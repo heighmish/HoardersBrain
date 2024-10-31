@@ -1,60 +1,57 @@
-import { Text, View } from "react-native";
-import * as SQLite from "expo-sqlite";
-import { useEffect, useState } from "react";
-import { drizzle } from "drizzle-orm/expo-sqlite";
-import { usersTable } from "../db/schema";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import migrations from "../drizzle/migrations";
-
-const expo = SQLite.openDatabaseSync("db.db");
-
-const db = drizzle(expo);
+import { Button, Text, TextInput, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { charactersTable } from "../db/schema";
+import { useDatabase } from "@/db/DatabaseProvider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LAST_CHARACTER_ID } from "@/constants/StorageKeys";
 
 export default function Index() {
-  const { success, error } = useMigrations(db, migrations);
-  const [items, setItems] = useState<(typeof usersTable.$inferSelect)[] | null>(
-    null
+  const db = useDatabase();
+
+  const [currentCharacterId, setCurrentCharacterId] = useState<null | string>(
+    null,
   );
+  const [charNameInput, setCharNameInput] = useState<string>("");
 
   useEffect(() => {
-    if (!success) return;
+    const loadLastCharacterId = async () => {
+      try {
+        setCurrentCharacterId(await AsyncStorage.getItem(LAST_CHARACTER_ID));
+      } catch (error) {
+        console.error("Error loading last used character id", error);
+        setCurrentCharacterId(null);
+      }
+    };
+    loadLastCharacterId();
+  }, []);
 
-    (async () => {
-      await db.delete(usersTable);
-
-      await db.insert(usersTable).values([
-        {
-          name: "John",
-          age: 30,
-          email: "john@example.com",
-        },
-      ]);
-
-      const users = await db.select().from(usersTable);
-      setItems(users);
-    })();
-  }, [success]);
-
-  if (error) {
+  if (currentCharacterId === null) {
     return (
       <View>
-        <Text>Migration error: {error.message}</Text>
-      </View>
-    );
-  }
+        <Text>Please create a character</Text>
+        <TextInput value={charNameInput} onChangeText={setCharNameInput} />
+        <Button
+          title="Create Character"
+          onPress={async () => {
+            if (charNameInput.trim().length === 0) {
+              console.log("Create character called with empty string");
+              return;
+            }
+            const createdChar = await db
+              .insert(charactersTable)
+              .values({
+                name: charNameInput,
+              })
+              .returning({
+                id: charactersTable.character_id,
+                name: charactersTable.name,
+              });
 
-  if (!success) {
-    return (
-      <View>
-        <Text>Migration is in progress...</Text>
-      </View>
-    );
-  }
-
-  if (items === null || items.length === 0) {
-    return (
-      <View>
-        <Text>Empty</Text>
+            const charId = createdChar[0].id.toString();
+            setCurrentCharacterId(charId);
+            await AsyncStorage.setItem(LAST_CHARACTER_ID, charId);
+          }}
+        />
       </View>
     );
   }
@@ -70,9 +67,7 @@ export default function Index() {
         justifyContent: "center",
       }}
     >
-      {items.map((item) => (
-        <Text key={item.id}>{item.email}</Text>
-      ))}
+      <Text>Main page</Text>
     </View>
   );
 }
