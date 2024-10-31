@@ -13,12 +13,12 @@ export const charactersTable = sqliteTable("characters", {
 
 export const itemsTable = sqliteTable("items", {
   item_id: integer("item_id").primaryKey(),
-  storage_location_id: integer("container_id").references(
-    () => storageLocationsTable.storage_location_id,
-  ),
-  character_id: integer("character_id").references(
-    () => charactersTable.character_id,
-  ),
+  storage_location_id: integer("container_id")
+    .references(() => storageLocationsTable.storage_location_id)
+    .notNull(),
+  character_id: integer("character_id")
+    .references(() => charactersTable.character_id)
+    .notNull(),
   name: text("name").notNull(),
   description: text("description"),
   item_type: text("item_type").notNull(),
@@ -30,9 +30,9 @@ export const itemsTable = sqliteTable("items", {
 
 export const storageLocationsTable = sqliteTable("storage_locations", {
   storage_location_id: integer("storage_location_id").primaryKey(),
-  character_id: integer("character_id").references(
-    () => charactersTable.character_id,
-  ),
+  character_id: integer("character_id")
+    .references(() => charactersTable.character_id)
+    .notNull(),
   name: text("name").notNull(),
   description: text("description"),
   weight: integer("weight").notNull(),

@@ -23,7 +23,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   children,
 }) => {
   const [db, sqliteDb] = useMemo(() => {
-    const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db");
+    const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
+      enableChangeListener: true,
+    });
     return [drizzle(sqliteDb), sqliteDb];
   }, []);
 
