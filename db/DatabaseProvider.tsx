@@ -10,10 +10,11 @@ import React, {
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
+import { schema } from "../db/schema";
 
-const DatabaseContext = createContext<ExpoSQLiteDatabase | undefined>(
-  undefined,
-);
+const DatabaseContext = createContext<
+  ExpoSQLiteDatabase<typeof schema> | undefined
+>(undefined);
 
 interface DatabaseProviderProps {
   children: ReactNode;
@@ -26,7 +27,12 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
       enableChangeListener: true,
     });
-    return [drizzle(sqliteDb), sqliteDb];
+    return [
+      drizzle(sqliteDb, {
+        schema: schema,
+      }),
+      sqliteDb,
+    ];
   }, []);
 
   useDrizzleStudio(sqliteDb);
@@ -48,8 +54,8 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   );
 };
 
-export const useDatabase = (): ExpoSQLiteDatabase<Record<string, never>> => {
-  var context = useContext(DatabaseContext);
+export const useDatabase = (): ExpoSQLiteDatabase<typeof schema> => {
+  const context = useContext(DatabaseContext);
 
   if (context === undefined) {
     throw new Error("Hook must be used within a database provider");

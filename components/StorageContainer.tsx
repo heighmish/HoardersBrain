@@ -1,11 +1,22 @@
-import { Storage } from "@/db/schema";
+import { itemsTable, Storage } from "@/db/schema";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Button, FlatList, StyleSheet, Text, View } from "react-native";
+import { useDatabase } from "@/db/DatabaseProvider";
+import { eq } from "drizzle-orm";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 interface StorageContainerProps {
   storage: Storage;
 }
+
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
+  const db = useDatabase();
+  const items = useLiveQuery(
+    db.query.itemsTable.findMany({
+      where: eq(itemsTable.storage_location_id, storage.storage_location_id),
+    }),
+  );
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -13,8 +24,32 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         <View style={{ display: "flex", flexDirection: "row" }}>
           <Text>{storage.weight} </Text>
           <Text>{storage.rarity} </Text>
+          <Button
+            title={"AddItem"}
+            onPress={async () => {
+              await db.insert(itemsTable).values({
+                name: "Giant slayer",
+                weight: 5,
+                description: "WOW",
+                rarity: "Common",
+                quantity: 1,
+                item_type: "weapon",
+                character_id: storage.character_id,
+                storage_location_id: storage.storage_location_id,
+              });
+            }}
+          />
         </View>
       </View>
+      <FlatList
+        data={items.data}
+        renderItem={({ item }) => (
+          <View>
+            <Text>{item.name}</Text>
+          </View>
+        )}
+        keyExtractor={(item) => item.item_id.toString()}
+      />
     </View>
   );
 };

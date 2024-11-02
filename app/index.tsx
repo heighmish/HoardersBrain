@@ -1,27 +1,22 @@
 import { LAST_CHARACTER_ID } from "@/constants/StorageKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { eq } from "drizzle-orm";
 import React, { useEffect, useState } from "react";
 import { Button, Text, TextInput, View } from "react-native";
 import Inventory from "../components/Inventory";
-import { Character, charactersTable } from "../db/schema";
+import { charactersTable } from "@/db/schema";
 
 export default function Index() {
   const db = useDatabase();
 
   const [charNameInput, setCharNameInput] = useState<string>("");
-  const [char, setChar] = useState<Character>();
+  const [charId, setCharId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadLastCharacter = async () => {
       try {
         const charId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
-        const character = await db
-          .select()
-          .from(charactersTable)
-          .where(eq(charactersTable.character_id, Number(charId)));
-        setChar(character[0]);
+        setCharId(Number(charId));
       } catch (error) {
         console.error("Error loading last used character id", error);
       }
@@ -29,11 +24,15 @@ export default function Index() {
     loadLastCharacter();
   }, [db]);
 
-  if (!char) {
+  if (!charId) {
     return (
       <View>
         <Text>Please create a character</Text>
-        <TextInput value={charNameInput} onChangeText={setCharNameInput} />
+        <TextInput
+          value={charNameInput}
+          onChangeText={setCharNameInput}
+          placeholder={"Character Name"}
+        />
         <Button
           title="Create Character"
           onPress={async () => {
@@ -52,13 +51,7 @@ export default function Index() {
 
             const charId = createdChar[0].id;
             await AsyncStorage.setItem(LAST_CHARACTER_ID, charId.toString());
-
-            const characterData = await db
-              .select()
-              .from(charactersTable)
-              .where(eq(charactersTable.character_id, charId));
-
-            setChar(characterData[0]);
+            setCharId(charId);
           }}
         />
       </View>
@@ -75,7 +68,7 @@ export default function Index() {
         paddingHorizontal: 16,
       }}
     >
-      <Inventory character={char} />
+      <Inventory characterId={charId} />
     </View>
   );
 }

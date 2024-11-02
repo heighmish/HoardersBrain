@@ -55,3 +55,9 @@ export const ledger = sqliteTable("ledger", {
 export type Character = typeof charactersTable.$inferSelect;
 export type Storage = typeof storageLocationsTable.$inferSelect;
 export type Item = typeof itemsTable.$inferSelect;
+
+export const schema = {
+  charactersTable,
+  itemsTable,
+  storageLocationsTable,
+};
