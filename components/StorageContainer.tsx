@@ -4,6 +4,7 @@ import { Button, FlatList, StyleSheet, Text, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import ItemComponent from "./ItemComponent";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -43,11 +44,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       </View>
       <FlatList
         data={items.data}
-        renderItem={({ item }) => (
-          <View>
-            <Text>{item.name}</Text>
-          </View>
-        )}
+        renderItem={({ item }) => <ItemComponent item={item} />}
         keyExtractor={(item) => item.item_id.toString()}
       />
     </View>
