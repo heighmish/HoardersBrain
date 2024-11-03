@@ -5,23 +5,34 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Href, Link, Stack, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
+import AntDesign from "@expo/vector-icons/build/AntDesign";
+import { defaultStyles } from "@/constants/Styles";
+import Spacing from "@/constants/spacing";
+import { useCharacterContext } from "@/stores/CharacterContext";
 
 const Page = () => {
-  const searchParams = useLocalSearchParams();
-  const characterId = Number(searchParams.characterId);
+  const characterContext = useCharacterContext();
   const db = useDatabase();
+
   const character = useLiveQuery(
     db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, characterId),
+      where: eq(charactersTable.character_id, characterContext.character.id),
     }),
+    [characterContext.character],
   );
 
   const storageLocations = useLiveQuery(
     db
       .select()
       .from(storageLocationsTable)
-      .where(eq(storageLocationsTable.character_id, characterId)),
+      .where(
+        eq(storageLocationsTable.character_id, characterContext.character.id),
+      ),
+    [characterContext.character],
   );
 
   if (!character.data || character.error) {
@@ -34,9 +45,35 @@ const Page = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="dark" />
       <Stack.Screen
         options={{
-          headerTitle: character.data.name,
+          headerTitle: () => (
+            <View
+              style={[
+                defaultStyles.flexRow,
+                {
+                  gap: Spacing.xs,
+                  justifyContent: "center",
+                  alignItems: "center",
+                },
+              ]}
+            >
+              <Link href={"/changeCharacterModal"}>
+                <Text>{character.data!.name.slice(0, 25)}</Text>
+                <AntDesign name="down" size={12} color="black" />
+              </Link>
+            </View>
+          ),
+          headerRight: () => (
+            <Button
+              title="logout"
+              onPress={() => {
+                AsyncStorage.removeItem(LAST_CHARACTER_ID);
+                router.replace("/" as Href);
+              }}
+            />
+          ),
         }}
       />
       <View style={styles.currency}>
@@ -54,7 +91,7 @@ const Page = () => {
         title="Add Container"
         onPress={async () => {
           await db.insert(storageLocationsTable).values({
-            character_id: characterId,
+            character_id: characterContext.character.id,
             name: "Backpack",
             rarity: "common",
             weight: 5,

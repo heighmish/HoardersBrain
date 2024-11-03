@@ -11,7 +11,6 @@ import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
 import {
-  charactersTable,
   itemsTable,
   ledger,
   schema,
