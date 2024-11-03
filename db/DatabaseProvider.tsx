@@ -10,7 +10,13 @@ import React, {
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
-import { schema } from "../db/schema";
+import {
+  charactersTable,
+  itemsTable,
+  ledger,
+  schema,
+  storageLocationsTable,
+} from "../db/schema";
 
 const DatabaseContext = createContext<
   ExpoSQLiteDatabase<typeof schema> | undefined
@@ -42,6 +48,10 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
       try {
         await migrate(db, migrations);
         console.log("Migrations applied successfully");
+        // await db.delete(charactersTable);
+        await db.delete(itemsTable);
+        await db.delete(storageLocationsTable);
+        await db.delete(ledger);
       } catch (error) {
         console.error("Failed to apply migrations", error);
       }

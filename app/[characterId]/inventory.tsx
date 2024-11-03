@@ -1,16 +1,15 @@
 import React from "react";
 import { Button, FlatList, StyleSheet, Text, View } from "react-native";
-import { charactersTable, storageLocationsTable } from "../db/schema";
-import { useDatabase } from "../db/DatabaseProvider";
+import { charactersTable, storageLocationsTable } from "@/db/schema";
+import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
-import StorageContainer from "./StorageContainer";
+import StorageContainer from "@/components/StorageContainer";
+import { Stack, useLocalSearchParams } from "expo-router";
 
-interface InventoryProps {
-  characterId: number;
-}
-
-const Inventory: React.FC<InventoryProps> = ({ characterId }) => {
+const Page = () => {
+  const searchParams = useLocalSearchParams();
+  const characterId = Number(searchParams.characterId);
   const db = useDatabase();
   const character = useLiveQuery(
     db.query.charactersTable.findFirst({
@@ -35,7 +34,11 @@ const Inventory: React.FC<InventoryProps> = ({ characterId }) => {
 
   return (
     <View style={styles.container}>
-      <Text>{character.data.name}</Text>
+      <Stack.Screen
+        options={{
+          headerTitle: character.data.name,
+        }}
+      />
       <View style={styles.currency}>
         <Text>Copper: {character.data.copper}</Text>
         <Text>Silver: {character.data.silver}</Text>
@@ -71,4 +74,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Inventory;
+export default Page;
