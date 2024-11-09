@@ -21,7 +21,7 @@ export default function RootLayout() {
             name="changeCharacterModal"
             options={{
               presentation: "transparentModal",
-              animation: "slide_from_bottom",
+              animation: "fade",
             }}
           />
         </Stack>

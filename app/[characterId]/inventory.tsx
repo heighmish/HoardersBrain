@@ -5,7 +5,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
-import { Href, Link, Stack, router } from "expo-router";
+import { Href, Link, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
@@ -68,8 +68,8 @@ const Page = () => {
           headerRight: () => (
             <Button
               title="logout"
-              onPress={() => {
-                AsyncStorage.removeItem(LAST_CHARACTER_ID);
+              onPress={async () => {
+                await AsyncStorage.removeItem(LAST_CHARACTER_ID);
                 router.replace("/" as Href);
               }}
             />

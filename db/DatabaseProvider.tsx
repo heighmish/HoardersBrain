@@ -1,21 +1,16 @@
-import { ExpoSQLiteDatabase, drizzle } from "drizzle-orm/expo-sqlite";
+import { drizzle, ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import React, {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useMemo,
-  ReactNode,
 } from "react";
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
-import {
-  itemsTable,
-  ledger,
-  schema,
-  storageLocationsTable,
-} from "../db/schema";
+import { itemsTable, ledger, schema, storageLocationsTable } from "@/db/schema";
 
 const DatabaseContext = createContext<
   ExpoSQLiteDatabase<typeof schema> | undefined
