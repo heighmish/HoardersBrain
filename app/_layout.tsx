@@ -19,7 +19,10 @@ export default function RootLayout() {
           <Stack.Screen name="[characterId]/inventory" />
           <Stack.Screen
             name="changeCharacterModal"
-            options={{ presentation: "transparentModal" }}
+            options={{
+              presentation: "transparentModal",
+              animation: "slide_from_bottom",
+            }}
           />
         </Stack>
       </CharacterProvider>

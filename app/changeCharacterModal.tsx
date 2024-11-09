@@ -5,9 +5,15 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router } from "expo-router";
-import { Text, Pressable, FlatList, View, Switch } from "react-native";
-import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
+import { Link, Stack, router } from "expo-router";
+import {
+  Text,
+  Pressable,
+  FlatList,
+  View,
+  Switch,
+  StyleSheet,
+} from "react-native";
 
 // Might need to add change status bar appearance for IOS https://docs.expo.dev/router/advanced/modals/
 const ChangeCharacterModal = () => {
@@ -16,8 +22,7 @@ const ChangeCharacterModal = () => {
   const characterContext = useCharacterContext();
 
   return (
-    <Animated.View
-      entering={FadeIn}
+    <View
       style={{
         flex: 1,
         justifyContent: "center",
@@ -27,14 +32,14 @@ const ChangeCharacterModal = () => {
     >
       <Stack.Screen options={{ headerShown: false }} />
       <Pressable
-        // This button does not work
+        style={StyleSheet.absoluteFill}
         onPress={() => {
-          router.back();
-          console.log("PRESSED");
+          if (router.canGoBack()) {
+            router.back();
+          }
         }}
       />
-      <Animated.View
-        entering={SlideInDown}
+      <View
         style={{
           width: "100%",
           height: "auto",
@@ -48,17 +53,17 @@ const ChangeCharacterModal = () => {
         }}
       >
         <Pressable onPress={() => router.back()}>
-          <Text>← Go back</Text>
+          <Text style={{ paddingTop: Spacing.m }}>← Go back</Text>
         </Pressable>
         {characters.data.length === 0 ? (
           <Text>Failed to load characters</Text>
         ) : (
           <View>
             <FlatList
+              contentContainerStyle={{ gap: Spacing.l }}
               data={characters.data}
               renderItem={({ item }) => (
                 <Pressable
-                  style={{ backgroundColor: "red" }}
                   onPress={async () => {
                     console.log("PRESSED", item.character_id);
                     await AsyncStorage.setItem(
@@ -84,11 +89,17 @@ const ChangeCharacterModal = () => {
                       },
                     ]}
                   >
-                    <Text>{item.name}</Text>
-                    <Switch
-                      value={
-                        item.character_id === characterContext.character.id
-                      }
+                    <Text style={{ fontSize: 16 }}>{item.name}</Text>
+                    <View
+                      style={[
+                        styles.circle,
+                        {
+                          backgroundColor:
+                            item.character_id === characterContext.character.id
+                              ? "black"
+                              : "white",
+                        },
+                      ]}
                     />
                   </View>
                 </Pressable>
@@ -96,9 +107,18 @@ const ChangeCharacterModal = () => {
             />
           </View>
         )}
-      </Animated.View>
-    </Animated.View>
+      </View>
+    </View>
   );
 };
 
+const styles = StyleSheet.create({
+  circle: {
+    borderColor: "black",
+    borderWidth: 1,
+    height: 25,
+    width: 25,
+    borderRadius: 50,
+  },
+});
 export default ChangeCharacterModal;
