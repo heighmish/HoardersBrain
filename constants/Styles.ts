@@ -1,7 +1,29 @@
 import { StyleSheet } from "react-native";
-import Colours from "@/constants/Colors";
-import Spacing from "@/constants/spacing";
 
+export const Spacing = {
+  xs: 4,
+  s: 8,
+  m: 16,
+  l: 24,
+  xl: 32,
+  xll: 48,
+};
+
+export const tintColorLight = "#0a7ea4";
+
+export const Colours = {
+  text: "#11181C",
+  textLight: "#fff",
+  textPlaceholderLight: "#fff",
+  background: "#fff",
+  tint: tintColorLight,
+  icon: "#687076",
+  tabIconDefault: "#687076",
+  tabIconSelected: tintColorLight,
+  lightGray: "#D8DCE2",
+  gray: "#626D77",
+  primary: "#C9C8FA",
+};
 export const defaultStyles = StyleSheet.create({
   container: {
     flex: 1,

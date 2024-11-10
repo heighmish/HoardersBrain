@@ -1,6 +1,5 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
-import { defaultStyles } from "@/constants/Styles";
-import Spacing from "@/constants/spacing";
+import { Spacing, defaultStyles } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";

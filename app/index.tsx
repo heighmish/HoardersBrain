@@ -2,47 +2,24 @@ import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { charactersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { defaultStyles } from "@/constants/Styles";
+import { Colours, defaultStyles } from "@/constants/Styles";
 import { Href, router } from "expo-router";
-import Colours from "@/constants/Colors";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { DEFAULT_ID, useCharacterContext } from "@/stores/CharacterContext";
 
 export default function Index() {
   const db = useDatabase();
   const characterContext = useCharacterContext();
   const [charNameInput, setCharNameInput] = useState<string>("");
-
   useEffect(() => {
-    // This logic should be moved into the CharacterContext I guess. At least loading the values.
-    // Then we can check on mount if value exists and navigate from here
-    const loadLastCharacter = async () => {
-      try {
-        const charId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
-        const character = await db.query.charactersTable.findFirst({
-          where: eq(charactersTable.character_id, Number(charId)),
-        });
-        if (character !== undefined) {
-          characterContext.updateCharacter({
-            id: character.character_id,
-            name: character.name,
-          });
-          router.replace(`${charId}/inventory` as Href);
-        }
-      } catch (error) {
-        console.error("Error loading last used character id", error);
-      }
-    };
-    loadLastCharacter();
-  }, [characterContext, db]);
+    if (characterContext.character.id !== DEFAULT_ID) {
+      console.log(
+        `Routing to existing character: ${characterContext.character.id}`,
+      );
+      router.replace(`${characterContext.character.id}/inventory` as Href);
+    }
+  }, [characterContext.character]);
 
   return (
     <View style={[defaultStyles.container, { justifyContent: "center" }]}>
@@ -73,11 +50,16 @@ export default function Index() {
             })
             .returning({
               id: charactersTable.character_id,
+              name: charactersTable.name,
             });
 
-          const charId = createdChar[0].id;
-          await AsyncStorage.setItem(LAST_CHARACTER_ID, charId.toString());
-          router.replace(`${charId}/inventory` as Href);
+          const { id, name } = createdChar[0];
+          await AsyncStorage.setItem(LAST_CHARACTER_ID, id.toString());
+          characterContext.updateCharacter({
+            id: id,
+            name: name,
+          });
+          router.replace(`${id}/inventory` as Href);
         }}
       >
         <Text style={defaultStyles.buttonText}>Create Character</Text>

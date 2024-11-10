@@ -10,11 +10,13 @@ import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import AntDesign from "@expo/vector-icons/build/AntDesign";
-import { defaultStyles } from "@/constants/Styles";
-import Spacing from "@/constants/spacing";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { Spacing, defaultStyles } from "@/constants/Styles";
+import {
+  DEFAULT_CHARACTER,
+  useCharacterContext,
+} from "@/stores/CharacterContext";
 
-const Page = () => {
+const Inventory = () => {
   const characterContext = useCharacterContext();
   const db = useDatabase();
 
@@ -70,6 +72,7 @@ const Page = () => {
               title="logout"
               onPress={async () => {
                 await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+                characterContext.updateCharacter(DEFAULT_CHARACTER);
                 router.replace("/" as Href);
               }}
             />
@@ -85,6 +88,7 @@ const Page = () => {
       <FlatList
         data={storageLocations.data}
         renderItem={({ item }) => <StorageContainer storage={item} />}
+        contentContainerStyle={{ gap: Spacing.s }}
         keyExtractor={(item) => item.storage_location_id.toString()}
       />
       <Button
@@ -103,7 +107,12 @@ const Page = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { display: "flex", flexDirection: "column", gap: 16 },
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    gap: Spacing.m,
+    marginHorizontal: Spacing.s,
+  },
   currency: {
     display: "flex",
     flexDirection: "row",
@@ -111,4 +120,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Page;
+export default Inventory;
