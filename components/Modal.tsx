@@ -1,8 +1,8 @@
 import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
-import Spacing from "@/constants/spacing";
 import React from "react";
 import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";
+import { Spacing } from "@/constants/Styles";
 
 interface ModalProps {
   children: React.ReactNode;

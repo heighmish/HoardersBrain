@@ -43,9 +43,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
         await migrate(db, migrations);
         console.log("Migrations applied successfully");
         // await db.delete(charactersTable);
-        await db.delete(itemsTable);
-        await db.delete(storageLocationsTable);
-        await db.delete(ledger);
+        // await db.delete(itemsTable);
+        // await db.delete(storageLocationsTable);
+        // await db.delete(ledger);
       } catch (error) {
         console.error("Failed to apply migrations", error);
       }

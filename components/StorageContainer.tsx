@@ -5,6 +5,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
+import { defaultStyles, Spacing } from "@/constants/Styles";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -22,7 +23,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     <View style={styles.card}>
       <View style={styles.header}>
         <Text>{storage.name} </Text>
-        <View style={{ display: "flex", flexDirection: "row" }}>
+        <View style={defaultStyles.flexRow}>
           <Text>{storage.weight} </Text>
           <Text>{storage.rarity} </Text>
           <Button
@@ -44,6 +45,26 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       </View>
       <FlatList
         data={items.data}
+        ListHeaderComponent={
+          <View
+            style={[
+              defaultStyles.flexRow,
+              {
+                justifyContent: "space-between",
+                borderBottomColor: "black",
+                borderBottomWidth: 1,
+              },
+            ]}
+          >
+            <View style={{ flex: 7 }}>
+              <Text>Name</Text>
+            </View>
+            <View style={[defaultStyles.flexRow, { flex: 3, gap: Spacing.m }]}>
+              <Text>Qty</Text>
+              <Text>Weight</Text>
+            </View>
+          </View>
+        }
         renderItem={({ item }) => <ItemComponent item={item} />}
         keyExtractor={(item) => item.item_id.toString()}
       />
@@ -58,7 +79,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderRadius: 10,
-    padding: 8,
+    padding: Spacing.s,
   },
   header: {
     display: "flex",
