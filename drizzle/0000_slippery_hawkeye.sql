@@ -7,10 +7,11 @@ CREATE TABLE `characters` (
 	`platinum` integer DEFAULT 0 NOT NULL,
 	`max_encumbrance` integer DEFAULT 100 NOT NULL
 );
+--> statement-breakpoint
 CREATE TABLE `items` (
 	`item_id` integer PRIMARY KEY NOT NULL,
-	`container_id` integer,
-	`character_id` integer,
+	`container_id` integer NOT NULL,
+	`character_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
 	`item_type` text NOT NULL,
@@ -32,7 +33,7 @@ CREATE TABLE `ledger` (
 --> statement-breakpoint
 CREATE TABLE `storage_locations` (
 	`storage_location_id` integer PRIMARY KEY NOT NULL,
-	`character_id` integer,
+	`character_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
 	`weight` integer NOT NULL,

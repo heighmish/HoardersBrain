@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { migrate } from "drizzle-orm/expo-sqlite/migrator";
+import { migrate, useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
 import { itemsTable, ledger, schema, storageLocationsTable } from "@/db/schema";
@@ -35,9 +35,19 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     ];
   }, []);
 
-  useDrizzleStudio(sqliteDb);
+  const { success, error } = useMigrations(db, migrations);
 
   useEffect(() => {
+    if (!success) return;
+
+    (async () => {})();
+  }, [success]);
+
+  if (error) {
+    console.log("Failed to apply migrations", error);
+    throw new Error();
+  }
+  /*useEffect(() => {
     const applyMigrations = async () => {
       try {
         await migrate(db, migrations);
@@ -51,7 +61,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
       }
     };
     applyMigrations();
-  }, [db]);
+  }, [db]); */
+
+  useDrizzleStudio(sqliteDb);
 
   return (
     <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider>

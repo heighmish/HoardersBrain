@@ -22,6 +22,7 @@ export default function RootLayout() {
             options={{
               presentation: "transparentModal",
               animation: "fade",
+              headerShown: false,
             }}
           />
         </Stack>

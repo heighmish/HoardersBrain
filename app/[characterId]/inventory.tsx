@@ -50,23 +50,13 @@ const Inventory = () => {
       <StatusBar style="dark" />
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <View
-              style={[
-                defaultStyles.flexRow,
-                {
-                  gap: Spacing.xs,
-                  justifyContent: "center",
-                  alignItems: "center",
-                },
-              ]}
-            >
-              <Link href={"/changeCharacterModal"}>
-                <Text>{character.data!.name.slice(0, 25)}</Text>
-                <AntDesign name="down" size={12} color="black" />
-              </Link>
-            </View>
+          headerLeft: () => (
+            <Link href="/changeCharacterModal">
+              <Text>{character.data!.name.slice(0, 25)} </Text>
+              <AntDesign name="down" size={12} color="black" />
+            </Link>
           ),
+          headerTitle: () => <></>,
           headerRight: () => (
             <Button
               title="logout"

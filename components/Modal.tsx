@@ -19,11 +19,6 @@ const Modal: React.FC<ModalProps> = ({ children }) => {
         backgroundColor: "#00000040",
       }}
     >
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
       <Pressable
         style={StyleSheet.absoluteFill}
         onPress={() => {
