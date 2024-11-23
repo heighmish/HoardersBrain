@@ -1,4 +1,4 @@
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import React from "react";
 import Animated, { FadeIn, SlideInDown } from "react-native-reanimated";

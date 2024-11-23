@@ -7,10 +7,10 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import { migrate, useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
-import { itemsTable, ledger, schema, storageLocationsTable } from "@/db/schema";
+import { schema } from "@/db/schema";
 
 const DatabaseContext = createContext<
   ExpoSQLiteDatabase<typeof schema> | undefined
@@ -40,28 +40,13 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   useEffect(() => {
     if (!success) return;
 
-    (async () => {})();
+    console.log("Successfully applied database migrations");
   }, [success]);
 
   if (error) {
     console.log("Failed to apply migrations", error);
     throw new Error();
   }
-  /*useEffect(() => {
-    const applyMigrations = async () => {
-      try {
-        await migrate(db, migrations);
-        console.log("Migrations applied successfully");
-        // await db.delete(charactersTable);
-        // await db.delete(itemsTable);
-        // await db.delete(storageLocationsTable);
-        // await db.delete(ledger);
-      } catch (error) {
-        console.error("Failed to apply migrations", error);
-      }
-    };
-    applyMigrations();
-  }, [db]); */
 
   useDrizzleStudio(sqliteDb);
 
