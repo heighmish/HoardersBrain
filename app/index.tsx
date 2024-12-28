@@ -17,7 +17,7 @@ export default function Index() {
       console.log(
         `Routing to existing character: ${characterContext.character.id}`,
       );
-      router.replace(`${characterContext.character.id}/inventory` as Href);
+      router.replace(`/(tabs)` as Href);
     }
   }, [characterContext.character]);
 
@@ -59,7 +59,7 @@ export default function Index() {
             id: id,
             name: name,
           });
-          router.replace(`${id}/inventory` as Href);
+          router.replace(`/(tabs)` as Href);
         }}
       >
         <Text style={defaultStyles.buttonText}>Create Character</Text>

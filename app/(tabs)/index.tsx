@@ -10,7 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import AntDesign from "@expo/vector-icons/build/AntDesign";
-import { Spacing, defaultStyles } from "@/constants/Styles";
+import { Spacing } from "@/constants/Styles";
 import {
   DEFAULT_CHARACTER,
   useCharacterContext,
@@ -51,21 +51,26 @@ const Inventory = () => {
       <Stack.Screen
         options={{
           headerLeft: () => (
-            <Link href="/changeCharacterModal">
+            <Link
+              href="/changeCharacterSheet"
+              style={{ paddingLeft: Spacing.s }}
+            >
               <Text>{character.data!.name.slice(0, 25)} </Text>
               <AntDesign name="down" size={12} color="black" />
             </Link>
           ),
           headerTitle: () => <></>,
           headerRight: () => (
-            <Button
-              title="logout"
-              onPress={async () => {
-                await AsyncStorage.removeItem(LAST_CHARACTER_ID);
-                characterContext.updateCharacter(DEFAULT_CHARACTER);
-                router.replace("/" as Href);
-              }}
-            />
+            <View style={{ paddingRight: Spacing.s }}>
+              <Button
+                title="logout"
+                onPress={async () => {
+                  await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+                  characterContext.updateCharacter(DEFAULT_CHARACTER);
+                  router.replace("/" as Href);
+                }}
+              />
+            </View>
           ),
         }}
       />

@@ -3,8 +3,10 @@ import { DatabaseProvider } from "@/db/DatabaseProvider";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CharacterProvider } from "@/stores/CharacterContext";
+import { useWindowDimensions } from "react-native";
 
 export default function RootLayout() {
+  const { height } = useWindowDimensions();
   return (
     <DatabaseProvider>
       <CharacterProvider>
@@ -16,13 +18,16 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
-          <Stack.Screen name="[characterId]/inventory" />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
-            name="changeCharacterModal"
+            name="changeCharacterSheet"
             options={{
-              presentation: "transparentModal",
-              animation: "fade",
+              presentation: "formSheet",
               headerShown: false,
+              sheetAllowedDetents: height < 700 ? [0.22] : "fitToContents",
+              sheetGrabberVisible: true,
+              sheetExpandsWhenScrolledToEdge: true,
+              sheetCornerRadius: 15,
             }}
           />
         </Stack>

@@ -1,10 +1,13 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { Spacing, defaultStyles } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import {
+  DEFAULT_CHARACTER,
+  useCharacterContext,
+} from "@/stores/CharacterContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import {
   FlatList,
   Pressable,
@@ -13,16 +16,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Modal from "@/components/Modal"; // Might need to add change status bar appearance for IOS https://docs.expo.dev/router/advanced/modals/
 
-// Might need to add change status bar appearance for IOS https://docs.expo.dev/router/advanced/modals/
-const ChangeCharacterModal = () => {
+const ChangeCharacterSheet = () => {
   const db = useDatabase();
   const characters = useLiveQuery(db.query.charactersTable.findMany());
   const characterContext = useCharacterContext();
 
   return (
-    <Modal>
+    <View>
       {characters.data.length === 0 ? (
         <Text>Failed to load characters</Text>
       ) : (
@@ -32,6 +33,11 @@ const ChangeCharacterModal = () => {
           data={characters.data}
           ListFooterComponent={() => (
             <Pressable
+              onPress={async () => {
+                await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+                characterContext.updateCharacter(DEFAULT_CHARACTER);
+                router.replace("/" as Href);
+              }}
               style={[
                 defaultStyles.pillButtonSmall,
                 { backgroundColor: "red" },
@@ -73,7 +79,7 @@ const ChangeCharacterModal = () => {
           )}
         />
       )}
-    </Modal>
+    </View>
   );
 };
 const styles = StyleSheet.create({
@@ -92,4 +98,4 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
 });
-export default ChangeCharacterModal;
+export default ChangeCharacterSheet;
