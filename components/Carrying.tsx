@@ -29,8 +29,6 @@ const DetermineEncumberanceColour = (
 };
 
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
-  console.log("[Carrying]: ", characterId);
-
   const db = useDatabase();
   const maxEncumbrance = useLiveQuery(
     db.query.charactersTable.findFirst({

@@ -36,7 +36,7 @@ export default function RootLayout() {
               presentation: "formSheet",
               headerShown: false,
               sheetAllowedDetents: [0.5],
-              sheetGrabberVisible: true,
+              sheetGrabberVisible: false,
               sheetExpandsWhenScrolledToEdge: true,
               sheetCornerRadius: 15,
             }}

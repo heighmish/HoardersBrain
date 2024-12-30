@@ -65,11 +65,22 @@ export const defaultStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   textInput: {
     backgroundColor: Colours.lightGray,
     padding: Spacing.l,
     borderRadius: 16,
     fontSize: 20,
+  },
+  textInputSmall: {
+    borderWidth: 1,
+    borderColor: Colours.lightGray,
+    padding: Spacing.s,
+    borderRadius: 5,
+    fontSize: 16,
   },
   buttonTextSmall: {
     color: Colours.textLight,
@@ -88,5 +99,9 @@ export const defaultStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.s,
     paddingVertical: Spacing.xs,
+  },
+  input: {
+    borderColor: Colours.lightGray,
+    borderWidth: 1,
   },
 });

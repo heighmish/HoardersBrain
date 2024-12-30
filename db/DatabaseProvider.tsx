@@ -40,7 +40,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   useEffect(() => {
     if (!success) return;
 
-    console.log("Successfully applied database migrations");
+    console.log("[DatabaseProvider]: Successfully applied database migrations");
   }, [success]);
 
   if (error) {

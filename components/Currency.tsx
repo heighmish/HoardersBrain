@@ -39,7 +39,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     <Link href="/updateCurrencySheet" style={{ paddingLeft: Spacing.s }}>
       <View>
         <Text>Currency</Text>
-        <Text>{GoldValue.toFixed(2)}</Text>
+        <Text>{GoldValue.toFixed(2)}g</Text>
       </View>
     </Link>
   );
