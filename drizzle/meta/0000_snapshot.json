@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ce2255ce-d696-4ff1-8a05-e9169f476244",
+  "id": "0a90064a-42eb-485d-8c19-1a7821dbfa1a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "characters": {
@@ -143,7 +143,16 @@
           "default": 1
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_items_char_storage": {
+          "name": "idx_items_char_storage",
+          "columns": [
+            "character_id",
+            "container_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "items_container_id_storage_locations_storage_location_id_fk": {
           "name": "items_container_id_storage_locations_storage_location_id_fk",
@@ -290,7 +299,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_storage_char": {
+          "name": "idx_storage_char",
+          "columns": [
+            "character_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "storage_locations_character_id_characters_character_id_fk": {
           "name": "storage_locations_character_id_characters_character_id_fk",

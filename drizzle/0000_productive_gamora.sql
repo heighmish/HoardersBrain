@@ -23,6 +23,7 @@ CREATE TABLE `items` (
 	FOREIGN KEY (`character_id`) REFERENCES `characters`(`character_id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE INDEX `idx_items_char_storage` ON `items` (`character_id`,`container_id`);--> statement-breakpoint
 CREATE TABLE `ledger` (
 	`ledger_id` integer PRIMARY KEY NOT NULL,
 	`message` text NOT NULL,
@@ -42,3 +43,5 @@ CREATE TABLE `storage_locations` (
 	`properties` text,
 	FOREIGN KEY (`character_id`) REFERENCES `characters`(`character_id`) ON UPDATE no action ON DELETE no action
 );
+--> statement-breakpoint
+CREATE INDEX `idx_storage_char` ON `storage_locations` (`character_id`);

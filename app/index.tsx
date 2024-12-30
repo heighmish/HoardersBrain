@@ -40,7 +40,9 @@ export default function Index() {
         ]}
         onPress={async () => {
           if (charNameInput.trim().length === 0) {
-            console.log("Create character called with empty string");
+            console.log(
+              "[Login Screen]: Create character called with empty string",
+            );
             return;
           }
           const createdChar = await db

@@ -30,6 +30,17 @@ export default function RootLayout() {
               sheetCornerRadius: 15,
             }}
           />
+          <Stack.Screen
+            name="updateCurrencySheet"
+            options={{
+              presentation: "formSheet",
+              headerShown: false,
+              sheetAllowedDetents: [0.5],
+              sheetGrabberVisible: true,
+              sheetExpandsWhenScrolledToEdge: true,
+              sheetCornerRadius: 15,
+            }}
+          />
         </Stack>
       </CharacterProvider>
     </DatabaseProvider>

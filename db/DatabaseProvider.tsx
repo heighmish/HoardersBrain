@@ -45,7 +45,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
 
   if (error) {
     console.log("Failed to apply migrations", error);
-    throw new Error();
+    throw new Error(error.message);
   }
 
   useDrizzleStudio(sqliteDb);
