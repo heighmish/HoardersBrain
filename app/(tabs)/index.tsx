@@ -1,21 +1,17 @@
 import React from "react";
 import { Button, FlatList, StyleSheet, Text, View } from "react-native";
-import { charactersTable, storageLocationsTable } from "@/db/schema";
+import { storageLocationsTable } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
-import { Href, Link, router, Stack } from "expo-router";
+import { Link, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import AntDesign from "@expo/vector-icons/build/AntDesign";
 import { Spacing } from "@/constants/Styles";
-import {
-  DEFAULT_CHARACTER,
-  useCharacterContext,
-} from "@/stores/CharacterContext";
+import { useCharacterContext } from "@/stores/CharacterContext";
 import Currency from "@/components/Currency";
+import Carrying from "@/components/Carrying";
 
 const Inventory = () => {
   const characterContext = useCharacterContext();
@@ -46,18 +42,6 @@ const Inventory = () => {
             </Link>
           ),
           headerTitle: () => <></>,
-          headerRight: () => (
-            <View style={{ paddingRight: Spacing.s }}>
-              <Button
-                title="logout"
-                onPress={async () => {
-                  await AsyncStorage.removeItem(LAST_CHARACTER_ID);
-                  characterContext.updateCharacter(DEFAULT_CHARACTER);
-                  router.replace("/" as Href);
-                }}
-              />
-            </View>
-          ),
         }}
       />
       <View style={{ flex: 10 }}>
@@ -76,13 +60,22 @@ const Inventory = () => {
               character_id: characterContext.character.id,
               name: "Backpack",
               rarity: "common",
+              carrying: true,
               weight: 5,
             });
           }}
         />
       </View>
-      <View style={{ flex: 1 }}>
+      <View
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
         <Currency characterId={characterContext.character.id} />
+        <Carrying characterId={characterContext.character.id} />
       </View>
     </View>
   );

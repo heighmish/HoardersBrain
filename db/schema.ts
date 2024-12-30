@@ -52,6 +52,9 @@ export const storageLocationsTable = sqliteTable(
     is_fixed_weight: integer("is_fixed_weight", {
       mode: "boolean",
     }).default(false),
+    carrying: integer("carrying", {
+      mode: "boolean",
+    }).default(false),
     rarity: text("rarity").notNull(),
     properties: text("properties", { mode: "json" }),
   },

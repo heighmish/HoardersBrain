@@ -8,6 +8,20 @@
       "when": 1735519356851,
       "tag": "0000_productive_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1735523716769,
+      "tag": "0001_exotic_revanche",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1735523832618,
+      "tag": "0002_yellow_killmonger",
+      "breakpoints": true
     }
   ]
 }
