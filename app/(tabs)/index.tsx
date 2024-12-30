@@ -15,6 +15,7 @@ import Carrying from "@/components/Carrying";
 
 const Inventory = () => {
   const characterContext = useCharacterContext();
+  console.log(characterContext.character.name);
   const db = useDatabase();
 
   const storageLocations = useLiveQuery(
@@ -44,6 +45,18 @@ const Inventory = () => {
           headerTitle: () => <></>,
         }}
       />
+      <View
+        style={{
+          paddingTop: Spacing.s,
+          flex: 1,
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }}
+      >
+        <Currency characterId={characterContext.character.id} />
+        <Carrying characterId={characterContext.character.id} />
+      </View>
       <View style={{ flex: 10 }}>
         <FlatList
           data={storageLocations.data}
@@ -65,17 +78,6 @@ const Inventory = () => {
             });
           }}
         />
-      </View>
-      <View
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <Currency characterId={characterContext.character.id} />
-        <Carrying characterId={characterContext.character.id} />
       </View>
     </View>
   );

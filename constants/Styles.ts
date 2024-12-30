@@ -23,6 +23,9 @@ export const Colours = {
   lightGray: "#D8DCE2",
   gray: "#626D77",
   primary: "#C9C8FA",
+  success: "green",
+  warning: "yellow",
+  error: "red",
 };
 export const defaultStyles = StyleSheet.create({
   container: {
@@ -78,5 +81,12 @@ export const defaultStyles = StyleSheet.create({
     fontWeight: "bold",
     marginVertical: Spacing.l,
     marginBottom: Spacing.m,
+  },
+  badge: {
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.s,
+    paddingVertical: Spacing.xs,
   },
 });
