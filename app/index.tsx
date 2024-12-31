@@ -15,7 +15,7 @@ export default function Index() {
   useEffect(() => {
     if (characterContext.character.id !== DEFAULT_ID) {
       console.log(
-        `Routing to existing character: ${characterContext.character.id}`,
+        `[LoginScreen]: Routing to existing character: ${characterContext.character.id}`,
       );
       router.replace(`/(tabs)` as Href);
     }

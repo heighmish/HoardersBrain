@@ -8,6 +8,8 @@ import { and, eq, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Text, View } from "react-native";
 import Badge from "./Basic/Badge";
+import { defaultStyles, Spacing } from "@/constants/Styles";
+import AntDesign from "@expo/vector-icons/build/AntDesign";
 
 interface CarryingProps {
   characterId: number;
@@ -92,17 +94,28 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   }
 
   return (
-    <View>
-      <Badge
-        colour={DetermineEncumberanceColour(
-          totalCarriedWeight,
-          Number(maxEncumbrance.data.max_encumbrance),
-        )}
-        text="Encumbrance"
-      />
-      <Text>
-        Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance} lb
-      </Text>
+    <View style={defaultStyles.card}>
+      <View
+        style={[
+          defaultStyles.flexRow,
+          { gap: Spacing.xs, alignItems: "center" },
+        ]}
+      >
+        <View>
+          <Badge
+            colour={DetermineEncumberanceColour(
+              totalCarriedWeight,
+              Number(maxEncumbrance.data.max_encumbrance),
+            )}
+            text="Encumbrance"
+          />
+          <Text>
+            Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
+            lb
+          </Text>
+        </View>
+        <AntDesign name="right" />
+      </View>
     </View>
   );
 };

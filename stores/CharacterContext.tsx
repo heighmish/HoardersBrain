@@ -73,8 +73,6 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
     loadLastCharacter();
   }, [db]);
 
-  console.log(selectedCharacter);
-
   return (
     <CharacterContext.Provider
       value={{

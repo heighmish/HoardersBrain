@@ -104,4 +104,18 @@ export const defaultStyles = StyleSheet.create({
     borderColor: Colours.lightGray,
     borderWidth: 1,
   },
+  card: {
+    justifyContent: "center",
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
 });

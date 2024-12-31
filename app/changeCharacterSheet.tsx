@@ -49,7 +49,10 @@ const ChangeCharacterSheet = () => {
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={async () => {
-                console.log("Changing character to: ", item.character_id);
+                console.log(
+                  "[ChangeCharacterSheet]: Changing character to: ",
+                  item.character_id,
+                );
                 await AsyncStorage.setItem(
                   LAST_CHARACTER_ID,
                   item.character_id.toString(),

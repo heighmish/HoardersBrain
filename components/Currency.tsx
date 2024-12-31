@@ -1,6 +1,7 @@
-import { Spacing } from "@/constants/Styles";
+import { defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
+import AntDesign from "@expo/vector-icons/build/AntDesign";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Link } from "expo-router";
@@ -37,9 +38,21 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
 
   return (
     <Link href="/updateCurrencySheet" style={{ paddingLeft: Spacing.s }}>
-      <View>
-        <Text>Currency</Text>
-        <Text>{GoldValue.toFixed(2)}g</Text>
+      <View
+        style={[
+          defaultStyles.card,
+          defaultStyles.flexRow,
+          {
+            gap: Spacing.xs,
+            alignItems: "center",
+          },
+        ]}
+      >
+        <View>
+          <Text>Currency</Text>
+          <Text>{GoldValue.toFixed(2)}g</Text>
+        </View>
+        <AntDesign name="right" />
       </View>
     </Link>
   );
