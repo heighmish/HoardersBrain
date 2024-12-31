@@ -7,7 +7,7 @@ import {
 import { and, eq, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Text, View } from "react-native";
-import Badge from "./Badge";
+import Badge from "./Basic/Badge";
 
 interface CarryingProps {
   characterId: number;

@@ -1,3 +1,4 @@
+import NumericInput from "@/components/Basic/NumericInput";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
@@ -77,24 +78,29 @@ const UpdateCurrencySheet = () => {
 
   return (
     <View style={[defaultStyles.container, { gap: Spacing.m }]}>
-      <View style={{ display: "flex", gap: Spacing.s }}>
+      <View style={{ display: "flex", gap: Spacing.m }}>
         {Object.entries(currencies).map((currency) => (
           <View key={`${currency[0]}-update-view`}>
             <Text
-              style={defaultStyles.inputLabel}
+              style={[defaultStyles.inputLabel, { marginBottom: Spacing.xs }]}
               key={`${currency[0]}-update-label`}
             >
               {currency[0]}
             </Text>
-            <TextInput
-              style={defaultStyles.textInputSmall}
-              keyboardType="numeric"
-              placeholder={currency[0]}
-              onChangeText={(text) => handleChange(currency[0], text)}
-              value={currency[1].toFixed(0) || ""}
-              maxLength={10}
-              key={`${currency[0]}-update`}
-            />
+            <View>
+              <NumericInput
+                buttonDecrement={() =>
+                  handleChange(currency[0], (currency[1] - 1).toString())
+                }
+                buttonIncrement={() =>
+                  handleChange(currency[0], (currency[1] + 1).toString())
+                }
+                placeholder={currency[0]}
+                onChangeText={(text) => handleChange(currency[0], text)}
+                value={currency[1].toFixed(0) || ""}
+                key={`${currency[0]}-update`}
+              />
+            </View>
           </View>
         ))}
       </View>

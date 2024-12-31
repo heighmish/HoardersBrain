@@ -1,5 +1,5 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
-import { Spacing, defaultStyles } from "@/constants/Styles";
+import { Colours, Spacing, defaultStyles } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import {
   DEFAULT_CHARACTER,
@@ -23,7 +23,7 @@ const ChangeCharacterSheet = () => {
   const characterContext = useCharacterContext();
 
   return (
-    <View>
+    <View style={[{ marginTop: Spacing.m, marginBottom: Spacing.l }]}>
       {characters.data.length === 0 ? (
         <Text>Failed to load characters</Text>
       ) : (
@@ -40,10 +40,10 @@ const ChangeCharacterSheet = () => {
               }}
               style={[
                 defaultStyles.pillButtonSmall,
-                { backgroundColor: "red" },
+                { backgroundColor: Colours.primary },
               ]}
             >
-              <Text>CreateCharacter</Text>
+              <Text>Create new character</Text>
             </Pressable>
           )}
           renderItem={({ item }) => (
