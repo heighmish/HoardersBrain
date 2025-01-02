@@ -26,6 +26,11 @@ export const Colours = {
   success: "green",
   warning: "yellow",
   error: "red",
+  common: "green",
+  uncommon: "blue",
+  rare: "purple",
+  veryRare: "gray",
+  legendary: "orange",
 };
 export const defaultStyles = StyleSheet.create({
   container: {
@@ -36,9 +41,9 @@ export const defaultStyles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
   },
-  header: {
-    fontSize: 40,
-    fontWeight: "700",
+  heading1: {
+    fontSize: 18,
+    fontWeight: "bold",
   },
   pillButton: {
     padding: Spacing.m,

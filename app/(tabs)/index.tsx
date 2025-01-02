@@ -5,7 +5,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
-import { Link, Stack } from "expo-router";
+import { Link, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import AntDesign from "@expo/vector-icons/build/AntDesign";
 import { Spacing } from "@/constants/Styles";
@@ -35,7 +35,7 @@ const Inventory = () => {
         options={{
           headerLeft: () => (
             <Link
-              href="/changeCharacterSheet"
+              href="/ChangeCharacterSheet"
               style={{ paddingLeft: Spacing.s }}
             >
               <Text>{characterContext.character.name.slice(0, 25)} </Text>
@@ -68,15 +68,7 @@ const Inventory = () => {
       <View style={{ flex: 1 }}>
         <Button
           title="Add Container"
-          onPress={async () => {
-            await db.insert(storageLocationsTable).values({
-              character_id: characterContext.character.id,
-              name: "Backpack",
-              rarity: "common",
-              carrying: true,
-              weight: 5,
-            });
-          }}
+          onPress={() => router.push("/CreateStorageForm")}
         />
       </View>
     </View>

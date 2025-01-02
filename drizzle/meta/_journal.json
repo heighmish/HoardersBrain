@@ -22,6 +22,13 @@
       "when": 1735523832618,
       "tag": "0002_yellow_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1735789839929,
+      "tag": "0003_lonely_trauma",
+      "breakpoints": true
     }
   ]
 }

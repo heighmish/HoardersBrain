@@ -5,7 +5,8 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
-import { defaultStyles, Spacing } from "@/constants/Styles";
+import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
+import Badge from "./Basic/Badge";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -20,27 +21,43 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   );
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text>{storage.name} </Text>
-        <View style={defaultStyles.flexRow}>
-          <Text>{storage.weight} </Text>
-          <Text>{storage.rarity} </Text>
-          <Button
-            title={"AddItem"}
-            onPress={async () => {
-              await db.insert(itemsTable).values({
-                name: "Giant slayer",
-                weight: 5,
-                description: "WOW",
-                rarity: "Common",
-                quantity: 1,
-                item_type: "weapon",
-                character_id: storage.character_id,
-                storage_location_id: storage.storage_location_id,
-              });
-            }}
-          />
+    <View style={defaultStyles.card}>
+      <View>
+        <View
+          style={[defaultStyles.flexRow, { justifyContent: "space-between" }]}
+        >
+          <Text style={defaultStyles.heading1}>{storage.name} </Text>
+          <View style={[defaultStyles.flexRow, { gap: Spacing.s }]}>
+            <Badge text={storage.rarity} colour={storage.rarity} />
+            <Button
+              title={"AddItem"}
+              onPress={async () => {
+                await db.insert(itemsTable).values({
+                  name: "Giant slayer",
+                  weight: 5,
+                  description: "WOW",
+                  rarity: "Common",
+                  quantity: 1,
+                  item_type: "weapon",
+                  character_id: storage.character_id,
+                  storage_location_id: storage.storage_location_id,
+                });
+              }}
+            />
+          </View>
+        </View>
+        <View
+          style={[
+            defaultStyles.flexRow,
+            {
+              gap: Spacing.s,
+              borderBottomWidth: 1,
+              borderColor: Colours.lightGray,
+              marginBottom: Spacing.s,
+            },
+          ]}
+        >
+          <Text>Storing: {storage.weight}lbs</Text>
         </View>
       </View>
       <FlatList
@@ -51,8 +68,6 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
               defaultStyles.flexRow,
               {
                 justifyContent: "space-between",
-                borderBottomColor: "black",
-                borderBottomWidth: 1,
               },
             ]}
           >
@@ -72,20 +87,6 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderRadius: 10,
-    padding: Spacing.s,
-  },
-  header: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-});
+const styles = StyleSheet.create({});
 
 export default StorageContainer;

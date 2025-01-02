@@ -20,7 +20,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
-            name="changeCharacterSheet"
+            name="ChangeCharacterSheet"
             options={{
               presentation: "formSheet",
               headerShown: false,
@@ -31,7 +31,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="updateCurrencySheet"
+            name="UpdateCurrencySheet"
             options={{
               presentation: "formSheet",
               headerShown: false,
@@ -39,6 +39,13 @@ export default function RootLayout() {
               sheetGrabberVisible: false,
               sheetExpandsWhenScrolledToEdge: true,
               sheetCornerRadius: 15,
+            }}
+          />
+          <Stack.Screen
+            name="CreateStorageForm"
+            options={{
+              headerBackTitle: "Back",
+              headerTitle: "Create new storage",
             }}
           />
         </Stack>

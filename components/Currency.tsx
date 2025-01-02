@@ -37,7 +37,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     character.data.copper / 100;
 
   return (
-    <Link href="/updateCurrencySheet" style={{ paddingLeft: Spacing.s }}>
+    <Link href="/UpdateCurrencySheet" style={{ paddingLeft: Spacing.s }}>
       <View
         style={[
           defaultStyles.card,

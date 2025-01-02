@@ -1,3 +1,4 @@
+import { Rarity } from "@/constants/databaseTypes";
 import { sql } from "drizzle-orm/sql";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
@@ -25,7 +26,7 @@ export const itemsTable = sqliteTable(
     description: text("description"),
     item_type: text("item_type").notNull(),
     weight: integer("weight").notNull(),
-    rarity: text("rarity").notNull(),
+    rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
     quantity: integer("quantity").default(1),
   },
@@ -55,7 +56,7 @@ export const storageLocationsTable = sqliteTable(
     carrying: integer("carrying", {
       mode: "boolean",
     }).default(false),
-    rarity: text("rarity").notNull(),
+    rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
   },
   (table) => {
