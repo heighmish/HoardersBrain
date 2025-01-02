@@ -68,7 +68,9 @@ const Inventory = () => {
       <View style={{ flex: 1 }}>
         <Button
           title="Add Container"
-          onPress={() => router.push("/CreateStorageForm")}
+          onPress={() => {
+            router.push("/CreateStorageForm");
+          }}
         />
       </View>
     </View>

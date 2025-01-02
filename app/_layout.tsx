@@ -48,6 +48,14 @@ export default function RootLayout() {
               headerTitle: "Create new storage",
             }}
           />
+
+          <Stack.Screen
+            name="CreateItemForm"
+            options={{
+              headerBackTitle: "Back",
+              headerTitle: "Create new item",
+            }}
+          />
         </Stack>
       </CharacterProvider>
     </DatabaseProvider>

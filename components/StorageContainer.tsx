@@ -1,12 +1,13 @@
 import { itemsTable, Storage } from "@/db/schema";
 import React from "react";
-import { Button, FlatList, StyleSheet, Text, View } from "react-native";
+import { Button, FlatList, Text, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import Badge from "./Basic/Badge";
+import { router } from "expo-router";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -31,17 +32,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             <Badge text={storage.rarity} colour={storage.rarity} />
             <Button
               title={"AddItem"}
-              onPress={async () => {
-                await db.insert(itemsTable).values({
-                  name: "Giant slayer",
-                  weight: 5,
-                  description: "WOW",
-                  rarity: "Common",
-                  quantity: 1,
-                  item_type: "weapon",
-                  character_id: storage.character_id,
-                  storage_location_id: storage.storage_location_id,
-                });
+              onPress={() => {
+                router.setParams({ storageId: storage.storage_location_id });
+                router.push("/CreateItemForm");
               }}
             />
           </View>
@@ -86,7 +79,5 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({});
 
 export default StorageContainer;
