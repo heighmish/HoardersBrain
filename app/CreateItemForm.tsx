@@ -87,7 +87,7 @@ const CreateItemForm = () => {
 
       <Text style={defaultStyles.inputLabel}>Weight?</Text>
       <NumericInput
-        value={itemInput.weight.toFixed(0)}
+        value={itemInput.weight.toFixed(2)}
         onChangeText={(text) =>
           setItemInput((prev) => ({
             ...prev,
@@ -97,13 +97,13 @@ const CreateItemForm = () => {
         buttonDecrement={() =>
           setItemInput((prev) => ({
             ...prev,
-            weight: Math.max(0, prev.weight - 1),
+            weight: Math.max(0, prev.weight - 0.5),
           }))
         }
         buttonIncrement={() =>
           setItemInput((prev) => ({
             ...prev,
-            weight: prev.weight + 1,
+            weight: prev.weight + 0.5,
           }))
         }
       />

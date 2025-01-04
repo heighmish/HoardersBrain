@@ -1,6 +1,12 @@
 import { Rarity } from "@/constants/databaseTypes";
 import { sql } from "drizzle-orm/sql";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  real,
+  text,
+} from "drizzle-orm/sqlite-core";
 
 export const charactersTable = sqliteTable("characters", {
   character_id: integer("character_id").primaryKey(),
@@ -25,7 +31,7 @@ export const itemsTable = sqliteTable(
     name: text("name").notNull(),
     description: text("description"),
     item_type: text("item_type").notNull(),
-    weight: integer("weight").notNull(),
+    weight: real("weight").notNull(),
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
     quantity: integer("quantity").default(1),
@@ -49,7 +55,7 @@ export const storageLocationsTable = sqliteTable(
       .notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    weight: integer("weight").notNull(),
+    weight: real("weight").notNull(),
     is_fixed_weight: integer("is_fixed_weight", {
       mode: "boolean",
     }).default(false),

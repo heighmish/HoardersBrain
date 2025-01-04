@@ -85,23 +85,23 @@ const CreateStorageForm = () => {
 
       <Text style={defaultStyles.inputLabel}>Weight?</Text>
       <NumericInput
-        value={storageInput.weight.toFixed(0)}
+        value={storageInput.weight.toFixed(2)}
         onChangeText={(text) =>
           setStorageInput((prev) => ({
             ...prev,
-            weight: text === "" ? 0 : Math.max(0, parseInt(text)),
+            weight: text === "" ? 0 : Math.max(0, parseFloat(text)),
           }))
         }
         buttonDecrement={() =>
           setStorageInput((prev) => ({
             ...prev,
-            weight: Math.max(0, prev.weight - 1),
+            weight: Math.max(0, prev.weight - 0.5),
           }))
         }
         buttonIncrement={() =>
           setStorageInput((prev) => ({
             ...prev,
-            weight: prev.weight + 1,
+            weight: prev.weight + 0.5,
           }))
         }
       />
