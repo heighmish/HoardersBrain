@@ -13,6 +13,27 @@ interface StorageContainerProps {
   storage: Storage;
 }
 
+const ItemListHeader = () => {
+  return (
+    <View
+      style={[
+        defaultStyles.flexRow,
+        {
+          justifyContent: "space-between",
+        },
+      ]}
+    >
+      <View style={{ flex: 7 }}>
+        <Text>Name</Text>
+      </View>
+      <View style={[defaultStyles.flexRow, { flex: 3, gap: Spacing.m }]}>
+        <Text>Qty</Text>
+        <Text>Weight</Text>
+      </View>
+    </View>
+  );
+};
+
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   const db = useDatabase();
   const items = useLiveQuery(
@@ -33,8 +54,12 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             <Button
               title={"AddItem"}
               onPress={() => {
-                router.setParams({ storageId: storage.storage_location_id });
-                router.push("/CreateItemForm");
+                router.push({
+                  pathname: "/CreateItemForm",
+                  params: {
+                    storageId: storage.storage_location_id,
+                  },
+                });
               }}
             />
           </View>
@@ -54,27 +79,11 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         </View>
       </View>
       <FlatList
-        data={items.data}
-        ListHeaderComponent={
-          <View
-            style={[
-              defaultStyles.flexRow,
-              {
-                justifyContent: "space-between",
-              },
-            ]}
-          >
-            <View style={{ flex: 7 }}>
-              <Text>Name</Text>
-            </View>
-            <View style={[defaultStyles.flexRow, { flex: 3, gap: Spacing.m }]}>
-              <Text>Qty</Text>
-              <Text>Weight</Text>
-            </View>
-          </View>
-        }
+        data={items.data.slice(0, 5)}
+        ListHeaderComponent={<ItemListHeader />}
         renderItem={({ item }) => <ItemComponent item={item} />}
         keyExtractor={(item) => item.item_id.toString()}
+        showsVerticalScrollIndicator={true}
       />
     </View>
   );

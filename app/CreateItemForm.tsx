@@ -5,7 +5,7 @@ import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { Item, itemsTable } from "@/db/schema";
 import { useCharacterContext } from "@/stores/CharacterContext";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   View,
@@ -20,6 +20,9 @@ type ItemInput = Omit<Item, "item_id">;
 const CreateItemForm = () => {
   const db = useDatabase();
   const character = useCharacterContext();
+  const { storageId } = useLocalSearchParams<{
+    storageId: string;
+  }>();
 
   const [itemInput, setItemInput] = useState<ItemInput>({
     name: "",
@@ -30,7 +33,7 @@ const CreateItemForm = () => {
     weight: 1,
     quantity: 1,
     item_type: "consumable",
-    storage_location_id: 0, // Read from somewhere
+    storage_location_id: Number(storageId),
   });
 
   const submit = async () => {
@@ -41,11 +44,10 @@ const CreateItemForm = () => {
     console.log(
       `[CreateItemForm]: Creating new item with ${JSON.stringify(itemInput)}...`,
     );
-    await db
-      .insert(itemsTable)
-      .values({ ...itemInput, storage_location_id: 1 });
+    await db.insert(itemsTable).values({ ...itemInput });
     router.back();
   };
+
   return (
     <View style={[defaultStyles.container, { gap: Spacing.s }]}>
       <TextInput
