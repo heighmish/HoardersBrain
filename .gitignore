@@ -20,3 +20,7 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 *.apk
+
+# Local native build directories
+/ios
+/android
