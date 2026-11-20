@@ -9,6 +9,7 @@ interface BadgeProps {
   tone?: BadgeTone;
   color?: string;
   filled?: boolean;
+  testID?: string;
 }
 
 const Badge: React.FC<BadgeProps> = ({
@@ -16,6 +17,7 @@ const Badge: React.FC<BadgeProps> = ({
   tone,
   color,
   filled = true,
+  testID,
 }) => {
   const theme = useTheme();
   const fillColor =
@@ -25,6 +27,7 @@ const Badge: React.FC<BadgeProps> = ({
 
   return (
     <View
+      testID={testID}
       style={{
         backgroundColor: filled ? fillColor : "transparent",
         borderColor: fillColor,

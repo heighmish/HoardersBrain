@@ -66,7 +66,7 @@ export const readableTextColor = (hex: string): string => {
     0.2126 * channelLuminance(r) +
     0.7152 * channelLuminance(g) +
     0.0722 * channelLuminance(b);
-  return luminance > 0.4 ? "#1B1B24" : "#FFFFFF";
+  return luminance > 0.2 ? "#1B1B24" : "#FFFFFF";
 };
 
 export const buildThemeColors = (
