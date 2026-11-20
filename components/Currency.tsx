@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Link } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface CurrencyProps {
   characterId: number;
@@ -41,27 +41,25 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     character.data.copper / 100;
 
   return (
-    <Link
-      href="/UpdateCurrencySheet"
-      testID="currency-card"
-      style={{ paddingLeft: Spacing.s }}
-    >
-      <View
-        style={[
-          defaultStyles.card,
-          defaultStyles.flexRow,
-          {
-            gap: Spacing.xs,
-            alignItems: "center",
-          },
-        ]}
-      >
-        <View>
-          <Text>Currency</Text>
-          <Text>{GoldValue.toFixed(2)}g</Text>
+    <Link href="/UpdateCurrencySheet" asChild>
+      <Pressable testID="currency-card" style={{ paddingLeft: Spacing.s }}>
+        <View
+          style={[
+            defaultStyles.card,
+            defaultStyles.flexRow,
+            {
+              gap: Spacing.xs,
+              alignItems: "center",
+            },
+          ]}
+        >
+          <View>
+            <Text>Currency</Text>
+            <Text>{GoldValue.toFixed(2)}g</Text>
+          </View>
+          <AntDesign name="right" />
         </View>
-        <AntDesign name="right" />
-      </View>
+      </Pressable>
     </Link>
   );
 };

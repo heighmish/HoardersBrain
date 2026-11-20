@@ -9,12 +9,24 @@ import { Link, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AntDesign } from "@expo/vector-icons";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
-import { useSelectedCharacter } from "@/stores/CharacterContext";
+import {
+  SelectedCharacter,
+  useCharacterContext,
+} from "@/stores/CharacterContext";
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 
 const Inventory = () => {
-  const character = useSelectedCharacter();
+  const { state } = useCharacterContext();
+
+  if (state.status !== "characterSelected") {
+    return null;
+  }
+
+  return <InventoryContent character={state.character} />;
+};
+
+const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const db = useDatabase();
 
   const storageLocations = useLiveQuery(
