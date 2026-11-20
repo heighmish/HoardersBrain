@@ -9,7 +9,7 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Text, View } from "react-native";
 import Badge from "./Basic/Badge";
 import { defaultStyles, Spacing } from "@/constants/Styles";
-import AntDesign from "@expo/vector-icons/build/AntDesign";
+import { AntDesign } from "@expo/vector-icons";
 
 interface CarryingProps {
   characterId: number;
@@ -94,7 +94,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   }
 
   return (
-    <View style={defaultStyles.card}>
+    <View style={defaultStyles.card} testID="encumbrance-card">
       <View
         style={[
           defaultStyles.flexRow,

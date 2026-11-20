@@ -1,7 +1,7 @@
 import { defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
-import AntDesign from "@expo/vector-icons/build/AntDesign";
+import { AntDesign } from "@expo/vector-icons";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Link } from "expo-router";
@@ -37,7 +37,11 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     character.data.copper / 100;
 
   return (
-    <Link href="/UpdateCurrencySheet" style={{ paddingLeft: Spacing.s }}>
+    <Link
+      href="/UpdateCurrencySheet"
+      testID="currency-card"
+      style={{ paddingLeft: Spacing.s }}
+    >
       <View
         style={[
           defaultStyles.card,

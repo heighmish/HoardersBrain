@@ -1,10 +1,10 @@
 import { Colours, defaultStyles } from "@/constants/Styles";
 import {
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -20,21 +20,25 @@ const NumericInput: React.FC<NumericInputProps> = ({
 }) => {
   return (
     <View style={[defaultStyles.flexRow]}>
-      <TouchableOpacity
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Decrement"
+        testID="numeric-decrement"
         onPressIn={buttonDecrement}
-        style={[
+        style={({ pressed }) => [
           styles.numberButton,
           {
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
             borderRightWidth: 0,
           },
+          pressed && { opacity: 0.6 },
         ]}
       >
         <Text style={[defaultStyles.buttonText, styles.numberButtonText]}>
           -
         </Text>
-      </TouchableOpacity>
+      </Pressable>
       <TextInput
         style={[
           defaultStyles.textInputSmall,
@@ -43,21 +47,25 @@ const NumericInput: React.FC<NumericInputProps> = ({
         keyboardType="numeric"
         {...props}
       />
-      <TouchableOpacity
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Increment"
+        testID="numeric-increment"
         onPressIn={buttonIncrement}
-        style={[
+        style={({ pressed }) => [
           styles.numberButton,
           {
             borderTopLeftRadius: 0,
             borderBottomLeftRadius: 0,
             borderLeftWidth: 0,
           },
+          pressed && { opacity: 0.6 },
         ]}
       >
         <Text style={[defaultStyles.buttonText, styles.numberButtonText]}>
           +
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };

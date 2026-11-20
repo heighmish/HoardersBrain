@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { storageLocationsTable } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -7,15 +7,14 @@ import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import AntDesign from "@expo/vector-icons/build/AntDesign";
-import { Spacing } from "@/constants/Styles";
+import { AntDesign } from "@expo/vector-icons";
+import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 
 const Inventory = () => {
   const characterContext = useCharacterContext();
-  console.log(characterContext.character.name);
   const db = useDatabase();
 
   const storageLocations = useLiveQuery(
@@ -37,6 +36,7 @@ const Inventory = () => {
             <Link
               href="/ChangeCharacterSheet"
               style={{ paddingLeft: Spacing.s }}
+              testID="character-switcher"
             >
               <Text>{characterContext.character.name.slice(0, 25)} </Text>
               <AntDesign name="down" size={12} color="black" />
@@ -66,12 +66,20 @@ const Inventory = () => {
         />
       </View>
       <View style={{ flex: 1 }}>
-        <Button
-          title="Add Container"
+        <Pressable
+          accessibilityRole="button"
+          testID="add-container-button"
           onPress={() => {
             router.push("/CreateStorageForm");
           }}
-        />
+          style={({ pressed }) => [
+            defaultStyles.pillButtonSmall,
+            { backgroundColor: Colours.primary },
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <Text style={defaultStyles.buttonText}>Add Container</Text>
+        </Pressable>
       </View>
     </View>
   );

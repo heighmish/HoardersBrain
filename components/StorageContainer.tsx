@@ -1,6 +1,6 @@
 import { itemsTable, Storage } from "@/db/schema";
 import React from "react";
-import { Button, FlatList, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -43,7 +43,10 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   );
 
   return (
-    <View style={defaultStyles.card}>
+    <View
+      style={defaultStyles.card}
+      testID={`container-card-${storage.storage_location_id}`}
+    >
       <View>
         <View
           style={[defaultStyles.flexRow, { justifyContent: "space-between" }]}
@@ -51,8 +54,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           <Text style={defaultStyles.heading1}>{storage.name} </Text>
           <View style={[defaultStyles.flexRow, { gap: Spacing.s }]}>
             <Badge text={storage.rarity} colour={storage.rarity} />
-            <Button
-              title={"AddItem"}
+            <Pressable
+              accessibilityRole="button"
+              testID={`add-item-button-${storage.storage_location_id}`}
               onPress={() => {
                 router.push({
                   pathname: "/CreateItemForm",
@@ -61,7 +65,14 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
                   },
                 });
               }}
-            />
+              style={({ pressed }) => [
+                defaultStyles.pillButtonSmall,
+                { backgroundColor: Colours.primary },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Text style={defaultStyles.buttonText}>AddItem</Text>
+            </Pressable>
           </View>
         </View>
         <View

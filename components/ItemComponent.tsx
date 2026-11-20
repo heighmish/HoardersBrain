@@ -15,16 +15,12 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
           justifyContent: "space-between",
         },
       ]}
+      testID={`item-row-${item.item_id}`}
     >
       <View style={{ flex: 8 }}>
         <Text>{item.name}</Text>
       </View>
-      <View
-        style={[
-          defaultStyles.flexRow,
-          { flex: 2, gap: Spacing.m, backgroundColor: "green" },
-        ]}
-      >
+      <View style={[defaultStyles.flexRow, { flex: 2, gap: Spacing.m }]}>
         <Text>{item.quantity}</Text>
         <Text>{item.weight}</Text>
       </View>
