@@ -30,7 +30,7 @@ Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens
 - [ ] Theme settings sheet: mode switch, preset picker, custom palette editor
 - [ ] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
 - [ ] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
-- [ ] App icon: open fantasy chest holding a glowing brain amid assorted loot, purple-forward (concepts in review; asset swap after the pick)
+- [ ] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood, flavor naming, empty-state copy. No icon or image asset work in this phase
 - [ ] TOKENS.md theming guide so Phase 1 screens consume the token API from day one
 
 ## Phase 1 — CRUD completeness *(M)*
@@ -186,4 +186,4 @@ History of item and currency changes per character.
 - **Party view** (Nov 2026) — deferred until the networking/auth chapter, together with multiplayer sync (icebox).
 - **Container deletion** (Nov 2026) — deleting a non-empty container moves its items to the character's On Person container; nothing is destroyed implicitly.
 - **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on) ships with Phase 1 despite the phase's no-schema note.
-- **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Icon: an open fantasy chest holding a brain amid scattered loot.
+- **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Brand concept (not an asset task): an open fantasy chest holding a brain amid scattered loot.
