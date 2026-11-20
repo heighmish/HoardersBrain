@@ -3,14 +3,18 @@ import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
+import {
+  StorageInput,
+  updateStorageContainer,
+} from "@/components/storageLifecycle";
 import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useTheme } from "@/stores/ThemeContext";
 import { Storage, storageLocationsTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -19,25 +23,90 @@ import {
   Switch,
   View,
 } from "react-native";
+import { eq } from "drizzle-orm";
 
-type StorageInput = Omit<Storage, "storage_location_id" | "weight">;
+const parseStorageId = (raw: string | undefined): number | null => {
+  if (raw === undefined) {
+    return null;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
 
 const CreateStorageForm = () => {
+  const { storageId } = useLocalSearchParams<{ storageId?: string }>();
+  const editingId = parseStorageId(storageId);
+
+  if (editingId === null) {
+    return <StorageForm initialStorage={null} />;
+  }
+  return <EditStorageLoader storageId={editingId} />;
+};
+
+const EditStorageLoader = ({ storageId }: { storageId: number }) => {
+  const theme = useTheme();
+  const db = useDatabase();
+
+  const [loadedStorage, setLoadedStorage] = useState<Storage | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    const loadStorage = async () => {
+      const row = await db.query.storageLocationsTable.findFirst({
+        where: eq(storageLocationsTable.storage_location_id, storageId),
+      });
+      setLoadedStorage(row ?? null);
+    };
+    loadStorage();
+  }, [db, storageId]);
+
+  if (loadedStorage === undefined) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
+    );
+  }
+
+  if (loadedStorage === null) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          padding: theme.spacing.md,
+          backgroundColor: theme.colors.background,
+        }}
+      >
+        <ThemedText variant="body">Storage container not found.</ThemedText>
+      </View>
+    );
+  }
+
+  return <StorageForm initialStorage={loadedStorage} />;
+};
+
+interface StorageFormProps {
+  initialStorage: Storage | null;
+}
+
+const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const theme = useTheme();
   const db = useDatabase();
   const character = useSelectedCharacter();
+  const isEditing = initialStorage !== null;
 
   const [storageInput, setStorageInput] = useState<StorageInput>({
-    name: "",
-    description: null,
-    carrying: true,
-    rarity: "Common",
-    character_id: character.id,
-    is_fixed_weight: false,
-    properties: null,
+    name: initialStorage?.name ?? "",
+    description: initialStorage?.description ?? null,
+    carrying: initialStorage?.carrying ?? true,
+    rarity: initialStorage?.rarity ?? "Common",
+    character_id: initialStorage?.character_id ?? character.id,
+    is_fixed_weight: initialStorage?.is_fixed_weight ?? false,
+    properties: initialStorage?.properties ?? null,
   });
 
-  const [weightText, setWeightText] = useState("0");
+  const [weightText, setWeightText] = useState(
+    initialStorage === null ? "0" : String(initialStorage.weight),
+  );
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
@@ -48,10 +117,20 @@ const CreateStorageForm = () => {
       return;
     }
 
-    await db.insert(storageLocationsTable).values({
+    const values = {
       ...storageInput,
       weight: Math.max(0, parseFloat(weightText) || 0),
-    });
+    };
+
+    if (initialStorage === null) {
+      await db.insert(storageLocationsTable).values(values);
+    } else {
+      updateStorageContainer(
+        db,
+        initialStorage.storage_location_id,
+        values,
+      );
+    }
     router.back();
   };
 
@@ -60,6 +139,11 @@ const CreateStorageForm = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
+      <Stack.Screen
+        options={{
+          headerTitle: isEditing ? "Edit storage" : "Create new storage",
+        }}
+      />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -178,9 +262,9 @@ const CreateStorageForm = () => {
         </Pressable>
 
         <Button
-          title="Create"
+          title={isEditing ? "Save" : "Create"}
           onPress={submit}
-          testID="create-storage-button"
+          testID={isEditing ? "save-storage-button" : "create-storage-button"}
           style={{ alignSelf: "stretch" }}
         />
       </ScrollView>
