@@ -1,1 +1,0 @@
-ALTER TABLE `storage_locations` ADD `carrying` integer;

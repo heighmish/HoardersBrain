@@ -1,6 +1,7 @@
 import { Rarity } from "@/constants/databaseTypes";
 import { sql } from "drizzle-orm/sql";
 import {
+  check,
   index,
   integer,
   sqliteTable,
@@ -22,7 +23,7 @@ export const itemsTable = sqliteTable(
   "items",
   {
     item_id: integer("item_id").primaryKey(),
-    storage_location_id: integer("container_id")
+    storage_location_id: integer("storage_location_id")
       .references(() => storageLocationsTable.storage_location_id)
       .notNull(),
     character_id: integer("character_id")
@@ -34,16 +35,19 @@ export const itemsTable = sqliteTable(
     weight: real("weight").notNull(),
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
-    quantity: integer("quantity").default(1),
+    quantity: integer("quantity").default(1).notNull(),
   },
-  (table) => {
-    return {
-      charIdx: index("idx_items_char_storage").on(
-        table.character_id,
-        table.storage_location_id,
-      ),
-    };
-  },
+  (table) => [
+    index("idx_items_char_storage").on(
+      table.character_id,
+      table.storage_location_id,
+    ),
+    check("items_weight_nonnegative", sql`${table.weight} >= 0`),
+    check(
+      "items_rarity_valid",
+      sql`${table.rarity} IN ('Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary')`,
+    ),
+  ],
 );
 
 export const storageLocationsTable = sqliteTable(
@@ -58,18 +62,21 @@ export const storageLocationsTable = sqliteTable(
     weight: real("weight").notNull(),
     is_fixed_weight: integer("is_fixed_weight", {
       mode: "boolean",
-    }).default(false),
-    carrying: integer("carrying", {
-      mode: "boolean",
-    }).default(false),
+    })
+      .default(false)
+      .notNull(),
+    carrying: integer("carrying", { mode: "boolean" }).default(false).notNull(),
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
   },
-  (table) => {
-    return {
-      charIdx: index("idx_storage_char").on(table.character_id),
-    };
-  },
+  (table) => [
+    index("idx_storage_char").on(table.character_id),
+    check("storage_weight_nonnegative", sql`${table.weight} >= 0`),
+    check(
+      "storage_rarity_valid",
+      sql`${table.rarity} IN ('Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary')`,
+    ),
+  ],
 );
 
 export const ledger = sqliteTable("ledger", {

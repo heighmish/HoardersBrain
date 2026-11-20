@@ -4,7 +4,7 @@ import { RarityArray } from "@/constants/databaseTypes";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { Storage, storageLocationsTable } from "@/db/schema";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -18,24 +18,22 @@ import {
   View,
 } from "react-native";
 
-type StorageInput = Omit<Storage, "storage_location_id">;
+type StorageInput = Omit<Storage, "storage_location_id" | "weight">;
 
 const CreateStorageForm = () => {
   const db = useDatabase();
-  const character = useCharacterContext();
+  const character = useSelectedCharacter();
 
   const [storageInput, setStorageInput] = useState<StorageInput>({
     name: "",
     description: null,
     carrying: true,
     rarity: "Common",
-    character_id: character.character.id,
+    character_id: character.id,
     is_fixed_weight: false,
     properties: null,
-    weight: 0,
   });
 
-  // Raw text so decimals like "1.5" survive typing; parsed on submit.
   const [weightText, setWeightText] = useState("0");
 
   const adjustWeight = (delta: number) => {
@@ -122,7 +120,7 @@ const CreateStorageForm = () => {
             pressed && { opacity: 0.6 },
           ]}
           accessibilityRole="switch"
-          accessibilityState={{ checked: storageInput.is_fixed_weight ?? false }}
+          accessibilityState={{ checked: storageInput.is_fixed_weight }}
           testID="fixed-weight-toggle"
           onPress={() =>
             setStorageInput((prev) => ({
@@ -147,7 +145,7 @@ const CreateStorageForm = () => {
             pressed && { opacity: 0.6 },
           ]}
           accessibilityRole="switch"
-          accessibilityState={{ checked: storageInput.carrying ?? false }}
+          accessibilityState={{ checked: storageInput.carrying }}
           testID="carrying-toggle"
           onPress={() =>
             setStorageInput((prev) => ({

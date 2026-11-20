@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0a90064a-42eb-485d-8c19-1a7821dbfa1a",
+  "id": "016a5fc6-850f-44c5-9df0-e8941ac7c33a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "characters": {
@@ -78,8 +78,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "container_id": {
-          "name": "container_id",
+        "storage_location_id": {
+          "name": "storage_location_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -115,7 +115,7 @@
         },
         "weight": {
           "name": "weight",
-          "type": "integer",
+          "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -125,7 +125,8 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "'Common'"
         },
         "properties": {
           "name": "properties",
@@ -138,7 +139,7 @@
           "name": "quantity",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": 1
         }
@@ -148,18 +149,18 @@
           "name": "idx_items_char_storage",
           "columns": [
             "character_id",
-            "container_id"
+            "storage_location_id"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "items_container_id_storage_locations_storage_location_id_fk": {
-          "name": "items_container_id_storage_locations_storage_location_id_fk",
+        "items_storage_location_id_storage_locations_storage_location_id_fk": {
+          "name": "items_storage_location_id_storage_locations_storage_location_id_fk",
           "tableFrom": "items",
           "tableTo": "storage_locations",
           "columnsFrom": [
-            "container_id"
+            "storage_location_id"
           ],
           "columnsTo": [
             "storage_location_id"
@@ -183,7 +184,16 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "items_weight_nonnegative": {
+          "name": "items_weight_nonnegative",
+          "value": "\"items\".\"weight\" >= 0"
+        },
+        "items_rarity_valid": {
+          "name": "items_rarity_valid",
+          "value": "\"items\".\"rarity\" IN ('Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary')"
+        }
+      }
     },
     "ledger": {
       "name": "ledger",
@@ -271,7 +281,7 @@
         },
         "weight": {
           "name": "weight",
-          "type": "integer",
+          "type": "real",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -280,7 +290,15 @@
           "name": "is_fixed_weight",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "carrying": {
+          "name": "carrying",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false,
           "default": false
         },
@@ -289,7 +307,8 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "'Common'"
         },
         "properties": {
           "name": "properties",
@@ -325,7 +344,16 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "storage_weight_nonnegative": {
+          "name": "storage_weight_nonnegative",
+          "value": "\"storage_locations\".\"weight\" >= 0"
+        },
+        "storage_rarity_valid": {
+          "name": "storage_rarity_valid",
+          "value": "\"storage_locations\".\"rarity\" IN ('Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary')"
+        }
+      }
     }
   },
   "views": {},

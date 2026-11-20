@@ -4,6 +4,7 @@ import React, {
   createContext,
   ReactNode,
   useContext,
+  useEffect,
   useState,
 } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
@@ -28,6 +29,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
       enableChangeListener: true,
     });
+    sqliteDb.execSync("PRAGMA journal_mode = WAL;");
     return {
       db: drizzle(sqliteDb, {
         schema: schema,
@@ -43,6 +45,12 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   }
 
   useDrizzleStudio(sqliteDb);
+
+  useEffect(() => {
+    if (success) {
+      sqliteDb.execSync("PRAGMA foreign_keys = ON;");
+    }
+  }, [success, sqliteDb]);
 
   // Gate children on completed migrations so nothing queries the
   // database before its schema exists (matters on first launch).
