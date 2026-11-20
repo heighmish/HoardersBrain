@@ -24,6 +24,28 @@ npx expo install --fix      # fix incompatible package versions
 
 Run `npm run check` (lint + typecheck) before declaring any task done.
 
+## E2E testing with Maestro
+
+Flows live in `.maestro/`. They run against a booted simulator with the dev build installed; a Metro server on port 8081 serves this repo — reuse the running instance, never start a second one. The CLI is not on PATH:
+
+```bash
+~/.maestro/bin/maestro test .maestro/create-storage-e2e.yaml --platform ios
+```
+
+- Each flow takes ~1.5–2 minutes. The cost is `launchApp` with `clearState: true` re-downloading the bundle, not the tap-through — run flows serially and only when needed.
+- Harden the first assertion after every `launchApp` with `extendedWaitUntil` (timeout 60000). Bare `assertVisible` races the bundle download and flakes.
+- Assert on text and testIDs only, never colors or pixels.
+- Keep visible labels and testIDs stable across UI changes. If a change must break one, update the affected flow in the same commit.
+- New flows use `appId: com.heighmish.HoardersBrain`, the `e2e` tag, and a descriptive `name:`.
+
+### Test cadence
+
+Run the minimum that proves your change:
+
+- While developing: `npm run check` (~15s)
+- Before reporting a feature done: that feature's own flow only (~2 min)
+- Full regression suite: phase boundaries and merges into `main`, run by the coordinating agent — not per change
+
 ## Commit messages
 
 Use conventional commit messages: `type(scope): summary`. Valid types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. The scope is optional.
@@ -50,3 +72,13 @@ Docs: https://docs.expo.dev/eas/index.md
 
 - Prefer `const` over `let`; use early returns where they read well.
 - Avoid the `any` type.
+
+## Working as a delegated agent
+
+This repo is often worked on by several agents in parallel. When a task arrives with an explicit scope:
+
+- Touch only the files your task owns. Shared files (`app/_layout.tsx`, `ROADMAP.md`) are merged centrally — keep edits there minimal.
+- Exactly one agent owns schema changes at a time. Never run `drizzle-kit generate` unless your task explicitly grants migration ownership; concurrent generations corrupt the drizzle journal.
+- A solo agent works directly on a feature branch in the main tree (Metro serves it for E2E). Parallel agents work in separate worktrees and leave device flows to the coordinator, who runs E2E serially after each merge.
+- Commit small conventional commits on your branch. Tick the `ROADMAP.md` checkboxes for items you completed.
+- Report done only when `npm run check` passes and your feature's own flow is green.
