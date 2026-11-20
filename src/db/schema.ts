@@ -17,6 +17,9 @@ export const charactersTable = sqliteTable("characters", {
   gold: integer("gold").default(0).notNull(),
   platinum: integer("platinum").default(0).notNull(),
   max_encumbrance: integer("max_encumbrance").default(100).notNull(),
+  weight_tracking: integer("weight_tracking", { mode: "boolean" })
+    .default(true)
+    .notNull(),
 });
 
 export const itemsTable = sqliteTable(

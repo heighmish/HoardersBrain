@@ -1,0 +1,1 @@
+ALTER TABLE `characters` ADD `weight_tracking` integer DEFAULT true NOT NULL;
