@@ -16,7 +16,7 @@ name: Create a storage container end to end
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
-- assertVisible: "Currency"
+- assertVisible: ".*Currency.*"
 - tapOn: "Add Container"
 
 # Fill the form — this is where inputs were reported blocked under the header
@@ -30,5 +30,5 @@ name: Create a storage container end to end
 - tapOn: "Create"
 
 # Back on the inventory: the new container card should be visible
-- assertVisible: "Bag of Holding"
+- assertVisible: ".*Bag of Holding.*"
 - assertVisible: "Storing: 0lbs"

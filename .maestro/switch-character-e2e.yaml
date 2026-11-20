@@ -1,0 +1,44 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - switch-character
+name: Switch characters end to end
+---
+# Exercises the character sheet: create a character, open the switcher sheet,
+# clear the selection ("Create new character"), create a second character,
+# and confirm the inventory now belongs to the new one.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- assertVisible: ".*QA Hero.*"
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Second"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*QA Second.*"
+    timeout: 30000

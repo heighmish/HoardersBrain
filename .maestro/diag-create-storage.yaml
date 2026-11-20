@@ -21,7 +21,7 @@ name: Create storage form diagnostic
 
 # Inventory (tabs) screen
 - extendedWaitUntil:
-    visible: "Currency"
+    visible: ".*Currency.*"
     timeout: 20000
 - assertVisible: "Encumbrance"
 - tapOn: "Add Container"

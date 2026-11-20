@@ -1,0 +1,55 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - create-item
+name: Create an item end to end
+---
+# Full journey: create character, create storage, create an item inside it,
+# and see the item row rendered on the inventory.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- tapOn: "Add Container"
+
+- extendedWaitUntil:
+    visible: "Description"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Bag of Holding"
+- tapOn: "Uncommon"
+- tapOn: "Create"
+
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- tapOn: "AddItem"
+
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Rope of Climbing"
+- tapOn:
+    text: "Description"
+- inputText: "50 feet of hemp"
+- tapOn: "Uncommon"
+- tapOn:
+    id: numeric-increment
+- tapOn: "Create"
+
+- assertVisible: "Rope of Climbing"
+- assertVisible: "1.5"
