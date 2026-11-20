@@ -6,7 +6,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
   const theme = useTheme();
@@ -41,24 +41,10 @@ const ChangeCharacterSheet = () => {
         paddingHorizontal: theme.spacing.md,
       }}
     >
-      <FlatList
-        contentContainerStyle={{ gap: theme.spacing.md }}
-        data={characters.data}
-        ListFooterComponent={() => (
-          <Button
-            title="Create new character"
-            variant="secondary"
-            fullWidth
-            onPress={async () => {
-              await AsyncStorage.removeItem(LAST_CHARACTER_ID);
-              clearCharacter();
-              router.replace("/");
-            }}
-            testID="create-new-character-button"
-          />
-        )}
-        renderItem={({ item }) => (
+      <View style={{ gap: theme.spacing.md }}>
+        {characters.data.map((item) => (
           <Pressable
+            key={item.character_id}
             accessibilityRole="button"
             testID={`character-row-${item.character_id}`}
             onPress={async () => {
@@ -100,8 +86,19 @@ const ChangeCharacterSheet = () => {
               />
             </View>
           </Pressable>
-        )}
-      />
+        ))}
+        <Button
+          title="Create new character"
+          variant="secondary"
+          fullWidth
+          onPress={async () => {
+            await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+            clearCharacter();
+            router.replace("/");
+          }}
+          testID="create-new-character-button"
+        />
+      </View>
     </View>
   );
 };

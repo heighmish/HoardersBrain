@@ -98,9 +98,10 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       <View
         style={{
           paddingTop: theme.spacing.sm,
+          flex: 1,
           display: "flex",
-          flexDirection: "column",
-          gap: theme.spacing.sm,
+          flexDirection: "row",
+          justifyContent: "space-between",
         }}
       >
         <Currency characterId={character.id} />

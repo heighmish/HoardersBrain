@@ -26,8 +26,8 @@ Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens
 
 - [x] Semantic token layer (background, surface, text, accent, feedback, border) + ThemeProvider honoring `userInterfaceStyle: "automatic"`, with a persisted System/Light/Dark override
 - [x] Presets as data: a mind-flayer-purple default plus well-known palettes (Dracula, Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants where the source palette defines them
-- [x] Custom palettes: named user-defined palettes, created and edited in-app, persisted app-level
-- [x] Theme settings sheet: mode switch, preset picker, custom palette editor
+- [ ] Custom palettes: deferred (Nov 2026) — data layer and ThemeContext API stay in as the baseline; the editor UI is dropped until presets and dark mode mature
+- [x] Theme settings sheet: mode switch, preset picker (custom palette editor removed with the deferral)
 - [x] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
 - [x] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
 - [x] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood, flavor naming, empty-state copy. No icon or image asset work in this phase
@@ -188,5 +188,6 @@ History of item and currency changes per character.
 - **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on) ships with Phase 1 despite the phase's no-schema note.
 - **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Brand concept (not an asset task): an open fantasy chest holding a brain amid scattered loot.
 - **Testing architecture** (Nov 2026) — jest-expo + better-sqlite3 in-memory is the fast verification loop for all agents (unit-first ladder in AGENTS.md). Maestro E2E covers golden paths at merge gates against a stable build, never as a work-in-progress tool; a QA release build replaces the dev build as the E2E target. No CI E2E yet.
-- **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach. The inventory summary arrangement (currency + encumbrance cards) is a deliberate placeholder (currently stacked) awaiting an owner design pass; encumbrance stays optional-tier (Phase 1's weight-tracking toggle hides the Carrying card).
+- **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach. The inventory summary arrangement stays the owner's original compact side-by-side cards until a proper design pass; encumbrance stays optional-tier (Phase 1's weight-tracking toggle hides the Carrying card).
+- **Custom palettes deferred** (Nov 2026) — editor UI dropped to keep the theme sheet simple; presets + mode switching are the focus for now. The palette data layer and ThemeContext API remain, so custom themes can return without schema work.
 - **Agent-written copy banned** (Nov 2026) — agents write functional labels and placeholders only; taglines, flavor, and empty-state prose are owner-written or approved. The Phase 0.5 flavor strings were removed.

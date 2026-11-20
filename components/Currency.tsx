@@ -52,7 +52,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
                 boxShadow: theme.shadows.card,
                 borderRadius: theme.radius.lg,
                 borderCurve: "continuous",
-                padding: theme.spacing.md,
+                padding: theme.spacing.sm,
                 flexDirection: "row",
                 gap: theme.spacing.xs,
                 alignItems: "center",
@@ -61,9 +61,9 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
             ]}
           >
             <View>
-              <Text style={theme.type.subhead}>Currency</Text>
+              <Text style={theme.type.caption}>Currency</Text>
               <Text
-                style={[theme.type.headline, { fontVariant: ["tabular-nums"] }]}
+                style={[theme.type.subhead, { fontVariant: ["tabular-nums"] }]}
               >
                 {GoldValue.toFixed(2)}g
               </Text>

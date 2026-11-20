@@ -6,11 +6,9 @@ import { CharacterProvider } from "@/stores/CharacterContext";
 import { ThemeProvider } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  act,
   fireEvent,
   render,
   screen,
-  waitFor,
 } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
@@ -97,38 +95,6 @@ describe("ThemeSettingsSheet", () => {
     await screen.findByText("Mind Flayer · System");
     fireEvent.press(screen.getByTestId("theme-preset-dracula"));
     await screen.findByText("Dracula · System");
-  });
-
-  test("creates, saves, and selects a custom palette", async () => {
-    storedTheme({ presetId: "mind-flayer", mode: "dark", customPalettes: [] });
-    await renderSheet();
-    await screen.findByText("Mind Flayer · Dark");
-
-    fireEvent.press(screen.getByTestId("new-custom-palette"));
-    const nameInput = await screen.findByTestId("custom-palette-name-input");
-    const saveButton = screen.getByTestId("save-custom-palette");
-    expect(saveButton.props.accessibilityState.disabled).toBe(true);
-
-    await act(async () => {
-      fireEvent.changeText(nameInput, "My Hoard");
-    });
-    expect(
-      screen.getByTestId("save-custom-palette").props.accessibilityState
-        .disabled,
-    ).toBe(false);
-    fireEvent.press(saveButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("My Hoard · Dark")).toBeTruthy();
-    });
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-      THEME_SETTINGS,
-      expect.stringMatching(/"presetId":"custom:/),
-    );
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-      THEME_SETTINGS,
-      expect.stringMatching(/"name":"My Hoard"/),
-    );
   });
 });
 

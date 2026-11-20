@@ -57,7 +57,9 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": ["<rootDir>/jest.setup.ts"],
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     },
@@ -68,5 +70,8 @@
   "lint-staged": {
     "*.{ts,tsx}": "oxlint"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true
+  }
 }

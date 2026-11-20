@@ -109,7 +109,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
         boxShadow: theme.shadows.card,
         borderRadius: theme.radius.lg,
         borderCurve: "continuous",
-        padding: theme.spacing.md,
+        padding: theme.spacing.sm,
         flexDirection: "row",
         gap: theme.spacing.xs,
         alignItems: "center",
@@ -126,7 +126,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
         />
         <Text
           style={[
-            theme.type.subhead,
+            theme.type.caption,
             { color: theme.colors.text, fontVariant: ["tabular-nums"] },
           ]}
         >
