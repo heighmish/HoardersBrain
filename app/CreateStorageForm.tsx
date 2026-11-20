@@ -1,11 +1,12 @@
 import Badge from "@/components/Basic/Badge";
+import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
+import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
-import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
+import { useTheme } from "@/stores/ThemeContext";
 import { Storage, storageLocationsTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
-import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -21,6 +23,7 @@ import {
 type StorageInput = Omit<Storage, "storage_location_id" | "weight">;
 
 const CreateStorageForm = () => {
+  const theme = useTheme();
   const db = useDatabase();
   const character = useSelectedCharacter();
 
@@ -55,15 +58,29 @@ const CreateStorageForm = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: Spacing.m, gap: Spacing.s }}
+        contentContainerStyle={{
+          padding: theme.spacing.md,
+          gap: theme.spacing.sm,
+        }}
       >
         <TextInput
-          style={defaultStyles.textInputSmall}
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+            fontSize: 17,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
           placeholder="Name"
           value={storageInput.name}
           testID="storage-name-input"
@@ -72,7 +89,18 @@ const CreateStorageForm = () => {
           }
         />
         <TextInput
-          style={defaultStyles.textInputSmall}
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+            fontSize: 17,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
           placeholder="Description"
           value={storageInput.description ?? ""}
           testID="storage-description-input"
@@ -81,7 +109,7 @@ const CreateStorageForm = () => {
           }
         />
 
-        <View style={defaultStyles.flexRow}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
           {RarityArray.map((rarity) => (
             <Pressable
               onPress={() =>
@@ -97,14 +125,14 @@ const CreateStorageForm = () => {
             >
               <Badge
                 text={rarity}
-                colour={rarity}
+                color={rarityColors[rarity]}
                 filled={storageInput.rarity === rarity}
               />
             </Pressable>
           ))}
         </View>
 
-        <Text style={defaultStyles.inputLabel}>Weight?</Text>
+        <Text style={theme.type.headline}>Weight?</Text>
         <NumericInput
           value={weightText}
           testID="storage-weight-input"
@@ -114,14 +142,9 @@ const CreateStorageForm = () => {
         />
 
         <Pressable
-          style={({ pressed }) => [
-            defaultStyles.flexRow,
-            { gap: Spacing.m },
-            pressed && { opacity: 0.6 },
-          ]}
+          style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}
           accessibilityRole="switch"
           accessibilityState={{ checked: storageInput.is_fixed_weight }}
-          testID="fixed-weight-toggle"
           onPress={() =>
             setStorageInput((prev) => ({
               ...prev,
@@ -129,24 +152,29 @@ const CreateStorageForm = () => {
             }))
           }
         >
-          <Text style={defaultStyles.inputLabel}>
+          <Text style={theme.type.body}>
             Does the storage have a fixed weight?
           </Text>
-          <AntDesign
-            name={storageInput.is_fixed_weight ? "check-square" : "border"}
-            size={20}
+          <Switch
+            value={storageInput.is_fixed_weight}
+            onValueChange={(value) =>
+              setStorageInput((prev) => ({
+                ...prev,
+                is_fixed_weight: value,
+              }))
+            }
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.accent,
+            }}
+            testID="fixed-weight-toggle"
           />
         </Pressable>
 
         <Pressable
-          style={({ pressed }) => [
-            defaultStyles.flexRow,
-            { gap: Spacing.m },
-            pressed && { opacity: 0.6 },
-          ]}
+          style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}
           accessibilityRole="switch"
           accessibilityState={{ checked: storageInput.carrying }}
-          testID="carrying-toggle"
           onPress={() =>
             setStorageInput((prev) => ({
               ...prev,
@@ -154,27 +182,31 @@ const CreateStorageForm = () => {
             }))
           }
         >
-          <Text style={defaultStyles.inputLabel}>
+          <Text style={theme.type.body}>
             Are you carrying the storage?
           </Text>
-          <AntDesign
-            name={storageInput.carrying ? "check-square" : "border"}
-            size={20}
+          <Switch
+            value={storageInput.carrying}
+            onValueChange={(value) =>
+              setStorageInput((prev) => ({
+                ...prev,
+                carrying: value,
+              }))
+            }
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.accent,
+            }}
+            testID="carrying-toggle"
           />
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          testID="create-storage-button"
+        <Button
+          title="Create"
           onPress={submit}
-          style={({ pressed }) => [
-            defaultStyles.pillButtonSmall,
-            { backgroundColor: Colours.primary },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Text>Create</Text>
-        </Pressable>
+          testID="create-storage-button"
+          style={{ alignSelf: "stretch" }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

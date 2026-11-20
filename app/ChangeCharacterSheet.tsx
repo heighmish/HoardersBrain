@@ -1,21 +1,29 @@
+import Button from "@/components/Basic/Button";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
-import { Colours, Spacing, defaultStyles } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useCharacterContext } from "@/stores/CharacterContext";
+import { useTheme } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
+  const theme = useTheme();
   const db = useDatabase();
   const characters = useLiveQuery(db.query.charactersTable.findMany());
   const { state, selectCharacter, clearCharacter } = useCharacterContext();
 
   if (characters.error) {
     return (
-      <View style={[{ marginTop: Spacing.m, marginBottom: Spacing.l }]}>
-        <Text>Failed to load characters</Text>
+      <View
+        style={{
+          marginTop: theme.spacing.md,
+          marginBottom: theme.spacing.lg,
+          backgroundColor: theme.colors.surface,
+        }}
+      >
+        <Text style={theme.type.body}>Failed to load characters</Text>
       </View>
     );
   }
@@ -25,27 +33,28 @@ const ChangeCharacterSheet = () => {
   }
 
   return (
-    <View style={[{ marginTop: Spacing.m, marginBottom: Spacing.l }]}>
+    <View
+      style={{
+        marginTop: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        backgroundColor: theme.colors.surface,
+        paddingHorizontal: theme.spacing.md,
+      }}
+    >
       <FlatList
-        style={{ paddingEnd: Spacing.m }}
-        contentContainerStyle={{ gap: Spacing.l }}
+        contentContainerStyle={{ gap: theme.spacing.md }}
         data={characters.data}
         ListFooterComponent={() => (
-          <Pressable
-            accessibilityRole="button"
-            testID="create-new-character-button"
+          <Button
+            title="Create new character"
+            variant="secondary"
             onPress={async () => {
               await AsyncStorage.removeItem(LAST_CHARACTER_ID);
               clearCharacter();
               router.replace("/");
             }}
-            style={[
-              defaultStyles.pillButtonSmall,
-              { backgroundColor: Colours.primary },
-            ]}
-          >
-            <Text>Create new character</Text>
-          </Pressable>
+            testID="create-new-character-button"
+          />
         )}
         renderItem={({ item }) => (
           <Pressable
@@ -63,19 +72,30 @@ const ChangeCharacterSheet = () => {
               router.back();
             }}
           >
-            <View style={[defaultStyles.flexRow, styles.characterRow]}>
-              <Text>{item.name}</Text>
+            <View
+              style={{
+                flexDirection: "row",
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                width: "100%",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={theme.type.body}>{item.name}</Text>
               <View
-                style={[
-                  styles.circle,
-                  {
-                    backgroundColor:
-                      state.status === "characterSelected" &&
-                      state.character.id === item.character_id
-                        ? "black"
-                        : "white",
-                  },
-                ]}
+                style={{
+                  backgroundColor:
+                    state.status === "characterSelected" &&
+                    state.character.id === item.character_id
+                      ? theme.colors.accent
+                      : "transparent",
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                  height: 25,
+                  width: 25,
+                  borderRadius: 50,
+                }}
               />
             </View>
           </Pressable>
@@ -84,20 +104,5 @@ const ChangeCharacterSheet = () => {
     </View>
   );
 };
-const styles = StyleSheet.create({
-  characterRow: {
-    paddingHorizontal: Spacing.l,
-    width: "100%",
-    justifyContent: "space-between",
-    alignContent: "center",
-    alignItems: "center",
-  },
-  circle: {
-    borderColor: "black",
-    borderWidth: 1,
-    height: 25,
-    width: 25,
-    borderRadius: 50,
-  },
-});
+
 export default ChangeCharacterSheet;

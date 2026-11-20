@@ -1,4 +1,4 @@
-import { Colours, defaultStyles } from "@/constants/Styles";
+import { useTheme } from "@/stores/ThemeContext";
 import {
   Pressable,
   StyleSheet,
@@ -18,8 +18,10 @@ const NumericInput: React.FC<NumericInputProps> = ({
   buttonDecrement,
   ...props
 }) => {
+  const theme = useTheme();
+
   return (
-    <View style={[defaultStyles.flexRow]}>
+    <View style={[styles.group, { borderColor: theme.colors.border }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Decrement"
@@ -27,24 +29,26 @@ const NumericInput: React.FC<NumericInputProps> = ({
         onPressIn={buttonDecrement}
         style={({ pressed }) => [
           styles.numberButton,
-          {
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            borderRightWidth: 0,
-          },
+          styles.numberButtonLeft,
           pressed && { opacity: 0.6 },
         ]}
       >
-        <Text style={[defaultStyles.buttonText, styles.numberButtonText]}>
+        <Text
+          style={[styles.numberButtonText, { color: theme.colors.accent }]}
+        >
           -
         </Text>
       </Pressable>
       <TextInput
         style={[
-          defaultStyles.textInputSmall,
-          { textAlign: "center", flex: 2, borderRadius: 0 },
+          styles.numberField,
+          {
+            borderColor: theme.colors.border,
+            color: theme.colors.text,
+          },
         ]}
         keyboardType="numeric"
+        placeholderTextColor={theme.colors.textMuted}
         {...props}
       />
       <Pressable
@@ -54,15 +58,13 @@ const NumericInput: React.FC<NumericInputProps> = ({
         onPressIn={buttonIncrement}
         style={({ pressed }) => [
           styles.numberButton,
-          {
-            borderTopLeftRadius: 0,
-            borderBottomLeftRadius: 0,
-            borderLeftWidth: 0,
-          },
+          styles.numberButtonRight,
           pressed && { opacity: 0.6 },
         ]}
       >
-        <Text style={[defaultStyles.buttonText, styles.numberButtonText]}>
+        <Text
+          style={[styles.numberButtonText, { color: theme.colors.accent }]}
+        >
           +
         </Text>
       </Pressable>
@@ -71,14 +73,37 @@ const NumericInput: React.FC<NumericInputProps> = ({
 };
 
 const styles = StyleSheet.create({
+  group: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 12,
+  },
   numberButton: {
     justifyContent: "center",
+    alignItems: "center",
     flex: 1,
-    borderWidth: 1,
-    borderColor: Colours.lightGray,
-    borderRadius: 5,
+    height: 44,
   },
-  numberButtonText: { color: Colours.text, textAlign: "center" },
+  numberButtonLeft: {
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  numberButtonRight: {
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  numberButtonText: {
+    fontSize: 17,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  numberField: {
+    textAlign: "center",
+    flex: 2,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    fontSize: 17,
+  },
 });
 
 export default NumericInput;

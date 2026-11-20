@@ -1,8 +1,10 @@
 import Badge from "@/components/Basic/Badge";
+import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
+import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
-import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
+import { useTheme } from "@/stores/ThemeContext";
 import { Item, itemsTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { router, useLocalSearchParams } from "expo-router";
@@ -28,6 +30,7 @@ const parseStorageId = (raw: string | undefined): number | null => {
 };
 
 const CreateItemForm = () => {
+  const theme = useTheme();
   const db = useDatabase();
   const character = useSelectedCharacter();
   const { storageId } = useLocalSearchParams<{ storageId?: string }>();
@@ -52,8 +55,16 @@ const CreateItemForm = () => {
 
   if (storageLocationId === null) {
     return (
-      <View style={{ padding: Spacing.m }}>
-        <Text>No storage container selected - go back and pick one first.</Text>
+      <View
+        style={{
+          padding: theme.spacing.md,
+          backgroundColor: theme.colors.background,
+          flex: 1,
+        }}
+      >
+        <Text style={theme.type.body}>
+          No storage container selected - go back and pick one first.
+        </Text>
       </View>
     );
   }
@@ -74,15 +85,29 @@ const CreateItemForm = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: Spacing.m, gap: Spacing.s }}
+        contentContainerStyle={{
+          padding: theme.spacing.md,
+          gap: theme.spacing.sm,
+        }}
       >
         <TextInput
-          style={defaultStyles.textInputSmall}
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+            fontSize: 17,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
           placeholder="Name"
           value={itemInput.name}
           testID="item-name-input"
@@ -91,7 +116,18 @@ const CreateItemForm = () => {
           }
         />
         <TextInput
-          style={defaultStyles.textInputSmall}
+          style={{
+            backgroundColor: theme.colors.surface,
+            color: theme.colors.text,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+            fontSize: 17,
+          }}
+          placeholderTextColor={theme.colors.textMuted}
           placeholder="Description"
           value={itemInput.description ?? ""}
           testID="item-description-input"
@@ -100,7 +136,7 @@ const CreateItemForm = () => {
           }
         />
 
-        <View style={defaultStyles.flexRow}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
           {RarityArray.map((rarity) => (
             <Pressable
               onPress={() =>
@@ -116,14 +152,14 @@ const CreateItemForm = () => {
             >
               <Badge
                 text={rarity}
-                colour={rarity}
+                color={rarityColors[rarity]}
                 filled={itemInput.rarity === rarity}
               />
             </Pressable>
           ))}
         </View>
 
-        <Text style={defaultStyles.inputLabel}>Weight?</Text>
+        <Text style={theme.type.headline}>Weight?</Text>
         <NumericInput
           value={weightText}
           testID="item-weight-input"
@@ -132,18 +168,12 @@ const CreateItemForm = () => {
           buttonIncrement={() => adjustWeight(0.5)}
         />
 
-        <Pressable
-          accessibilityRole="button"
-          testID="create-item-button"
+        <Button
+          title="Create"
           onPress={submit}
-          style={({ pressed }) => [
-            defaultStyles.pillButtonSmall,
-            { backgroundColor: Colours.primary },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Text>Create</Text>
-        </Pressable>
+          testID="create-item-button"
+          style={{ alignSelf: "stretch" }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

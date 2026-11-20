@@ -1,14 +1,14 @@
+import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
-import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { charactersTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
-import { AntDesign } from "@expo/vector-icons";
+import { useTheme } from "@/stores/ThemeContext";
+import { charactersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 type CurrencyValues = {
   platinum: number;
@@ -24,11 +24,6 @@ const CURRENCY_KEYS = [
   "copper",
 ] as const satisfies readonly (keyof CurrencyValues)[];
 
-/**
- * Loads the character's currencies, then mounts the form only once the
- * data exists so the form initializes its edit state during first render
- * (no setState-in-effect sync).
- */
 const UpdateCurrencySheet = () => {
   const db = useDatabase();
   const character = useSelectedCharacter();
@@ -64,6 +59,7 @@ interface CurrencyFormProps {
 }
 
 const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => {
+  const theme = useTheme();
   const db = useDatabase();
   const [currencies, setCurrencies] = useState<CurrencyValues>({
     platinum: initial.platinum,
@@ -95,12 +91,19 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
   };
 
   return (
-    <View style={[defaultStyles.container, { gap: Spacing.m }]}>
-      <View style={{ display: "flex", gap: Spacing.m }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.surface,
+        padding: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
+    >
+      <View style={{ display: "flex", gap: theme.spacing.md }}>
         {CURRENCY_KEYS.map((currency) => (
           <View key={`${currency}-update-view`}>
             <Text
-              style={[defaultStyles.inputLabel, { marginBottom: Spacing.xs }]}
+              style={[theme.type.headline, { marginBottom: theme.spacing.xs }]}
               key={`${currency}-update-label`}
             >
               {currency}
@@ -130,25 +133,12 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
           justifyContent: "flex-end",
         }}
       >
-        <Pressable
-          accessibilityRole="button"
-          testID="update-currency-button"
+        <Button
+          title="Update"
           onPress={saveUpdate}
-          style={({ pressed }) => [
-            defaultStyles.pillButtonSmall,
-            {
-              backgroundColor: Colours.primary,
-              width: "30%",
-              display: "flex",
-              flexDirection: "row",
-              gap: Spacing.xs,
-            },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Text>Update</Text>
-          <AntDesign name="arrow-right" size={12} color="black" />
-        </Pressable>
+          testID="update-currency-button"
+          size="sm"
+        />
       </View>
     </View>
   );

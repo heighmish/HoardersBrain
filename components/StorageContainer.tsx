@@ -1,40 +1,22 @@
+import Badge from "@/components/Basic/Badge";
+import Button from "@/components/Basic/Button";
+import { rarityColors } from "@/constants/rarity";
+import { useTheme } from "@/stores/ThemeContext";
 import { itemsTable, Storage } from "@/db/schema";
 import React from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Text, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
-import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
-import Badge from "./Basic/Badge";
 import { router } from "expo-router";
 
 interface StorageContainerProps {
   storage: Storage;
 }
 
-const ItemListHeader = () => {
-  return (
-    <View
-      style={[
-        defaultStyles.flexRow,
-        {
-          justifyContent: "space-between",
-        },
-      ]}
-    >
-      <View style={{ flex: 7 }}>
-        <Text>Name</Text>
-      </View>
-      <View style={[defaultStyles.flexRow, { flex: 3, gap: Spacing.m }]}>
-        <Text>Qty</Text>
-        <Text>Weight</Text>
-      </View>
-    </View>
-  );
-};
-
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
+  const theme = useTheme();
   const db = useDatabase();
   const items = useLiveQuery(
     db.query.itemsTable.findMany({
@@ -43,21 +25,62 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     [storage.storage_location_id],
   );
 
+  const itemListHeader = (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+      }}
+    >
+      <View style={{ flex: 7 }}>
+        <Text style={theme.type.subhead}>Name</Text>
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          flex: 3,
+          gap: theme.spacing.md,
+          justifyContent: "flex-end",
+        }}
+      >
+        <Text style={theme.type.subhead}>Qty</Text>
+        <Text style={theme.type.subhead}>Weight</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View
-      style={defaultStyles.card}
+      style={{
+        backgroundColor: theme.colors.surface,
+        boxShadow: theme.shadows.card,
+        borderRadius: theme.radius.lg,
+        borderCurve: "continuous",
+        padding: theme.spacing.md,
+      }}
       testID={`container-card-${storage.storage_location_id}`}
     >
       <View>
         <View
-          style={[defaultStyles.flexRow, { justifyContent: "space-between" }]}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: theme.spacing.sm,
+          }}
         >
-          <Text style={defaultStyles.heading1}>{storage.name} </Text>
-          <View style={[defaultStyles.flexRow, { gap: Spacing.s }]}>
-            <Badge text={storage.rarity} colour={storage.rarity} />
-            <Pressable
-              accessibilityRole="button"
-              testID={`add-item-button-${storage.storage_location_id}`}
+          <Text style={theme.type.headline}>{storage.name} </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: theme.spacing.sm,
+              alignItems: "center",
+              flexShrink: 1,
+            }}
+          >
+            <Badge text={storage.rarity} color={rarityColors[storage.rarity]} />
+            <Button
+              title="AddItem"
               onPress={() => {
                 router.push({
                   pathname: "/CreateItemForm",
@@ -66,36 +89,36 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
                   },
                 });
               }}
-              style={({ pressed }) => [
-                defaultStyles.pillButtonSmall,
-                { backgroundColor: Colours.primary },
-                pressed && { opacity: 0.6 },
-              ]}
-            >
-              <Text style={defaultStyles.buttonText}>AddItem</Text>
-            </Pressable>
+              size="sm"
+              testID={`add-item-button-${storage.storage_location_id}`}
+            />
           </View>
         </View>
         <View
-          style={[
-            defaultStyles.flexRow,
-            {
-              gap: Spacing.s,
-              borderBottomWidth: 1,
-              borderColor: Colours.lightGray,
-              marginBottom: Spacing.s,
-            },
-          ]}
+          style={{
+            flexDirection: "row",
+            gap: theme.spacing.sm,
+            borderBottomWidth: 1,
+            borderColor: theme.colors.border,
+            marginBottom: theme.spacing.sm,
+          }}
         >
-          <Text>Storing: {storage.weight}lbs</Text>
+          <Text style={theme.type.subhead}>
+            Storing: {storage.weight}lbs
+          </Text>
         </View>
       </View>
       <FlatList
         data={items.data.slice(0, 5)}
-        ListHeaderComponent={<ItemListHeader />}
+        ListHeaderComponent={itemListHeader}
         renderItem={({ item }) => <ItemComponent item={item} />}
         keyExtractor={(item) => item.item_id.toString()}
         showsVerticalScrollIndicator={true}
+        ListEmptyComponent={
+          <Text style={theme.type.subhead}>
+            Empty — the mind hungers for loot.
+          </Text>
+        }
       />
     </View>
   );

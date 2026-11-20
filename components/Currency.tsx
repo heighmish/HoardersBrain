@@ -1,4 +1,4 @@
-import { defaultStyles, Spacing } from "@/constants/Styles";
+import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
 import { AntDesign } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ interface CurrencyProps {
 }
 
 const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
+  const theme = useTheme();
   const db = useDatabase();
   const character = useLiveQuery(
     db.query.charactersTable.findFirst({
@@ -25,7 +26,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
   if (character.error) {
     return (
       <View>
-        <Text>Failed to load character information</Text>
+        <Text style={theme.type.body}>Failed to load character information</Text>
       </View>
     );
   }
@@ -42,23 +43,34 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
 
   return (
     <Link href="/UpdateCurrencySheet" asChild>
-      <Pressable testID="currency-card" style={{ paddingLeft: Spacing.s }}>
-        <View
-          style={[
-            defaultStyles.card,
-            defaultStyles.flexRow,
-            {
-              gap: Spacing.xs,
-              alignItems: "center",
-            },
-          ]}
-        >
-          <View>
-            <Text>Currency</Text>
-            <Text>{GoldValue.toFixed(2)}g</Text>
+      <Pressable testID="currency-card" style={{ paddingLeft: theme.spacing.sm }}>
+        {({ pressed }) => (
+          <View
+            style={[
+              {
+                backgroundColor: theme.colors.surface,
+                boxShadow: theme.shadows.card,
+                borderRadius: theme.radius.lg,
+                borderCurve: "continuous",
+                padding: theme.spacing.md,
+                flexDirection: "row",
+                gap: theme.spacing.xs,
+                alignItems: "center",
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <View>
+              <Text style={theme.type.subhead}>Currency</Text>
+              <Text
+                style={[theme.type.headline, { fontVariant: ["tabular-nums"] }]}
+              >
+                {GoldValue.toFixed(2)}g
+              </Text>
+            </View>
+            <AntDesign name="right" color={theme.colors.textMuted} />
           </View>
-          <AntDesign name="right" />
-        </View>
+        )}
       </Pressable>
     </Link>
   );

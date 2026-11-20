@@ -1,4 +1,4 @@
-import { Spacing, defaultStyles } from "@/constants/Styles";
+import { useTheme } from "@/stores/ThemeContext";
 import { Item } from "@/db/schema";
 import { View, Text } from "react-native";
 
@@ -7,22 +7,37 @@ interface ItemProps {
 }
 
 const ItemComponent: React.FC<ItemProps> = ({ item }) => {
+  const theme = useTheme();
+
   return (
     <View
-      style={[
-        defaultStyles.flexRow,
-        {
-          justifyContent: "space-between",
-        },
-      ]}
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+      }}
       testID={`item-row-${item.item_id}`}
     >
       <View style={{ flex: 8 }}>
-        <Text>{item.name}</Text>
+        <Text style={theme.type.body}>{item.name}</Text>
       </View>
-      <View style={[defaultStyles.flexRow, { flex: 2, gap: Spacing.m }]}>
-        <Text>{item.quantity}</Text>
-        <Text>{item.weight}</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          flex: 2,
+          gap: theme.spacing.md,
+          justifyContent: "flex-end",
+        }}
+      >
+        <Text
+          style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}
+        >
+          {item.quantity}
+        </Text>
+        <Text
+          style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}
+        >
+          {item.weight}
+        </Text>
       </View>
     </View>
   );

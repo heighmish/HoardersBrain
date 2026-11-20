@@ -2,13 +2,15 @@ import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { charactersTable } from "@/db/schema";
-import { Colours, defaultStyles } from "@/constants/Styles";
 import { Redirect } from "expo-router";
 import { useCharacterContext } from "@/stores/CharacterContext";
+import { useTheme } from "@/stores/ThemeContext";
+import Button from "@/components/Basic/Button";
 
 export default function Index() {
+  const theme = useTheme();
   const db = useDatabase();
   const { state, selectCharacter } = useCharacterContext();
   const [charNameInput, setCharNameInput] = useState<string>("");
@@ -47,30 +49,46 @@ export default function Index() {
   };
 
   return (
-    <View style={[defaultStyles.container, { justifyContent: "center" }]}>
-      <Text style={defaultStyles.sectionHeader}>Please create a character</Text>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        justifyContent: "center",
+        padding: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
+    >
+      <View style={{ gap: theme.spacing.xs }}>
+        <Text style={theme.type.title}>Please create a character</Text>
+        <Text
+          style={[theme.type.subhead, { color: theme.colors.accentSecondary }]}
+        >
+          Every great hoard begins with a mind.
+        </Text>
+      </View>
       <TextInput
         value={charNameInput}
         onChangeText={setCharNameInput}
         placeholder={"Character Name"}
-        style={defaultStyles.textInput}
-        placeholderTextColor={Colours.gray}
+        placeholderTextColor={theme.colors.textMuted}
+        style={{
+          backgroundColor: theme.colors.surface,
+          color: theme.colors.text,
+          borderColor: theme.colors.border,
+          borderWidth: 1,
+          borderRadius: theme.radius.md,
+          borderCurve: "continuous",
+          padding: theme.spacing.md,
+          fontSize: 17,
+        }}
         testID="character-name-input"
       />
-      <Pressable
-        accessibilityRole="button"
-        testID="create-character-button"
-        style={({ pressed }) => [
-          defaultStyles.pillButton,
-          {
-            backgroundColor: Colours.primary,
-          },
-          pressed && { opacity: 0.6 },
-        ]}
+      <Button
+        title="Create Character"
         onPress={createCharacter}
-      >
-        <Text style={defaultStyles.buttonText}>Create Character</Text>
-      </Pressable>
+        testID="create-character-button"
+        style={{ alignSelf: "stretch", height: 60 }}
+      />
     </View>
   );
 }

@@ -1,3 +1,5 @@
+import Badge, { BadgeTone } from "@/components/Basic/Badge";
+import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
 import {
   charactersTable,
@@ -7,18 +9,16 @@ import {
 import { and, eq, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Text, View } from "react-native";
-import Badge, { SupportedColours } from "./Basic/Badge";
-import { defaultStyles, Spacing } from "@/constants/Styles";
 import { AntDesign } from "@expo/vector-icons";
 
 interface CarryingProps {
   characterId: number;
 }
 
-const determineEncumbranceColour = (
+const determineEncumbranceTone = (
   carrying: number,
   maxEncumbrance: number,
-): SupportedColours => {
+): BadgeTone => {
   if (carrying >= maxEncumbrance * 1.5) {
     return "error";
   }
@@ -29,6 +29,7 @@ const determineEncumbranceColour = (
 };
 
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
+  const theme = useTheme();
   const db = useDatabase();
   const maxEncumbrance = useLiveQuery(
     db.query.charactersTable.findFirst({
@@ -88,7 +89,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   if (maxEncumbrance.error || items.error || containerWeightQuery.error) {
     return (
       <View>
-        <Text>Failed to load character information</Text>
+        <Text style={theme.type.body}>Failed to load character information</Text>
       </View>
     );
   }
@@ -102,28 +103,38 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   }
 
   return (
-    <View style={defaultStyles.card} testID="encumbrance-card">
-      <View
-        style={[
-          defaultStyles.flexRow,
-          { gap: Spacing.xs, alignItems: "center" },
-        ]}
-      >
-        <View>
-          <Badge
-            colour={determineEncumbranceColour(
-              totalCarriedWeight,
-              maxEncumbrance.data.max_encumbrance,
-            )}
-            text="Encumbrance"
-          />
-          <Text>
-            Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
-            lb
-          </Text>
-        </View>
-        <AntDesign name="right" />
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        boxShadow: theme.shadows.card,
+        borderRadius: theme.radius.lg,
+        borderCurve: "continuous",
+        padding: theme.spacing.md,
+        flexDirection: "row",
+        gap: theme.spacing.xs,
+        alignItems: "center",
+      }}
+      testID="encumbrance-card"
+    >
+      <View style={{ gap: theme.spacing.xs }}>
+        <Badge
+          tone={determineEncumbranceTone(
+            totalCarriedWeight,
+            maxEncumbrance.data.max_encumbrance,
+          )}
+          text="Encumbrance"
+        />
+        <Text
+          style={[
+            theme.type.subhead,
+            { color: theme.colors.text, fontVariant: ["tabular-nums"] },
+          ]}
+        >
+          Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
+          lb
+        </Text>
       </View>
+      <AntDesign name="right" color={theme.colors.textMuted} />
     </View>
   );
 };
