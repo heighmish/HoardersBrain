@@ -72,24 +72,46 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           ),
           headerTitle: () => <></>,
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Theme settings"
-              testID="theme-settings-button"
-              onPress={() => {
-                router.push("/ThemeSettingsSheet");
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: theme.spacing.xs,
               }}
-              style={({ pressed }) => ({
-                padding: theme.spacing.sm,
-                opacity: pressed ? 0.6 : 1,
-              })}
             >
-              <FontAwesome5
-                name="brain"
-                size={22}
-                color={theme.colors.accent}
-              />
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Character settings"
+                testID="character-settings-button"
+                onPress={() => {
+                  router.push("/CharacterSettingsSheet");
+                }}
+                style={({ pressed }) => ({
+                  padding: theme.spacing.sm,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <AntDesign name="setting" size={22} color={theme.colors.accent} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Theme settings"
+                testID="theme-settings-button"
+                onPress={() => {
+                  router.push("/ThemeSettingsSheet");
+                }}
+                style={({ pressed }) => ({
+                  padding: theme.spacing.sm,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <FontAwesome5
+                  name="brain"
+                  size={22}
+                  color={theme.colors.accent}
+                />
+              </Pressable>
+            </View>
           ),
         }}
       />

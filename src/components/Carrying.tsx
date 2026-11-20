@@ -35,7 +35,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const maxEncumbrance = useLiveQuery(
     db.query.charactersTable.findFirst({
       where: eq(charactersTable.character_id, characterId),
-      columns: { max_encumbrance: true },
+      columns: { max_encumbrance: true, weight_tracking: true },
     }),
     [characterId],
   );
@@ -100,6 +100,10 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
     items.updatedAt === undefined ||
     containerWeightQuery.updatedAt === undefined
   ) {
+    return null;
+  }
+
+  if (maxEncumbrance.data.weight_tracking === false) {
     return null;
   }
 
