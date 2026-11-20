@@ -79,7 +79,7 @@ export const storageLocationsTable = sqliteTable(
   ],
 );
 
-export const ledger = sqliteTable("ledger", {
+export const ledgerTable = sqliteTable("ledger", {
   ledger_id: integer("ledger_id").primaryKey(),
   message: text("message").notNull(),
   character_id: integer("character_id").references(
@@ -91,9 +91,11 @@ export const ledger = sqliteTable("ledger", {
 export type Character = typeof charactersTable.$inferSelect;
 export type Storage = typeof storageLocationsTable.$inferSelect;
 export type Item = typeof itemsTable.$inferSelect;
+export type Ledger = typeof ledgerTable.$inferSelect;
 
 export const schema = {
   charactersTable,
   itemsTable,
   storageLocationsTable,
+  ledgerTable,
 };
