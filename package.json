@@ -28,11 +28,17 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/jest": "30.0.0",
     "@types/react": "19.3.0",
     "babel-plugin-inline-import": "3.0.0",
+    "better-sqlite3": "^13.2.0",
     "drizzle-kit": "0.31.11",
     "expo-mcp": "0.2.4",
     "husky": "9.1.7",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.15",
     "lint-staged": "17.6.1",
     "oxlint": "1.94.0",
     "prettier": "3.10.1",
@@ -45,8 +51,21 @@
     "web": "expo start --web",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
+    "test": "jest",
     "check": "npm run lint && npm run typecheck",
     "prepare": "husky"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFiles": [
+      "@react-native-async-storage/async-storage/jest/async-storage-mock"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "lint-staged": {
     "*.{ts,tsx}": "oxlint"
