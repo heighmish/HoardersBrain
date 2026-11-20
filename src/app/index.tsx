@@ -6,7 +6,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
 import { View } from "react-native";
-import { charactersTable } from "@/db/schema";
+import { charactersTable, storageLocationsTable } from "@/db/schema";
 import { Redirect } from "expo-router";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
@@ -45,6 +45,14 @@ export default function Index() {
     if (created === undefined) {
       return;
     }
+
+    await db.insert(storageLocationsTable).values({
+      character_id: created.id,
+      name: "On Person",
+      weight: 0,
+      carrying: true,
+      is_fixed_weight: true,
+    });
 
     await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
     selectCharacter({ id: created.id, name: created.name });
