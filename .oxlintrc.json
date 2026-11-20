@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "react-hooks"],
+  "env": {
+    "browser": true
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "oxc/no-accumulating-spread": "warn",
+    "react/set-state-in-effect": "error"
+  },
+  "ignorePatterns": ["android/", "ios/", "drizzle/", ".expo/"]
+}

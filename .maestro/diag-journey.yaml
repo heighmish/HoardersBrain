@@ -1,0 +1,27 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - diag
+name: Dev client entry to CreateStorageForm
+---
+# Enters through the dev client launcher (saved Metro server), then walks the
+# first-run journey to the CreateStorageForm. No launchApp: the dev client's
+# saved server config must not be wiped between steps.
+# The launcher row is labelled with whatever Metro URL the dev client saved;
+# pass it at run time, e.g.
+#   maestro test .maestro/diag-journey.yaml -e METRO_SERVER=localhost:8081
+- tapOn:
+    text: "${METRO_SERVER}"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+- extendedWaitUntil:
+    visible: "Currency"
+    timeout: 30000
+- tapOn: "Add Container"
+- extendedWaitUntil:
+    visible: "Description"
+    timeout: 30000

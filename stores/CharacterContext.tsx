@@ -26,6 +26,7 @@ type Character = {
 
 type CharacterContextType = {
   character: Character;
+  isLoaded: boolean;
   updateCharacter: (character: Character) => void;
 };
 
@@ -42,32 +43,32 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
 }) => {
   const [selectedCharacter, setSelectedCharacter] =
     useState<Character>(DEFAULT_CHARACTER);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const db = useDatabase();
 
   useEffect(() => {
     const loadLastCharacter = async () => {
-      console.log("[CharacterContext]: Loading last character id");
       try {
         const charId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
-        const character = await db.query.charactersTable.findFirst({
-          where: eq(charactersTable.character_id, Number(charId)),
-        });
-        if (character !== undefined) {
-          setSelectedCharacter({
-            id: character.character_id,
-            name: character.name,
+        if (charId !== null) {
+          const character = await db.query.charactersTable.findFirst({
+            where: eq(charactersTable.character_id, Number(charId)),
           });
-          return;
+          if (character !== undefined) {
+            setSelectedCharacter({
+              id: character.character_id,
+              name: character.name,
+            });
+          }
         }
-        console.log(
-          "[CharacterContext]: No character id stored in async storage",
-        );
       } catch (error) {
         console.error(
           "[CharacterContext]: Error loading last used character id",
           error,
         );
+      } finally {
+        setIsLoaded(true);
       }
     };
     loadLastCharacter();
@@ -80,6 +81,7 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
           name: selectedCharacter.name,
           id: selectedCharacter.id,
         },
+        isLoaded: isLoaded,
         updateCharacter: setSelectedCharacter,
       }}
     >

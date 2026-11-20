@@ -1,0 +1,6 @@
+# Drizzle Kit output (SQL migrations + snapshots) is generated from db/schema.ts —
+# keep it out of language statistics.
+drizzle/** linguist-generated
+
+# Binary assets
+*.png binary

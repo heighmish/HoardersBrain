@@ -1,4 +1,4 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function TabLayout() {
@@ -9,7 +9,11 @@ export default function TabLayout() {
         options={{
           title: "Inventory",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="shopping-bag" color={color} />
+            <FontAwesome
+              size={28}
+              name="shopping-bag"
+              color={color as string}
+            />
           ),
         }}
       />

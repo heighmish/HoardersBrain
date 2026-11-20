@@ -20,3 +20,22 @@ web-build/
 expo-env.d.ts
 # @end expo-cli
 *.apk
+
+# Local native build directories
+/ios
+/android
+
+# Agent skills (installed globally via `npx skills add expo/skills -g`)
+/.agents/
+skills-lock.json
+
+# Environment files (Expo .env / EXPO_PUBLIC_*); never commit secrets
+.env
+.env.*
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Build artifacts (iOS analog of *.apk; Android keystore analog of *.jks)
+*.ipa
+*.keystore

@@ -1,0 +1,34 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - diag
+  - create-storage
+name: Create storage form diagnostic
+---
+# Clean first-run journey: exercises index screen input, character creation,
+# inventory screen, and the CreateStorageForm (the reported-broken screen).
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+# First-run: character creation screen (fresh dev-client JS needs time)
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+# Inventory (tabs) screen
+- extendedWaitUntil:
+    visible: "Currency"
+    timeout: 20000
+- assertVisible: "Encumbrance"
+- tapOn: "Add Container"
+
+# The form under investigation — app remains on this screen after the flow,
+# so `maestro hierarchy` can dump it immediately afterwards.
+- extendedWaitUntil:
+    visible: "Name"
+    timeout: 20000
+- assertVisible: "Description"

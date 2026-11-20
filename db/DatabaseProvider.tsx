@@ -4,8 +4,7 @@ import React, {
   createContext,
   ReactNode,
   useContext,
-  useEffect,
-  useMemo,
+  useState,
 } from "react";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
@@ -23,32 +22,33 @@ interface DatabaseProviderProps {
 export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   children,
 }) => {
-  const [db, sqliteDb] = useMemo(() => {
+  // Lazy-initialized once; this app does not use StrictMode, and even
+  // under it a second SQLite connection to the same file is harmless.
+  const [{ db, sqliteDb }] = useState(() => {
     const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
       enableChangeListener: true,
     });
-    return [
-      drizzle(sqliteDb, {
+    return {
+      db: drizzle(sqliteDb, {
         schema: schema,
       }),
       sqliteDb,
-    ];
-  }, []);
+    };
+  });
 
   const { success, error } = useMigrations(db, migrations);
 
-  useEffect(() => {
-    if (!success) return;
-
-    console.log("[DatabaseProvider]: Successfully applied database migrations");
-  }, [success]);
-
   if (error) {
-    console.log("Failed to apply migrations", error);
     throw new Error(error.message);
   }
 
   useDrizzleStudio(sqliteDb);
+
+  // Gate children on completed migrations so nothing queries the
+  // database before its schema exists (matters on first launch).
+  if (!success) {
+    return null;
+  }
 
   return (
     <DatabaseContext.Provider value={db}>{children}</DatabaseContext.Provider>

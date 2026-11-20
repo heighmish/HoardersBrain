@@ -1,0 +1,34 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - create-storage
+name: Create a storage container end to end
+---
+# Full journey: create character, open the storage form, fill every field,
+# submit, and see the container card on the inventory.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- assertVisible: "Please create a character"
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- assertVisible: "Currency"
+- tapOn: "Add Container"
+
+# Fill the form — this is where inputs were reported blocked under the header
+- tapOn:
+    text: "Name"
+- inputText: "Bag of Holding"
+- tapOn:
+    text: "Description"
+- inputText: "Extra dimensional space"
+- tapOn: "Uncommon"
+- tapOn: "Create"
+
+# Back on the inventory: the new container card should be visible
+- assertVisible: "Bag of Holding"
+- assertVisible: "Storing: 0lbs"
