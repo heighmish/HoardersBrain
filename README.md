@@ -59,8 +59,13 @@ During development, the database can be inspected with Drizzle Studio via the `e
 
 ## Testing
 
-E2E flows run with Maestro against a booted device or simulator:
+Two layers:
+
+- Unit tests, fast and device-free: `npm run test`
+- E2E flows with Maestro (requires macOS + Xcode and a booted simulator; install Maestro per https://docs.maestro.dev — the CLI lands in `~/.maestro/bin` and is not on PATH):
 
 ```bash
-maestro test .maestro/create-storage-e2e.yaml
+~/.maestro/bin/maestro test .maestro/create-storage-e2e.yaml --platform ios
 ```
+
+Merge gates run against a stable target: `npx expo run:ios --configuration Release` rebuilds the app with the JS embedded (no Metro dependency) before a gate run.

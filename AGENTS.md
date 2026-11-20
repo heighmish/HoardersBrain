@@ -27,7 +27,7 @@ Run `npm run check` (lint + typecheck) before declaring any task done.
 
 ## E2E testing with Maestro
 
-Flows live in `.maestro/`. They run against the stable Release gate build (see below) — the dev build and its Metro server (port 8081; reuse the running instance, never start a second one) are for interactive development only, never a flow target. The CLI is not on PATH:
+Flows live in `.maestro/`. They run against the stable Release gate build (see below) — the dev build and its Metro server (port 8081; ensure exactly one instance is running, start one with `npx expo start` if none) are for interactive development only, never a flow target. Maestro installs to `~/.maestro/bin` (https://docs.maestro.dev) and is not on PATH:
 
 ```bash
 ~/.maestro/bin/maestro test .maestro/create-storage-e2e.yaml --platform ios
@@ -85,6 +85,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Load the `hoarders-design` skill before building or restyling UI — it encodes the theme rules, the copy ban, native-surface coverage, and layout regression checks.
 - Do not write user-facing copy. Functional labels and neutral placeholders only; taglines, flavor, and empty-state prose are owner-written or approved — use placeholder text and flag it in your report when unsure.
 - Do not write code comments. Code must be self-explanatory; never add `//`, `/* */`, or JSDoc explanations.
+- Keep the repo replicable on any machine: never commit personal or environment-specific data — local IPs, absolute paths, device or simulator UDIDs, machine names. Write `~` for home directories, repo-relative paths for files, and document setup steps instead of machine state.
 
 ## Code style
 
