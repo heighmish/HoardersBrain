@@ -17,6 +17,7 @@ npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — re
 npx expo start              # start the dev server
 npm run lint                # lint (oxlint)
 npm run typecheck           # typecheck (tsc --noEmit)
+npm run test                # unit tests (jest-expo, in-memory sqlite)
 npm run check               # lint + typecheck in one command
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
@@ -40,11 +41,13 @@ Flows live in `.maestro/`. They run against a booted simulator with the dev buil
 
 ### Test cadence
 
-Run the minimum that proves your change:
+Climb the verification ladder in order, and never skip straight to a device:
 
-- While developing: `npm run check` (~15s)
-- Before reporting a feature done: that feature's own flow only (~2 min)
-- Full regression suite: phase boundaries and merges into `main`, run by the coordinating agent — not per change
+1. `npm run check` (~15s) — lint + typecheck, run constantly while coding.
+2. `npm run test` — jest-expo unit suite. DB and logic run against the real migrations on in-memory better-sqlite3 (`testing/db.ts`, `createTestDb()`); components render via @testing-library/react-native (AsyncStorage is globally mocked). Milliseconds per test — this is the loop you iterate in.
+3. Maestro E2E (~2 min/flow) — golden paths only, run by the coordinating agent at merge gates. Never a work-in-progress validation tool: the dev build's launcher races `clearState` and will burn hours.
+
+New logic (db mutations, helpers, stores, encumbrance math) ships with unit tests. New screens ship with a render test where practical. Anything you can prove with a unit test, prove with a unit test.
 
 ## Commit messages
 
