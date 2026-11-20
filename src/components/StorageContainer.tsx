@@ -1,10 +1,14 @@
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
+import {
+  deleteStorageContainer,
+  ON_PERSON_STORAGE_NAME,
+} from "@/components/storageLifecycle";
 import { rarityColors } from "@/constants/rarity";
 import { useTheme } from "@/stores/ThemeContext";
 import { itemsTable, Storage } from "@/db/schema";
-import React from "react";
+import React, { useState } from "react";
 import { FlatList, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
@@ -19,12 +23,23 @@ interface StorageContainerProps {
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const isOnPerson = storage.name === ON_PERSON_STORAGE_NAME;
   const items = useLiveQuery(
     db.query.itemsTable.findMany({
       where: eq(itemsTable.storage_location_id, storage.storage_location_id),
     }),
     [storage.storage_location_id],
   );
+
+  const confirmDelete = () => {
+    try {
+      deleteStorageContainer(db, storage);
+    } catch (error) {
+      console.error("[StorageContainer]: Container delete failed", error);
+    }
+    setConfirmingDelete(false);
+  };
 
   const itemListHeader = (
     <View
@@ -102,11 +117,67 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             borderBottomWidth: 1,
             borderColor: theme.colors.border,
             marginBottom: theme.spacing.sm,
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <ThemedText variant="subhead">
-            Storing: {storage.weight}lbs
-          </ThemedText>
+          {confirmingDelete ? (
+            <>
+              <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
+                {items.data.length === 0
+                  ? "Delete container?"
+                  : "Items move to On Person."}
+              </ThemedText>
+              <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
+                <Button
+                  title="Cancel"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => setConfirmingDelete(false)}
+                  testID={`cancel-delete-storage-${storage.storage_location_id}`}
+                />
+                <Button
+                  title="Delete"
+                  size="sm"
+                  onPress={confirmDelete}
+                  testID={`confirm-delete-storage-${storage.storage_location_id}`}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
+                Storing: {storage.weight}lbs
+              </ThemedText>
+              <View style={{ flexDirection: "row", gap: theme.spacing.xs, alignItems: "center" }}>
+                <Button
+                  title="Edit"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => {
+                    router.push({
+                      pathname: "/CreateStorageForm",
+                      params: {
+                        storageId: storage.storage_location_id,
+                      },
+                    });
+                  }}
+                  testID={`edit-storage-button-${storage.storage_location_id}`}
+                />
+                {isOnPerson ? (
+                  <ThemedText variant="caption">Cannot be deleted</ThemedText>
+                ) : (
+                  <Button
+                    title="Delete"
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => setConfirmingDelete(true)}
+                    testID={`delete-storage-button-${storage.storage_location_id}`}
+                  />
+                )}
+              </View>
+            </>
+          )}
         </View>
       </View>
       <FlatList
