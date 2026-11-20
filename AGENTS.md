@@ -49,6 +49,10 @@ Climb the verification ladder in order, and never skip straight to a device:
 
 New logic (db mutations, helpers, stores, encumbrance math) ships with unit tests. New screens ship with a render test where practical. Anything you can prove with a unit test, prove with a unit test.
 
+Harness notes:
+- AsyncStorage is globally mocked by `jest.setup.ts`; the package's own `setupFiles` mock entry is inert under jest-expo 30, so don't re-add it.
+- After `fireEvent.changeText`, flush before synchronous assertions with `await act(async () => {})`, or just use `findBy*` queries.
+
 ## Commit messages
 
 Use conventional commit messages: `type(scope): summary`. Valid types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. The scope is optional.
