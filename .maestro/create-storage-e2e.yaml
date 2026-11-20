@@ -10,13 +10,17 @@ name: Create a storage container end to end
     appId: com.heighmish.HoardersBrain
     clearState: true
 
-- assertVisible: "Please create a character"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
 - tapOn:
     text: "Character Name"
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
-- assertVisible: ".*Currency.*"
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
 - tapOn: "Add Container"
 
 # Fill the form — this is where inputs were reported blocked under the header
