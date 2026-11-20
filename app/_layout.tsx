@@ -1,17 +1,39 @@
 import React from "react";
 import { DatabaseProvider } from "@/db/DatabaseProvider";
-import { Stack } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { CharacterProvider } from "@/stores/CharacterContext";
-import { ThemeProvider, useTheme } from "@/stores/ThemeContext";
+import {
+  ThemeProvider as AppThemeProvider,
+  useTheme,
+} from "@/stores/ThemeContext";
 import { useWindowDimensions } from "react-native";
 
 const RootNavigator = () => {
   const theme = useTheme();
   const { height } = useWindowDimensions();
+  const baseNavTheme =
+    theme.resolvedMode === "dark" ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...baseNavTheme,
+    colors: {
+      ...baseNavTheme.colors,
+      primary: theme.colors.accent,
+      background: theme.colors.background,
+      card: theme.colors.surface,
+      text: theme.colors.text,
+      border: theme.colors.border,
+      notification: theme.colors.error,
+    },
+  };
 
   return (
-    <>
+    <ThemeProvider value={navTheme}>
       <StatusBar style={theme.resolvedMode === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
@@ -78,18 +100,18 @@ const RootNavigator = () => {
           }}
         />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 };
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
+    <AppThemeProvider>
       <DatabaseProvider>
         <CharacterProvider>
           <RootNavigator />
         </CharacterProvider>
       </DatabaseProvider>
-    </ThemeProvider>
+    </AppThemeProvider>
   );
 }
