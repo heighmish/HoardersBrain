@@ -17,8 +17,8 @@ Customizable things (currencies, rarities, item types, tags, custom attributes, 
 ## Phase 0 — Foundations *(S)*
 
 - [x] Fix column naming: `items.container_id` → `items.storage_location_id` (done in the squashed baseline migration)
-- [ ] Include `ledger` in the exported schema object so migrations can manage it
-- [ ] Rewrite README: what the app is, how to run, how migrations work
+- [x] Include `ledger` in the exported schema object so migrations can manage it
+- [x] Rewrite README: what the app is, how to run, how migrations work
 
 ## Phase 1 — CRUD completeness *(M)*
 

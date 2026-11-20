@@ -1,50 +1,66 @@
-# Welcome to your Expo app 👋
+# HoardersBrain
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile inventory and encumbrance tracker for tabletop RPGs — D&D 5e, Pathfinder, and friends.
 
-## Get started
+Track multiple characters, each with their own coin purse, containers (backpack, belt pouch, on-person), and items with weight, quantity, and rarity. Everything is local-first: data lives in a SQLite database on the device.
 
-1. Install dependencies
+The product roadmap lives in [ROADMAP.md](ROADMAP.md).
 
-   ```bash
-   npm install
-   ```
+## Stack
 
-2. Start the app
+- Expo SDK 58 / React Native 0.88 with Expo Router
+- expo-sqlite + Drizzle ORM for storage
+- oxlint + tsc for checks, Maestro for E2E
+- expo-dev-client — this project uses a development build, not Expo Go
 
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running the app
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`npx expo start` serves a development build installed on your device or simulator. To build and install one:
 
-## Learn more
+```bash
+npm run ios      # or: npm run android
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Commands
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx expo start   # Metro dev server
+npm run check    # oxlint + tsc, run before committing
+```
 
-## Join the community
+## Database
 
-Join our community of developers creating universal apps.
+The schema is defined in `db/schema.ts` with Drizzle. On launch, `DatabaseProvider` opens `hoardersbrain.db` in WAL mode, applies any pending migrations, and only renders the app once migrations have succeeded. Foreign keys are enforced (`PRAGMA foreign_keys = ON`).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Generate migrations with Drizzle Kit:
+
+```bash
+npx drizzle-kit generate
+```
+
+Generated SQL lands in `drizzle/` and is barrel-exported through `drizzle/migrations.js`, which the migrator loads — new migration files are picked up automatically on the next launch.
+
+During development, the database can be inspected with Drizzle Studio via the `expo-drizzle-studio-plugin` hook in `DatabaseProvider`.
+
+## Project layout
+
+- `app/` — Expo Router screens
+- `components/` — shared UI components
+- `db/` — Drizzle schema and database provider
+- `stores/` — React context stores
+- `constants/` — styling constants and shared types
+- `drizzle/` — generated migrations
+- `.maestro/` — E2E flows
+
+## Testing
+
+E2E flows run with Maestro against a booted device or simulator:
+
+```bash
+maestro test .maestro/create-storage-e2e.yaml
+```
