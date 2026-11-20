@@ -2,9 +2,9 @@
 
 Inventory & encumbrance tracker for tabletop RPGs (D&D 5e, Pathfinder, and friends).
 
-**North star:** sensible defaults out of the box, deep customization underneath. A player creates a character and gets a working 5e-style inventory with no setup. A table running homebrew can change currencies, rarities, item types, and encumbrance to fit their campaign.
+**North star:** sensible defaults out of the box, deep customization underneath. A player creates a character and gets a working 5e-style inventory with no setup. A table running homebrew can change currencies, rarities, item types, tags, and encumbrance to fit their campaign.
 
-Customizable things (currencies, rarities, item types) become data keyed to the **character** first; Phase 4 adds campaigns that group characters and share definitions.
+Customizable things (currencies, rarities, item types, tags, encumbrance bands) become data keyed to the **character** first; Phase 7 adds campaigns that group characters and share definitions.
 
 ## Current state (Nov 2026)
 
@@ -43,7 +43,7 @@ Currencies become data instead of hardcoded columns. Definitions and balances ar
 - [ ] Currency management UI: add custom (e.g. electrum at 0.5 gp), rename, remove defaults, reorder
 - [ ] Currency card and total-in-gold math read definitions
 - [ ] Rework `UpdateCurrencySheet` to handle N currencies
-- [ ] Currency changes write ledger rows (structured deltas land in Phase 6)
+- [ ] Currency changes write ledger rows (structured deltas land in Phase 9)
 
 ## Phase 3 — Data-driven rarities *(M)*
 
@@ -56,26 +56,52 @@ Rarities become data, same pattern as currencies. Additive change, so it can be 
 - [ ] Badge component and rarity pickers read from data instead of the `Rarity` union + hardcoded `Colours` map
 - [ ] Items and containers reference rarity definitions by id
 
-## Phase 4 — Campaigns *(L)*
-
-Characters either own their definitions or inherit a campaign's. Balances and inventory stay per character.
-
-- [ ] Campaign entity: name, description, owns currency + rarity (+ item type, once Phase 5 lands) definitions
-- [ ] Characters can join/leave a campaign; definitions follow the campaign
-- [ ] "Create campaign from this character's settings": copies a character's definitions to a shared campaign ruleset
-- [ ] Character switcher groups characters by campaign
-- [ ] Inheritance policy: definitions are owned by exactly one scope — character XOR campaign; switching scopes replaces them, no partial overrides to start
-
-## Phase 5 — Item types & quick use *(M)*
+## Phase 4 — Data-driven item types & quick use *(M)*
 
 - [ ] Data-driven item types with a `usable` flag; propose a 5e-flavored default set (e.g. Weapon, Armor, Potion, Scroll, Wand, Ring, Ammunition, Tool, Food, Treasure, Other — needs a decision, see open questions)
 - [ ] Type picker replaces the hardcoded `"consumable"` in the item form; defaults seeded per character/campaign
 - [ ] Quick use action: use a usable item → decrement quantity → ledger entry
 - [ ] Gain flow: add quantity with an optional source note ("×2, looted from the ogre cave") → ledger entry
-- [ ] Usable-items section on the inventory screen aggregating across containers (or a filter — decide on the layout)
 - [ ] Item detail screen reflects type (charges for wands, etc. → icebox)
 
-## Phase 6 — Ledger *(M)*
+## Phase 5 — Tags & filters *(M)*
+
+- [ ] Schema: tags + item-tag join table; tag CRUD; scoped per character like other definitions
+- [ ] Tag picker in the item form (multi-select, create tags inline)
+- [ ] Flat all-items view alongside the per-container cards (filtering needs a list that spans containers)
+- [ ] Filter by type, tag, and rarity, combinable ("all consumables", "all scrolls", "potions with the climbing tag")
+- [ ] Saved filter views, with a default "usable items" view shipping out of the box
+
+## Phase 6 — Item library *(M)*
+
+Items a user creates become reusable templates; adding a second Health Potion is one tap.
+
+- [ ] Schema: `item_templates` app-global (name, description, type, weight, rarity, default tags)
+- [ ] "Add from library" in the item form: search and pick a template to prefill the form
+- [ ] "Save to library" from the item form — decide explicit save vs auto-save with dedupe by name
+- [ ] Template management: edit, delete
+
+## Phase 7 — Campaigns *(L)*
+
+Characters either own their definitions or inherit a campaign's. Balances and inventory stay per character.
+
+- [ ] Campaign entity: name, description, owns currency, rarity, item type, tag, and encumbrance-band definitions
+- [ ] Characters can join/leave a campaign; definitions follow the campaign
+- [ ] "Create campaign from this character's settings": copies a character's definitions to a shared campaign ruleset
+- [ ] Character switcher groups characters by campaign
+- [ ] Inheritance policy: definitions are owned by exactly one scope — character XOR campaign; switching scopes replaces them, no partial overrides to start
+
+## Phase 8 — Configurable encumbrance *(M)*
+
+Encumbrance bands become data instead of fixed thresholds.
+
+- [ ] Bands as data: N thresholds with labels and colors; the current fixed set (warning ≥ max, error ≥ 1.5× max) becomes the default
+- [ ] Optional stat field on the character (e.g. Strength) so bands can calculate from it (5e: max = STR × 15)
+- [ ] Band editor UI per character/campaign
+- [ ] Presets for base rules, pending the game-system decision (open questions): 5e variant (×15/×10/×5), PF2e bulk
+- [ ] Carrying card renders bands from data
+
+## Phase 9 — Ledger *(M)*
 
 History of item and currency changes per character.
 
@@ -85,7 +111,7 @@ History of item and currency changes per character.
 - [ ] Filter by kind (items / currency / containers)
 - [ ] Group-by-session as a follow-up (day grouping first)
 
-## Phase 7 — Polish *(S per pass)*
+## Phase 10 — Polish *(S per pass)*
 
 - [ ] Dark theme — `app.json` declares `userInterfaceStyle: "automatic"` but the palette is light-only
 - [ ] Empty states and first-run polish
@@ -95,16 +121,16 @@ History of item and currency changes per character.
 
 ## Icebox
 
-- **5.1 SRD item catalog** — searchable templates, add to inventory prefilled (weight, rarity, type). The 5.1 SRD is CC-BY-4.0, so shipping it needs only attribution.
+- **5.1 SRD item catalog** — ship the 5.1 SRD (CC-BY-4.0, needs only attribution) as preloaded templates in the Phase 6 library.
 - **Pathfinder 2e pack** — bulk instead of pounds, item levels, PF2e rarity semantics (common/uncommon/rare/unique), same base-10 coin chain.
-- **Encumbrance variants** — 5e STR-based thresholds (×15/×10/×5), configurable warning thresholds instead of hardcoded 1.5×/1.0×.
 - **Export/import** — JSON backup of a character or campaign; sharing between devices.
 - **Multiplayer campaign sync** — needs a backend; favors UUIDs for ids early.
 - **Magic item charge tracking**, gems/art quick-add with value, dice roller, weight unit preference (lbs/kg).
 
 ## Open design questions
 
-1. **Campaign timing** — this plan ships character-scoped customization first and adds campaigns in Phase 4. Alternative: campaigns first, so the migration happens once. Decide before Phase 2 starts.
-2. **Default item types** — which set ships as the default, and which are flagged usable? Needs a proposal before Phase 5.
+1. **Campaign timing** — this plan ships character-scoped customization first and adds campaigns in Phase 7. Alternative: campaigns first, so the migration happens once. Decide before Phase 2 starts.
+2. **Default item types** — which set ships as the default, and which are flagged usable? "Show me all consumables" vs "show me scrolls" suggests either a category level above types (consumable → potion/scroll) or flat types with broad ones included. Needs a proposal before Phase 4.
 3. **Ledger granularity** — every quantity edit a ledger row, or only explicit gain/use actions?
 4. **Container deletion policy** (Phase 1) — block until empty, auto-move items to On Person, or confirm-cascade?
+5. **Game-system concept** — a first-class system entity that owns rules, creation-time presets that seed definitions (5e / PF2e / blank), or neutral defaults only. Recommendation: presets at creation, no persistent entity — everything stays editable after seeding. Affects Phase 8 presets and the PF2e icebox pack.
