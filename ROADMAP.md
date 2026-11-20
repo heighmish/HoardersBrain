@@ -20,12 +20,25 @@ Customizable things (currencies, rarities, item types, tags, custom attributes, 
 - [x] Include `ledger` in the exported schema object so migrations can manage it
 - [x] Rewrite README: what the app is, how to run, how migrations work
 
+## Phase 0.5 — Design foundation & theming *(L)*
+
+Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens instead of the Expo starter palette. Themes are data, like every other customizable thing: curated presets plus user-built custom palettes, app-scoped for now; character/campaign scoping follows the Phase 9 pattern later.
+
+- [ ] Semantic token layer (background, surface, text, accent, feedback, border) + ThemeProvider honoring `userInterfaceStyle: "automatic"`, with a persisted System/Light/Dark override
+- [ ] Presets as data: a mind-flayer-purple default plus well-known palettes (Dracula, Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants where the source palette defines them
+- [ ] Custom palettes: named user-defined palettes, created and edited in-app, persisted app-level
+- [ ] Theme settings sheet: mode switch, preset picker, custom palette editor
+- [ ] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
+- [ ] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
+- [ ] App icon: open fantasy chest holding a glowing brain amid assorted loot, purple-forward (concepts in review; asset swap after the pick)
+- [ ] TOKENS.md theming guide so Phase 1 screens consume the token API from day one
+
 ## Phase 1 — CRUD completeness *(M)*
 
 Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
 
 - [ ] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
-- [ ] Edit + delete containers (policy for non-empty: block / move items to On Person / confirm-cascade)
+- [ ] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
 - [ ] Edit character name; delete character (clean up child rows, then switch away)
 - [ ] Item detail screen: full description, stats, edit/delete entry points
 - [ ] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
@@ -33,7 +46,7 @@ Edit and delete for all existing entities; no schema changes. All FKs are `ON DE
 - [ ] Transfer items between characters (both sides get ledger entries)
 - [ ] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
 - [ ] Editable `max_encumbrance` in a character settings area
-- [ ] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers
+- [ ] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)
 
 ## Phase 2 — Data-driven currencies *(L)*
 
@@ -146,7 +159,7 @@ History of item and currency changes per character.
 
 ## Phase 13 — Polish *(S per pass)*
 
-- [ ] Dark theme — `app.json` declares `userInterfaceStyle: "automatic"` but the palette is light-only
+- [ ] Dark theme — moved to Phase 0.5
 - [ ] Empty states and first-run polish
 - [ ] Search across all items
 
@@ -165,10 +178,12 @@ History of item and currency changes per character.
 1. **Campaign timing** — this plan ships character-scoped customization first and adds campaigns in Phase 9. Alternative: campaigns first, so the migration happens once. Decide before Phase 2 starts.
 2. **Default item types** — which set ships as the default, and which are flagged usable? "Show me all consumables" vs "show me scrolls" suggests either a category level above types (consumable → potion/scroll) or flat types with broad ones included. Needs a proposal before Phase 4.
 3. **Ledger granularity** — every quantity edit a ledger row, or only explicit gain/use actions?
-4. **Container deletion policy** (Phase 1) — block until empty, auto-move items to On Person, or confirm-cascade?
 
 ## Decisions
 
 - **Game-system handling** (Nov 2026) — creation-time presets only, no persistent system entity. Picking a system seeds definitions; everything stays editable after. See Phase 11.
 - **Attunement** (Nov 2026) — not a first-class feature; system-specific mechanics belong to custom attributes (Phase 7), with an attunement boolean in the default definitions. Equipped IS first-class (worn/wielded is system-agnostic) — Phase 4.
 - **Party view** (Nov 2026) — deferred until the networking/auth chapter, together with multiplayer sync (icebox).
+- **Container deletion** (Nov 2026) — deleting a non-empty container moves its items to the character's On Person container; nothing is destroyed implicitly.
+- **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on) ships with Phase 1 despite the phase's no-schema note.
+- **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Icon: an open fantasy chest holding a brain amid scattered loot.
