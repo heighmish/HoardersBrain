@@ -28,7 +28,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
 
 type PersistedThemeSettings = {
   presetId: string;
@@ -161,6 +161,14 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       },
     );
   }, [state]);
+
+  const activeMode = state.status === "ready" ? state.mode : "system";
+
+  useEffect(() => {
+    Appearance.setColorScheme(
+      activeMode === "system" ? "auto" : activeMode,
+    );
+  }, [activeMode]);
 
   if (state.status === "loading") {
     return null;

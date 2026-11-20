@@ -67,7 +67,6 @@ describe("ThemeSettingsSheet", () => {
   test("opens on the default preset in system mode", async () => {
     await renderSheet();
     expect(await screen.findByText("Mind Flayer · System")).toBeTruthy();
-    expect(screen.getByText("Dress the chest. Suit the mind.")).toBeTruthy();
     expect(screen.getByText("Dracula")).toBeTruthy();
     expect(screen.getByText("Tokyo Night")).toBeTruthy();
     expect(screen.getByText("Catppuccin")).toBeTruthy();
@@ -134,33 +133,26 @@ describe("ThemeSettingsSheet", () => {
 });
 
 describe("character creation screen", () => {
-  test("renders in light mode with flavor copy", async () => {
+  test("renders in light mode", async () => {
     await renderCreationScreen();
     expect(
       await screen.findByText("Please create a character"),
-    ).toBeTruthy();
-    expect(
-      screen.getByText("Every great hoard begins with a mind."),
     ).toBeTruthy();
     expect(screen.getByTestId("character-name-input")).toBeTruthy();
     expect(screen.getByTestId("create-character-button")).toBeTruthy();
   });
 
-  test("follows a resolved dark mode for copy colors", async () => {
+  test("follows a resolved dark mode for title color", async () => {
     storedTheme({ presetId: "mind-flayer", mode: "dark", customPalettes: [] });
     await renderCreationScreen();
-    const caption = await screen.findByText(
-      "Every great hoard begins with a mind.",
-    );
-    expect(StyleSheet.flatten(caption.props.style).color).toBe("#FF79C6");
+    const heading = await screen.findByText("Please create a character");
+    expect(StyleSheet.flatten(heading.props.style).color).toBe("#F8F8F2");
   });
 
-  test("follows a resolved light mode for copy colors", async () => {
+  test("follows a resolved light mode for title color", async () => {
     storedTheme({ presetId: "mind-flayer", mode: "light", customPalettes: [] });
     await renderCreationScreen();
-    const caption = await screen.findByText(
-      "Every great hoard begins with a mind.",
-    );
-    expect(StyleSheet.flatten(caption.props.style).color).toBe("#C32293");
+    const heading = await screen.findByText("Please create a character");
+    expect(StyleSheet.flatten(heading.props.style).color).toBe("#282A36");
   });
 });

@@ -58,14 +58,7 @@ export default function Index() {
         gap: theme.spacing.md,
       }}
     >
-      <View style={{ gap: theme.spacing.xs }}>
-        <Text style={theme.type.title}>Please create a character</Text>
-        <Text
-          style={[theme.type.subhead, { color: theme.colors.accentSecondary }]}
-        >
-          Every great hoard begins with a mind.
-        </Text>
-      </View>
+      <Text style={theme.type.title}>Please create a character</Text>
       <TextInput
         value={charNameInput}
         onChangeText={setCharNameInput}
@@ -87,7 +80,8 @@ export default function Index() {
         title="Create Character"
         onPress={createCharacter}
         testID="create-character-button"
-        style={{ alignSelf: "stretch", height: 60 }}
+        fullWidth
+        style={{ height: 60 }}
       />
     </View>
   );

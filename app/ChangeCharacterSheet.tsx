@@ -48,6 +48,7 @@ const ChangeCharacterSheet = () => {
           <Button
             title="Create new character"
             variant="secondary"
+            fullWidth
             onPress={async () => {
               await AsyncStorage.removeItem(LAST_CHARACTER_ID);
               clearCharacter();

@@ -17,6 +17,7 @@ interface ButtonProps {
   size?: ButtonSize;
   testID?: string;
   disabled?: boolean;
+  fullWidth?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -45,6 +46,7 @@ const Button: React.FC<ButtonProps> = ({
   size = "md",
   testID,
   disabled = false,
+  fullWidth = false,
   style,
 }) => {
   const theme = useTheme();
@@ -67,7 +69,7 @@ const Button: React.FC<ButtonProps> = ({
           borderRadius: theme.radius.full,
           alignItems: "center",
           justifyContent: "center",
-          alignSelf: "flex-start",
+          alignSelf: fullWidth ? "stretch" : "flex-start",
           opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
           height: sizeStyles.height,
           paddingHorizontal: sizeStyles.paddingHorizontal,

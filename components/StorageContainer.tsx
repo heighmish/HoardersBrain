@@ -115,9 +115,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         keyExtractor={(item) => item.item_id.toString()}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={
-          <Text style={theme.type.subhead}>
-            Empty — the mind hungers for loot.
-          </Text>
+          <Text style={theme.type.subhead}>No items</Text>
         }
       />
     </View>

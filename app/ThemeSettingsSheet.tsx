@@ -238,14 +238,6 @@ const ThemeSettingsSheet = () => {
         <Text style={theme.type.subhead} testID="theme-state-line">
           {presetName} · {modeLabel(mode)}
         </Text>
-        <Text
-          style={[
-            theme.type.caption,
-            { color: theme.colors.accentSecondary },
-          ]}
-        >
-          Dress the chest. Suit the mind.
-        </Text>
       </View>
 
       <View style={{ gap: theme.spacing.sm }}>

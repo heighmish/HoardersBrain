@@ -98,10 +98,9 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       <View
         style={{
           paddingTop: theme.spacing.sm,
-          flex: 1,
           display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
+          flexDirection: "column",
+          gap: theme.spacing.sm,
         }}
       >
         <Currency characterId={character.id} />
@@ -122,7 +121,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
             router.push("/CreateStorageForm");
           }}
           testID="add-container-button"
-          style={{ alignSelf: "stretch" }}
+          fullWidth
         />
       </View>
     </View>
