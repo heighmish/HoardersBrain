@@ -10,7 +10,7 @@ Customizable things (currencies, rarities, item types) become data keyed to the 
 
 **Working end-to-end:** character create/switch/remember, containers (weight, rarity, carrying, fixed-weight flags), items (name, description, weight, quantity, rarity), currency display + edit, encumbrance card (yellow ≥ max, red ≥ 1.5× max), migrations, Maestro E2E coverage of the create-container journey.
 
-**Stubbed or missing:** `ledger` table defined but excluded from the schema export, no UI, no queries. No edit/delete for anything. `item_type` hardcoded to `"consumable"`. Container cards cap at 5 items with no expand. `max_encumbrance` hardcoded at 100, not editable, weight tracking not optional. Currencies are hardcoded columns (`pp/gp/sp/cp`), rarities a hardcoded TS union. No seed/default data beyond column defaults. Migrations were squashed into a single baseline (`0000_unusual_paladin`) with the `container_id` naming mismatch fixed and CHECK constraints added on weight and rarity.
+**Stubbed or missing:** `ledger` table defined but excluded from the schema export, no UI, no queries. No edit/delete for anything. `item_type` hardcoded to `"consumable"`. Container cards cap at 5 items with no expand. `max_encumbrance` default 100, not editable in UI, weight tracking not optional. Currencies are hardcoded columns (`pp/gp/sp/cp`), rarities a hardcoded TS union. No seed/default data beyond column defaults. Migrations were squashed into a single baseline (`0000_unusual_paladin`) with the `container_id` naming mismatch fixed and CHECK constraints added on weight and rarity.
 
 ---
 
@@ -22,7 +22,7 @@ Customizable things (currencies, rarities, item types) become data keyed to the 
 
 ## Phase 1 — CRUD completeness *(M)*
 
-Edit and delete for all existing entities; no schema changes.
+Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
 
 - [ ] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
 - [ ] Edit + delete containers (policy for non-empty: block / move items to On Person / confirm-cascade)
