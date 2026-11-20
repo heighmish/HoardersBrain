@@ -40,6 +40,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     db.query.itemsTable.findMany({
       where: eq(itemsTable.storage_location_id, storage.storage_location_id),
     }),
+    [storage.storage_location_id],
   );
 
   return (

@@ -5,21 +5,46 @@ import React, { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { charactersTable } from "@/db/schema";
 import { Colours, defaultStyles } from "@/constants/Styles";
-import { Href, Redirect } from "expo-router";
-import { DEFAULT_ID, useCharacterContext } from "@/stores/CharacterContext";
+import { Redirect } from "expo-router";
+import { useCharacterContext } from "@/stores/CharacterContext";
 
 export default function Index() {
   const db = useDatabase();
-  const characterContext = useCharacterContext();
+  const { state, selectCharacter } = useCharacterContext();
   const [charNameInput, setCharNameInput] = useState<string>("");
 
-  if (!characterContext.isLoaded) {
+  if (state.status === "loading") {
     return null;
   }
 
-  if (characterContext.character.id !== DEFAULT_ID) {
-    return <Redirect href={"/(tabs)" as Href} />;
+  if (state.status === "characterSelected") {
+    return <Redirect href="/(tabs)" />;
   }
+
+  const createCharacter = async () => {
+    const trimmedName = charNameInput.trim();
+    if (trimmedName.length === 0) {
+      return;
+    }
+
+    const createdCharacters = await db
+      .insert(charactersTable)
+      .values({
+        name: trimmedName,
+      })
+      .returning({
+        id: charactersTable.character_id,
+        name: charactersTable.name,
+      });
+
+    const created = createdCharacters[0];
+    if (created === undefined) {
+      return;
+    }
+
+    await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
+    selectCharacter({ id: created.id, name: created.name });
+  };
 
   return (
     <View style={[defaultStyles.container, { justifyContent: "center" }]}>
@@ -42,27 +67,7 @@ export default function Index() {
           },
           pressed && { opacity: 0.6 },
         ]}
-        onPress={async () => {
-          if (charNameInput.trim().length === 0) {
-            return;
-          }
-          const createdChar = await db
-            .insert(charactersTable)
-            .values({
-              name: charNameInput,
-            })
-            .returning({
-              id: charactersTable.character_id,
-              name: charactersTable.name,
-            });
-
-          const { id, name } = createdChar[0];
-          await AsyncStorage.setItem(LAST_CHARACTER_ID, id.toString());
-          characterContext.updateCharacter({
-            id: id,
-            name: name,
-          });
-        }}
+        onPress={createCharacter}
       >
         <Text style={defaultStyles.buttonText}>Create Character</Text>
       </Pressable>

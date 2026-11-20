@@ -2,7 +2,7 @@ import NumericInput from "@/components/Basic/NumericInput";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { AntDesign } from "@expo/vector-icons";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -17,6 +17,13 @@ type CurrencyValues = {
   copper: number;
 };
 
+const CURRENCY_KEYS = [
+  "platinum",
+  "gold",
+  "silver",
+  "copper",
+] as const satisfies readonly (keyof CurrencyValues)[];
+
 /**
  * Loads the character's currencies, then mounts the form only once the
  * data exists so the form initializes its edit state during first render
@@ -24,17 +31,17 @@ type CurrencyValues = {
  */
 const UpdateCurrencySheet = () => {
   const db = useDatabase();
-  const character = useCharacterContext();
+  const character = useSelectedCharacter();
 
   const characterQuery = useLiveQuery(
     db.query.charactersTable.findFirst({
       columns: { platinum: true, gold: true, silver: true, copper: true },
-      where: eq(charactersTable.character_id, character.character.id),
+      where: eq(charactersTable.character_id, character.id),
     }),
-    [character.character.id],
+    [character.id],
   );
 
-  if (!characterQuery.data || characterQuery.error) {
+  if (characterQuery.error) {
     return (
       <View>
         <Text>Failed to load currency information</Text>
@@ -42,11 +49,12 @@ const UpdateCurrencySheet = () => {
     );
   }
 
+  if (!characterQuery.data) {
+    return null;
+  }
+
   return (
-    <CurrencyForm
-      initial={characterQuery.data}
-      characterId={character.character.id}
-    />
+    <CurrencyForm initial={characterQuery.data} characterId={character.id} />
   );
 };
 
@@ -64,7 +72,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
     copper: initial.copper,
   });
 
-  const handleChange = (currency: string, value: string) => {
+  const handleChange = (currency: keyof CurrencyValues, value: string) => {
     const newValue = value === "" ? 0 : Math.max(0, parseInt(value) || 0);
     setCurrencies((prev) => ({
       ...prev,
@@ -89,27 +97,27 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
   return (
     <View style={[defaultStyles.container, { gap: Spacing.m }]}>
       <View style={{ display: "flex", gap: Spacing.m }}>
-        {Object.entries(currencies).map((currency) => (
-          <View key={`${currency[0]}-update-view`}>
+        {CURRENCY_KEYS.map((currency) => (
+          <View key={`${currency}-update-view`}>
             <Text
               style={[defaultStyles.inputLabel, { marginBottom: Spacing.xs }]}
-              key={`${currency[0]}-update-label`}
+              key={`${currency}-update-label`}
             >
-              {currency[0]}
+              {currency}
             </Text>
             <View>
               <NumericInput
                 buttonDecrement={() =>
-                  handleChange(currency[0], (currency[1] - 1).toString())
+                  handleChange(currency, (currencies[currency] - 1).toString())
                 }
                 buttonIncrement={() =>
-                  handleChange(currency[0], (currency[1] + 1).toString())
+                  handleChange(currency, (currencies[currency] + 1).toString())
                 }
-                placeholder={currency[0]}
-                onChangeText={(text) => handleChange(currency[0], text)}
-                value={currency[1].toFixed(0) || ""}
-                testID={`${currency[0]}-input`}
-                key={`${currency[0]}-update`}
+                placeholder={currency}
+                onChangeText={(text) => handleChange(currency, text)}
+                value={currencies[currency].toFixed(0)}
+                testID={`${currency}-input`}
+                key={`${currency}-update`}
               />
             </View>
           </View>

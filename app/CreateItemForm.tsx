@@ -4,7 +4,7 @@ import { RarityArray } from "@/constants/databaseTypes";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { Item, itemsTable } from "@/db/schema";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -17,33 +17,46 @@ import {
   View,
 } from "react-native";
 
-type ItemInput = Omit<Item, "item_id">;
+type ItemInput = Omit<Item, "item_id" | "storage_location_id" | "weight">;
+
+const parseStorageId = (raw: string | undefined): number | null => {
+  if (raw === undefined) {
+    return null;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
 
 const CreateItemForm = () => {
   const db = useDatabase();
-  const character = useCharacterContext();
-  const { storageId } = useLocalSearchParams<{
-    storageId: string;
-  }>();
+  const character = useSelectedCharacter();
+  const { storageId } = useLocalSearchParams<{ storageId?: string }>();
 
   const [itemInput, setItemInput] = useState<ItemInput>({
     name: "",
     description: null,
     rarity: "Common",
-    character_id: character.character.id,
+    character_id: character.id,
     properties: null,
-    weight: 1,
     quantity: 1,
     item_type: "consumable",
-    storage_location_id: Number(storageId),
   });
 
-  // Raw text so decimals like "1.5" survive typing; parsed on submit.
   const [weightText, setWeightText] = useState("1");
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
+
+  const storageLocationId = parseStorageId(storageId);
+
+  if (storageLocationId === null) {
+    return (
+      <View style={{ padding: Spacing.m }}>
+        <Text>No storage container selected - go back and pick one first.</Text>
+      </View>
+    );
+  }
 
   const submit = async () => {
     if (itemInput.name === "") {
@@ -52,6 +65,7 @@ const CreateItemForm = () => {
 
     await db.insert(itemsTable).values({
       ...itemInput,
+      storage_location_id: storageLocationId,
       weight: Math.max(0, parseFloat(weightText) || 0),
     });
     router.back();

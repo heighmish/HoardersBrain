@@ -12,7 +12,7 @@ export default function TabLayout() {
             <FontAwesome
               size={28}
               name="shopping-bag"
-              color={color as string}
+              color={typeof color === "string" ? color : undefined}
             />
           ),
         }}

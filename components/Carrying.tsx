@@ -7,7 +7,7 @@ import {
 import { and, eq, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Text, View } from "react-native";
-import Badge from "./Basic/Badge";
+import Badge, { SupportedColours } from "./Basic/Badge";
 import { defaultStyles, Spacing } from "@/constants/Styles";
 import { AntDesign } from "@expo/vector-icons";
 
@@ -15,19 +15,17 @@ interface CarryingProps {
   characterId: number;
 }
 
-const DetermineEncumberanceColour = (
+const determineEncumbranceColour = (
   carrying: number,
   maxEncumbrance: number,
-) => {
-  if (carrying < maxEncumbrance) {
-    return "success";
-  } else if (carrying >= maxEncumbrance * 1.5) {
-    return "error";
-  } else if (carrying >= maxEncumbrance) {
-    return "warning";
-  } else {
+): SupportedColours => {
+  if (carrying >= maxEncumbrance * 1.5) {
     return "error";
   }
+  if (carrying >= maxEncumbrance) {
+    return "warning";
+  }
+  return "success";
 };
 
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
@@ -70,12 +68,14 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
     [characterId],
   );
 
-  const containerWeight = containerWeightQuery.data[0]?.totalWeight ?? "0";
+  const containerWeight = Number(
+    containerWeightQuery.data[0]?.totalWeight ?? 0,
+  );
 
   const itemsWeight = items.data.reduce((total, data) => {
     if (
-      data?.storage_locations?.carrying === false ||
-      data?.storage_locations?.is_fixed_weight === true
+      data.storage_locations?.carrying === false ||
+      data.storage_locations?.is_fixed_weight === true
     ) {
       return total;
     }
@@ -83,14 +83,22 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
     return total + data.items.weight;
   }, 0);
 
-  const totalCarriedWeight = Number(itemsWeight) + Number(containerWeight);
+  const totalCarriedWeight = itemsWeight + containerWeight;
 
-  if (!maxEncumbrance.data || maxEncumbrance.error) {
+  if (maxEncumbrance.error || items.error || containerWeightQuery.error) {
     return (
       <View>
         <Text>Failed to load character information</Text>
       </View>
     );
+  }
+
+  if (
+    maxEncumbrance.data === undefined ||
+    items.updatedAt === undefined ||
+    containerWeightQuery.updatedAt === undefined
+  ) {
+    return null;
   }
 
   return (
@@ -103,9 +111,9 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
       >
         <View>
           <Badge
-            colour={DetermineEncumberanceColour(
+            colour={determineEncumbranceColour(
               totalCarriedWeight,
-              Number(maxEncumbrance.data.max_encumbrance),
+              maxEncumbrance.data.max_encumbrance,
             )}
             text="Encumbrance"
           />

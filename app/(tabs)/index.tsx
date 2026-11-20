@@ -9,22 +9,19 @@ import { Link, router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AntDesign } from "@expo/vector-icons";
 import { Colours, defaultStyles, Spacing } from "@/constants/Styles";
-import { useCharacterContext } from "@/stores/CharacterContext";
+import { useSelectedCharacter } from "@/stores/CharacterContext";
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 
 const Inventory = () => {
-  const characterContext = useCharacterContext();
+  const character = useSelectedCharacter();
   const db = useDatabase();
 
   const storageLocations = useLiveQuery(
     db.query.storageLocationsTable.findMany({
-      where: eq(
-        storageLocationsTable.character_id,
-        characterContext.character.id,
-      ),
+      where: eq(storageLocationsTable.character_id, character.id),
     }),
-    [characterContext.character],
+    [character],
   );
 
   return (
@@ -38,7 +35,7 @@ const Inventory = () => {
               style={{ paddingLeft: Spacing.s }}
               testID="character-switcher"
             >
-              <Text>{characterContext.character.name.slice(0, 25)} </Text>
+              <Text>{character.name.slice(0, 25)} </Text>
               <AntDesign name="down" size={12} color="black" />
             </Link>
           ),
@@ -54,8 +51,8 @@ const Inventory = () => {
           justifyContent: "space-between",
         }}
       >
-        <Currency characterId={characterContext.character.id} />
-        <Carrying characterId={characterContext.character.id} />
+        <Currency characterId={character.id} />
+        <Carrying characterId={character.id} />
       </View>
       <View style={{ flex: 10 }}>
         <FlatList

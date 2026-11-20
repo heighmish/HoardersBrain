@@ -1,86 +1,86 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { Colours, Spacing, defaultStyles } from "@/constants/Styles";
 import { useDatabase } from "@/db/DatabaseProvider";
-import {
-  DEFAULT_CHARACTER,
-  useCharacterContext,
-} from "@/stores/CharacterContext";
+import { useCharacterContext } from "@/stores/CharacterContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Href, router } from "expo-router";
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { router } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
   const db = useDatabase();
   const characters = useLiveQuery(db.query.charactersTable.findMany());
-  const characterContext = useCharacterContext();
+  const { state, selectCharacter, clearCharacter } = useCharacterContext();
+
+  if (characters.error) {
+    return (
+      <View style={[{ marginTop: Spacing.m, marginBottom: Spacing.l }]}>
+        <Text>Failed to load characters</Text>
+      </View>
+    );
+  }
+
+  if (characters.updatedAt === undefined) {
+    return null;
+  }
 
   return (
     <View style={[{ marginTop: Spacing.m, marginBottom: Spacing.l }]}>
-      {characters.data.length === 0 ? (
-        <Text>Failed to load characters</Text>
-      ) : (
-        <FlatList
-          style={{ paddingEnd: Spacing.m }}
-          contentContainerStyle={{ gap: Spacing.l }}
-          data={characters.data}
-          ListFooterComponent={() => (
-            <Pressable
-              accessibilityRole="button"
-              testID="create-new-character-button"
-              onPress={async () => {
-                await AsyncStorage.removeItem(LAST_CHARACTER_ID);
-                characterContext.updateCharacter(DEFAULT_CHARACTER);
-                router.replace("/" as Href);
-              }}
-              style={[
-                defaultStyles.pillButtonSmall,
-                { backgroundColor: Colours.primary },
-              ]}
-            >
-              <Text>Create new character</Text>
-            </Pressable>
-          )}
-          renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              testID={`character-row-${item.character_id}`}
-              onPress={async () => {
-                await AsyncStorage.setItem(
-                  LAST_CHARACTER_ID,
-                  item.character_id.toString(),
-                );
-                characterContext.updateCharacter({
-                  name: item.name,
-                  id: item.character_id,
-                });
-                router.back();
-              }}
-            >
-              <View style={[defaultStyles.flexRow, styles.characterRow]}>
-                <Text>{item.name}</Text>
-                <View
-                  style={[
-                    styles.circle,
-                    {
-                      backgroundColor:
-                        item.character_id === characterContext.character.id
-                          ? "black"
-                          : "white",
-                    },
-                  ]}
-                />
-              </View>
-            </Pressable>
-          )}
-        />
-      )}
+      <FlatList
+        style={{ paddingEnd: Spacing.m }}
+        contentContainerStyle={{ gap: Spacing.l }}
+        data={characters.data}
+        ListFooterComponent={() => (
+          <Pressable
+            accessibilityRole="button"
+            testID="create-new-character-button"
+            onPress={async () => {
+              await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+              clearCharacter();
+              router.replace("/");
+            }}
+            style={[
+              defaultStyles.pillButtonSmall,
+              { backgroundColor: Colours.primary },
+            ]}
+          >
+            <Text>Create new character</Text>
+          </Pressable>
+        )}
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            testID={`character-row-${item.character_id}`}
+            onPress={async () => {
+              await AsyncStorage.setItem(
+                LAST_CHARACTER_ID,
+                item.character_id.toString(),
+              );
+              selectCharacter({
+                id: item.character_id,
+                name: item.name,
+              });
+              router.back();
+            }}
+          >
+            <View style={[defaultStyles.flexRow, styles.characterRow]}>
+              <Text>{item.name}</Text>
+              <View
+                style={[
+                  styles.circle,
+                  {
+                    backgroundColor:
+                      state.status === "characterSelected" &&
+                      state.character.id === item.character_id
+                        ? "black"
+                        : "white",
+                  },
+                ]}
+              />
+            </View>
+          </Pressable>
+        )}
+      />
     </View>
   );
 };

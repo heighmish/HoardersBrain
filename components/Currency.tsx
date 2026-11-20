@@ -22,12 +22,16 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     [characterId],
   );
 
-  if (!character.data || character.error) {
+  if (character.error) {
     return (
       <View>
         <Text>Failed to load character information</Text>
       </View>
     );
+  }
+
+  if (!character.data) {
+    return null;
   }
 
   const GoldValue =
