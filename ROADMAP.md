@@ -24,14 +24,14 @@ Customizable things (currencies, rarities, item types, tags, custom attributes, 
 
 Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens instead of the Expo starter palette. Themes are data, like every other customizable thing: curated presets plus user-built custom palettes, app-scoped for now; character/campaign scoping follows the Phase 9 pattern later.
 
-- [ ] Semantic token layer (background, surface, text, accent, feedback, border) + ThemeProvider honoring `userInterfaceStyle: "automatic"`, with a persisted System/Light/Dark override
-- [ ] Presets as data: a mind-flayer-purple default plus well-known palettes (Dracula, Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants where the source palette defines them
-- [ ] Custom palettes: named user-defined palettes, created and edited in-app, persisted app-level
-- [ ] Theme settings sheet: mode switch, preset picker, custom palette editor
-- [ ] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
-- [ ] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
-- [ ] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood, flavor naming, empty-state copy. No icon or image asset work in this phase
-- [ ] TOKENS.md theming guide so Phase 1 screens consume the token API from day one
+- [x] Semantic token layer (background, surface, text, accent, feedback, border) + ThemeProvider honoring `userInterfaceStyle: "automatic"`, with a persisted System/Light/Dark override
+- [x] Presets as data: a mind-flayer-purple default plus well-known palettes (Dracula, Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants where the source palette defines them
+- [x] Custom palettes: named user-defined palettes, created and edited in-app, persisted app-level
+- [x] Theme settings sheet: mode switch, preset picker, custom palette editor
+- [x] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
+- [x] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
+- [x] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood, flavor naming, empty-state copy. No icon or image asset work in this phase
+- [x] TOKENS.md theming guide so Phase 1 screens consume the token API from day one
 
 ## Phase 1 — CRUD completeness *(M)*
 
