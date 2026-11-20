@@ -38,7 +38,7 @@ Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens
 Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
 
 - [ ] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
-- [ ] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
+- [x] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
 - [ ] Edit character name; delete character (clean up child rows, then switch away)
 - [ ] Item detail screen: full description, stats, edit/delete entry points
 - [ ] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
