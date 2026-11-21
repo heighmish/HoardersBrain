@@ -331,7 +331,7 @@ describe("character settings sheet", () => {
 
     await fireEvent.changeText(input, "150");
     await fireEvent(
-      screen.getByTestId("character-weight-tracking-toggle"),
+      screen.getByTestId("character-weight-tracking-switch"),
       "valueChange",
       false,
     );
@@ -349,7 +349,7 @@ describe("character settings sheet", () => {
     const hero = await openSettingsSheet();
 
     await fireEvent(
-      screen.getByTestId("character-weight-tracking-toggle"),
+      screen.getByTestId("character-weight-tracking-switch"),
       "valueChange",
       false,
     );
@@ -361,7 +361,7 @@ describe("character settings sheet", () => {
     expect(stored?.max_encumbrance).toBe(100);
 
     await fireEvent(
-      screen.getByTestId("character-weight-tracking-toggle"),
+      screen.getByTestId("character-weight-tracking-switch"),
       "valueChange",
       true,
     );

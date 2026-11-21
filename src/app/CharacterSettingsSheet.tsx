@@ -135,12 +135,15 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
         }}
       >
         <ThemedText variant="headline">Weight Tracking</ThemedText>
-        <Switch
-          value={weightTracking}
-          onValueChange={setWeightTracking}
-          trackColor={{ false: theme.colors.border, true: theme.colors.accent }}
-          testID="character-weight-tracking-toggle"
-        />
+        {/* iOS Switch never surfaces testID to the native tree; the wrapper carries the device-facing id. */}
+        <View testID="character-weight-tracking-toggle">
+          <Switch
+            value={weightTracking}
+            onValueChange={setWeightTracking}
+            trackColor={{ false: theme.colors.border, true: theme.colors.accent }}
+            testID="character-weight-tracking-switch"
+          />
+        </View>
       </View>
       <Button
         title="Save"
