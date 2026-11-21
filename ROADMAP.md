@@ -39,14 +39,14 @@ Edit and delete for all existing entities; no schema changes. All FKs are `ON DE
 
 - [ ] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
 - [ ] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
-- [ ] Edit character name; delete character (clean up child rows, then switch away)
+- [x] Edit character name; delete character (clean up child rows, then switch away)
 - [ ] Item detail screen: full description, stats, edit/delete entry points
 - [ ] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
 - [ ] Move items between containers; split stacks (3 potions, give 1 away)
 - [ ] Transfer items between characters (both sides get ledger entries)
-- [ ] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
-- [ ] Editable `max_encumbrance` in a character settings area
-- [ ] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)
+- [x] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
+- [x] Editable `max_encumbrance` in a character settings area
+- [x] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)
 
 ## Phase 2 — Data-driven currencies *(L)*
 
