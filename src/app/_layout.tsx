@@ -77,6 +77,7 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Theme",
             headerBackTitle: "Back",
+            animation: "slide_from_right",
           }}
         />
         <Stack.Screen
@@ -95,6 +96,7 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Encumbrance & Weight",
             headerBackTitle: "Back",
+            animation: "slide_from_right",
           }}
         />
         <Stack.Screen
@@ -102,6 +104,7 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Manage Characters",
             headerBackTitle: "Back",
+            animation: "slide_from_right",
           }}
         />
         <Stack.Screen

@@ -69,7 +69,8 @@ const Settings = () => {
           "Encumbrance & weight",
           "settings-encumbrance-row",
           () => {
-            router.dismissTo("/CharacterSettings");
+            router.dismiss();
+            router.push("/CharacterSettings");
           },
         )}
       </View>
@@ -77,7 +78,8 @@ const Settings = () => {
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("App customization")}
         {linkRow("skin", "Theme", "settings-theme-row", () => {
-          router.dismissTo("/ThemeSettings");
+          router.dismiss();
+          router.push("/ThemeSettings");
         })}
       </View>
 
@@ -88,7 +90,8 @@ const Settings = () => {
           "Rename or delete",
           "manage-characters-row",
           () => {
-            router.dismissTo("/ManageCharacters");
+            router.dismiss();
+            router.push("/ManageCharacters");
           },
         )}
       </View>
