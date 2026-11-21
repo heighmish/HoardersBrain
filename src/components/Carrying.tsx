@@ -72,7 +72,6 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
       .where(
         and(
           eq(storageLocationsTable.character_id, characterId),
-          eq(storageLocationsTable.carrying, true),
           isNull(storageLocationsTable.deleted_at),
         ),
       ),
@@ -86,13 +85,12 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const itemsWeight = items.data.reduce((total, data) => {
     if (
       data.storage_locations === null ||
-      data.storage_locations.carrying === false ||
       data.storage_locations.is_fixed_weight === true
     ) {
       return total;
     }
 
-    return total + data.items.weight;
+    return total + data.items.weight * data.items.quantity;
   }, 0);
 
   const totalCarriedWeight = itemsWeight + containerWeight;

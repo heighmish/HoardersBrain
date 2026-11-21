@@ -52,7 +52,7 @@ export default function Index() {
       name: ON_PERSON_NAME,
       weight: 0,
       carrying: true,
-      is_fixed_weight: true,
+      is_fixed_weight: false,
     });
 
     await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
