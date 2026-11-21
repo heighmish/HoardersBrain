@@ -59,7 +59,14 @@ regression, verify it on the device and say so in the report.
 
 ## Commit messages
 
-Use conventional commit messages: `type(scope): summary`. Valid types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. The scope is optional.
+Every commit subject is `type(scope): summary`. Both parts are required — an unscoped `feat:` is a violation, not a style choice.
+
+- Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`.
+- Scope: the area touched, lowercase, one word. Reuse a scope already in `git log` when one fits (`ui`, `items`, `storage`, `character`, `settings`, `theme`, `maestro`, `roadmap`, `db`, `config`); otherwise pick the narrowest word that names the change.
+- Summary: imperative mood, lowercase, no trailing period.
+- PR titles follow the same rule: `type(scope): summary`, matching the branch's dominant change. Never a free-form prose title — `gh pr create --title "feat(items): ..."`.
+
+Before pushing or opening a PR, read back `git log <base>..HEAD --oneline`: every subject must parse as `type(scope): summary`. Retitle commits you already made (`git rebase -i` reword) rather than adding an unscoped commit on top.
 
 ## Pre-commit review
 
