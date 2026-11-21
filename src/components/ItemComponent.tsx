@@ -13,8 +13,7 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
 
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={item.name}
+      accessible={false}
       onPress={() => {
         router.push({
           pathname: "/ItemDetail",
