@@ -11,5 +11,5 @@
     "oxc/no-accumulating-spread": "warn",
     "react/set-state-in-effect": "error"
   },
-  "ignorePatterns": ["android/", "ios/", "drizzle/", ".expo/"]
+  "ignorePatterns": ["android/", "ios/", "**/drizzle/", ".expo/"]
 }
