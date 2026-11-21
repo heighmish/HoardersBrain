@@ -3,8 +3,9 @@ import {
   ThemeMode,
 } from "@/constants/theme";
 import { themePresets } from "@/constants/themePresets";
+import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 const THEME_MODE_OPTIONS: readonly { value: ThemeMode; label: string }[] = [
   { value: "system", label: "System" },
@@ -47,14 +48,12 @@ const ThemeSettingsSheet = () => {
   const { presetId, presetName, mode, selectPreset, setMode } = useTheme();
 
   const sectionLabel = (text: string) => (
-    <Text
-      style={[
-        theme.type.caption,
-        { textTransform: "uppercase", letterSpacing: 0.5 },
-      ]}
+    <ThemedText
+      variant="caption"
+      style={{ textTransform: "uppercase", letterSpacing: 0.5 }}
     >
       {text}
-    </Text>
+    </ThemedText>
   );
 
   return (
@@ -69,10 +68,10 @@ const ThemeSettingsSheet = () => {
       }}
     >
       <View style={{ gap: theme.spacing.xs }}>
-        <Text style={theme.type.title}>Theme</Text>
-        <Text style={theme.type.subhead} testID="theme-state-line">
+        <ThemedText variant="title">Theme</ThemedText>
+        <ThemedText variant="subhead" testID="theme-state-line">
           {presetName} · {modeLabel(mode)}
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={{ gap: theme.spacing.sm }}>
@@ -100,17 +99,17 @@ const ThemeSettingsSheet = () => {
                   paddingHorizontal: theme.spacing.md,
                 }}
               >
-                <Text
+                <ThemedText
+                  variant="subhead"
                   style={{
                     color: selected
                       ? theme.colors.accentText
                       : theme.colors.text,
-                    fontSize: theme.type.subhead.fontSize,
                     fontWeight: "600",
                   }}
                 >
                   {label}
-                </Text>
+                </ThemedText>
               </Pressable>
             );
           })}
@@ -137,15 +136,16 @@ const ThemeSettingsSheet = () => {
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={theme.type.body}>{preset.name}</Text>
+              <ThemedText variant="body">{preset.name}</ThemedText>
               <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
                 <SwatchStrip palette={preset[theme.resolvedMode]} />
                 {selected && (
-                  <Text
-                    style={[theme.type.caption, { color: theme.colors.accent }]}
+                  <ThemedText
+                    variant="caption"
+                    style={{ color: theme.colors.accent }}
                   >
                     Selected
-                  </Text>
+                  </ThemedText>
                 )}
               </View>
             </Pressable>

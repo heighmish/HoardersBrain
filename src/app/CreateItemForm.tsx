@@ -2,6 +2,7 @@ import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
+import ThemedText from "@/components/Basic/ThemedText";
 import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
 import { useDatabase } from "@/db/DatabaseProvider";
@@ -15,7 +16,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 
@@ -62,9 +62,9 @@ const CreateItemForm = () => {
           flex: 1,
         }}
       >
-        <Text style={theme.type.body}>
+        <ThemedText variant="body">
           No storage container selected - go back and pick one first.
-        </Text>
+        </ThemedText>
       </View>
     );
   }
@@ -135,7 +135,7 @@ const CreateItemForm = () => {
           ))}
         </View>
 
-        <Text style={theme.type.headline}>Weight?</Text>
+        <ThemedText variant="headline">Weight?</ThemedText>
         <NumericInput
           value={weightText}
           testID="item-weight-input"

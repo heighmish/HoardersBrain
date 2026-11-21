@@ -1,6 +1,7 @@
 import { readableTextColor } from "@/constants/theme";
+import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 export type BadgeTone = "success" | "warning" | "error";
 
@@ -38,15 +39,15 @@ const Badge: React.FC<BadgeProps> = ({
         alignSelf: "flex-start",
       }}
     >
-      <Text
+      <ThemedText
+        variant="subhead"
         style={{
           color: filled ? readableTextColor(fillColor) : theme.colors.text,
-          fontSize: theme.type.subhead.fontSize,
           fontWeight: "600",
         }}
       >
         {text}
-      </Text>
+      </ThemedText>
     </View>
   );
 };

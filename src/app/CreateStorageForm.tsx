@@ -2,6 +2,7 @@ import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
+import ThemedText from "@/components/Basic/ThemedText";
 import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
 import { useDatabase } from "@/db/DatabaseProvider";
@@ -16,7 +17,6 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Text,
   View,
 } from "react-native";
 
@@ -108,7 +108,7 @@ const CreateStorageForm = () => {
           ))}
         </View>
 
-        <Text style={theme.type.headline}>Weight?</Text>
+        <ThemedText variant="headline">Weight?</ThemedText>
         <NumericInput
           value={weightText}
           testID="storage-weight-input"
@@ -128,9 +128,9 @@ const CreateStorageForm = () => {
             }))
           }
         >
-          <Text style={theme.type.body}>
+          <ThemedText variant="body">
             Does the storage have a fixed weight?
-          </Text>
+          </ThemedText>
           <Switch
             value={storageInput.is_fixed_weight}
             onValueChange={(value) =>
@@ -158,9 +158,9 @@ const CreateStorageForm = () => {
             }))
           }
         >
-          <Text style={theme.type.body}>
+          <ThemedText variant="body">
             Are you carrying the storage?
-          </Text>
+          </ThemedText>
           <Switch
             value={storageInput.carrying}
             onValueChange={(value) =>

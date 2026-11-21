@@ -1,5 +1,6 @@
 import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
+import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
@@ -8,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 type CurrencyValues = {
   platinum: number;
@@ -39,7 +40,7 @@ const UpdateCurrencySheet = () => {
   if (characterQuery.error) {
     return (
       <View>
-        <Text>Failed to load currency information</Text>
+        <ThemedText variant="body">Failed to load currency information</ThemedText>
       </View>
     );
   }
@@ -102,12 +103,13 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
       <View style={{ display: "flex", gap: theme.spacing.md }}>
         {CURRENCY_KEYS.map((currency) => (
           <View key={`${currency}-update-view`}>
-            <Text
-              style={[theme.type.headline, { marginBottom: theme.spacing.xs }]}
+            <ThemedText
+              variant="headline"
+              style={{ marginBottom: theme.spacing.xs }}
               key={`${currency}-update-label`}
             >
               {currency}
-            </Text>
+            </ThemedText>
             <View>
               <NumericInput
                 buttonDecrement={() =>

@@ -1,6 +1,7 @@
+import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { Item } from "@/db/schema";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 
 interface ItemProps {
   item: Item;
@@ -18,7 +19,7 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
       testID={`item-row-${item.item_id}`}
     >
       <View style={{ flex: 8 }}>
-        <Text style={theme.type.body}>{item.name}</Text>
+        <ThemedText variant="body">{item.name}</ThemedText>
       </View>
       <View
         style={{
@@ -28,16 +29,12 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
           justifyContent: "flex-end",
         }}
       >
-        <Text
-          style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}
-        >
+        <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
           {item.quantity}
-        </Text>
-        <Text
-          style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}
-        >
+        </ThemedText>
+        <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
           {item.weight}
-        </Text>
+        </ThemedText>
       </View>
     </View>
   );

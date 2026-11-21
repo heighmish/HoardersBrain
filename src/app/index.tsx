@@ -1,10 +1,11 @@
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
+import ThemedText from "@/components/Basic/ThemedText";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { charactersTable } from "@/db/schema";
 import { Redirect } from "expo-router";
 import { useCharacterContext } from "@/stores/CharacterContext";
@@ -59,7 +60,7 @@ export default function Index() {
         gap: theme.spacing.md,
       }}
     >
-      <Text style={theme.type.title}>Please create a character</Text>
+      <ThemedText variant="title">Please create a character</ThemedText>
       <Input
         value={charNameInput}
         onChangeText={setCharNameInput}

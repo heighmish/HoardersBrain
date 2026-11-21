@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import { storageLocationsTable } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -15,6 +15,7 @@ import {
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 import Button from "@/components/Basic/Button";
+import ThemedText from "@/components/Basic/ThemedText";
 
 const Inventory = () => {
   const { state } = useCharacterContext();
@@ -60,15 +61,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               }}
               testID="character-switcher"
             >
-              <Text
-                style={{
-                  color: theme.colors.accent,
-                  fontSize: theme.type.headline.fontSize,
-                  fontWeight: "600",
-                }}
+              <ThemedText
+                variant="headline"
+                style={{ color: theme.colors.accent }}
               >
                 {character.name.slice(0, 25)}{" "}
-              </Text>
+              </ThemedText>
               <AntDesign name="down" size={12} color={theme.colors.accent} />
             </Link>
           ),

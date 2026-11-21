@@ -1,4 +1,5 @@
 import Button from "@/components/Basic/Button";
+import ThemedText from "@/components/Basic/ThemedText";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useCharacterContext } from "@/stores/CharacterContext";
@@ -6,7 +7,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
   const theme = useTheme();
@@ -23,7 +24,7 @@ const ChangeCharacterSheet = () => {
           backgroundColor: theme.colors.surface,
         }}
       >
-        <Text style={theme.type.body}>Failed to load characters</Text>
+        <ThemedText variant="body">Failed to load characters</ThemedText>
       </View>
     );
   }
@@ -69,7 +70,7 @@ const ChangeCharacterSheet = () => {
                 alignItems: "center",
               }}
             >
-              <Text style={theme.type.body}>{item.name}</Text>
+              <ThemedText variant="body">{item.name}</ThemedText>
               <View
                 style={{
                   backgroundColor:

@@ -1,10 +1,11 @@
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
+import ThemedText from "@/components/Basic/ThemedText";
 import { rarityColors } from "@/constants/rarity";
 import { useTheme } from "@/stores/ThemeContext";
 import { itemsTable, Storage } from "@/db/schema";
 import React from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -33,7 +34,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       }}
     >
       <View style={{ flex: 7 }}>
-        <Text style={theme.type.subhead}>Name</Text>
+        <ThemedText variant="subhead">Name</ThemedText>
       </View>
       <View
         style={{
@@ -43,8 +44,8 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           justifyContent: "flex-end",
         }}
       >
-        <Text style={theme.type.subhead}>Qty</Text>
-        <Text style={theme.type.subhead}>Weight</Text>
+        <ThemedText variant="subhead">Qty</ThemedText>
+        <ThemedText variant="subhead">Weight</ThemedText>
       </View>
     </View>
   );
@@ -69,7 +70,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             gap: theme.spacing.sm,
           }}
         >
-          <Text style={theme.type.headline}>{storage.name} </Text>
+          <ThemedText variant="headline">{storage.name} </ThemedText>
           <View
             style={{
               flexDirection: "row",
@@ -103,9 +104,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             marginBottom: theme.spacing.sm,
           }}
         >
-          <Text style={theme.type.subhead}>
+          <ThemedText variant="subhead">
             Storing: {storage.weight}lbs
-          </Text>
+          </ThemedText>
         </View>
       </View>
       <FlatList
@@ -115,7 +116,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         keyExtractor={(item) => item.item_id.toString()}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={
-          <Text style={theme.type.subhead}>No items</Text>
+          <ThemedText variant="subhead">No items</ThemedText>
         }
       />
     </View>

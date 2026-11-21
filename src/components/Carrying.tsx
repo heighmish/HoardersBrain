@@ -1,4 +1,5 @@
 import Badge, { BadgeTone } from "@/components/Basic/Badge";
+import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
 import {
@@ -8,7 +9,7 @@ import {
 } from "@/db/schema";
 import { and, eq, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 
 interface CarryingProps {
@@ -89,7 +90,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   if (maxEncumbrance.error || items.error || containerWeightQuery.error) {
     return (
       <View>
-        <Text style={theme.type.body}>Failed to load character information</Text>
+        <ThemedText variant="body">Failed to load character information</ThemedText>
       </View>
     );
   }
@@ -124,15 +125,13 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
           )}
           text="Encumbrance"
         />
-        <Text
-          style={[
-            theme.type.caption,
-            { color: theme.colors.text, fontVariant: ["tabular-nums"] },
-          ]}
+        <ThemedText
+          variant="caption"
+          style={{ color: theme.colors.text, fontVariant: ["tabular-nums"] }}
         >
           Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
           lb
-        </Text>
+        </ThemedText>
       </View>
       <AntDesign name="right" color={theme.colors.textMuted} />
     </View>

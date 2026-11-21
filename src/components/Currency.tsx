@@ -1,3 +1,4 @@
+import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
@@ -6,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Link } from "expo-router";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 interface CurrencyProps {
   characterId: number;
@@ -26,7 +27,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
   if (character.error) {
     return (
       <View>
-        <Text style={theme.type.body}>Failed to load character information</Text>
+        <ThemedText variant="body">Failed to load character information</ThemedText>
       </View>
     );
   }
@@ -61,12 +62,13 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
             ]}
           >
             <View>
-              <Text style={theme.type.caption}>Currency</Text>
-              <Text
-                style={[theme.type.subhead, { fontVariant: ["tabular-nums"] }]}
+              <ThemedText variant="caption">Currency</ThemedText>
+              <ThemedText
+                variant="subhead"
+                style={{ fontVariant: ["tabular-nums"] }}
               >
                 {GoldValue.toFixed(2)}g
-              </Text>
+              </ThemedText>
             </View>
             <AntDesign name="right" color={theme.colors.textMuted} />
           </View>

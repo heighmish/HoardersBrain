@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { render, screen } from "@testing-library/react-native";
 import { ReactNode } from "react";
+import { StyleSheet } from "react-native";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -34,6 +35,15 @@ const renderInTheme = async (mode: "light" | "dark", node: ReactNode) => {
   return render(<ThemeProvider>{node}</ThemeProvider>);
 };
 
+const labelColor = async (text: string) => {
+  const label = await screen.findByText(text);
+  const resolved = StyleSheet.flatten(label.props.style);
+  if (resolved === null || resolved === undefined) {
+    throw new Error("badge label style could not be resolved");
+  }
+  return resolved.color;
+};
+
 describe("Badge", () => {
   test("renders every rarity with its palette color", async () => {
     for (const rarity of RarityArray) {
@@ -57,9 +67,7 @@ describe("Badge", () => {
       "dark",
       <Badge text="Common" color={rarityColors.Common} />,
     );
-    expect((await screen.findByText("Common")).props.style.color).toBe(
-      "#FFFFFF",
-    );
+    expect(await labelColor("Common")).toBe("#FFFFFF");
   });
 
   test("legendary orange pairs dark text for contrast", async () => {
@@ -67,9 +75,7 @@ describe("Badge", () => {
       "dark",
       <Badge text="Legendary" color={rarityColors.Legendary} />,
     );
-    expect((await screen.findByText("Legendary")).props.style.color).toBe(
-      "#1B1B24",
-    );
+    expect(await labelColor("Legendary")).toBe("#1B1B24");
   });
 
   test("feedback tones fill from the active theme", async () => {
@@ -79,9 +85,7 @@ describe("Badge", () => {
     );
     const badge = await screen.findByTestId("badge-under-test");
     expect(badge.props.style.backgroundColor).toBe("#F1FA8C");
-    expect((await screen.findByText("Encumbrance")).props.style.color).toBe(
-      "#1B1B24",
-    );
+    expect(await labelColor("Encumbrance")).toBe("#1B1B24");
   });
 
   test("unfilled badges outline the fill and follow the resolved mode text", async () => {
@@ -96,9 +100,7 @@ describe("Badge", () => {
     );
     const lightBadge = await screen.findByTestId("badge-under-test");
     expect(lightBadge.props.style.backgroundColor).toBe("transparent");
-    expect((await screen.findByText("Encumbrance")).props.style.color).toBe(
-      "#282A36",
-    );
+    expect(await labelColor("Encumbrance")).toBe("#282A36");
     await light.unmount();
 
     await renderInTheme(
@@ -111,8 +113,6 @@ describe("Badge", () => {
       />,
     );
     await screen.findByTestId("badge-under-test");
-    expect((await screen.findByText("Encumbrance")).props.style.color).toBe(
-      "#F8F8F2",
-    );
+    expect(await labelColor("Encumbrance")).toBe("#F8F8F2");
   });
 });
