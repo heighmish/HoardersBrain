@@ -14,14 +14,6 @@ const Settings = () => {
     return null;
   }
 
-  const openPage = (href: string) => {
-    router.dismiss();
-    // The push must land after the sheet's dismissal or it inherits the sheet's presentation.
-    setTimeout(() => {
-      router.push(href);
-    }, theme.motion.base);
-  };
-
   const subhead = (text: string) => (
     <ThemedText
       variant="caption"
@@ -59,31 +51,27 @@ const Settings = () => {
 
   return (
     <ScrollView
-      style={{ backgroundColor: theme.colors.surface }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
         padding: theme.spacing.md,
-        paddingTop: theme.spacing.xl,
         gap: theme.spacing.lg,
       }}
     >
-      <ThemedText variant="title">Settings</ThemedText>
-
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("Character customization")}
         {linkRow(
           "dashboard",
           "Encumbrance & weight",
           "settings-encumbrance-row",
-          () => openPage("/CharacterSettings"),
+          () => router.push("/CharacterSettings"),
         )}
       </View>
 
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("App customization")}
         {linkRow("skin", "Theme", "settings-theme-row", () =>
-          openPage("/ThemeSettings"),
+          router.push("/ThemeSettings"),
         )}
       </View>
 
@@ -93,7 +81,7 @@ const Settings = () => {
           "team",
           "Rename or delete",
           "manage-characters-row",
-          () => openPage("/ManageCharacters"),
+          () => router.push("/ManageCharacters"),
         )}
       </View>
     </ScrollView>

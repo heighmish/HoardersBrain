@@ -77,18 +77,13 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Theme",
             headerBackTitle: "Back",
-            animation: "slide_from_right",
           }}
         />
         <Stack.Screen
           name="Settings"
           options={{
-            presentation: "formSheet",
-            headerShown: false,
-            sheetAllowedDetents: "fitToContents",
-            sheetGrabberVisible: false,
-            sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            headerTitle: "Settings",
+            headerBackTitle: "Back",
           }}
         />
         <Stack.Screen
@@ -96,7 +91,6 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Encumbrance & Weight",
             headerBackTitle: "Back",
-            animation: "slide_from_right",
           }}
         />
         <Stack.Screen
@@ -104,7 +98,6 @@ const RootNavigator = () => {
           options={{
             headerTitle: "Manage Characters",
             headerBackTitle: "Back",
-            animation: "slide_from_right",
           }}
         />
         <Stack.Screen
