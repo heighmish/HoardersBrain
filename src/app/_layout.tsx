@@ -6,6 +6,7 @@ import {
   Stack,
   ThemeProvider,
 } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CharacterProvider } from "@/stores/CharacterContext";
 import {
   ThemeProvider as AppThemeProvider,
@@ -36,10 +37,7 @@ const RootNavigator = () => {
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: theme.colors.background },
-          headerStyle: { backgroundColor: theme.colors.surface },
-          headerTintColor: theme.colors.accent,
-          headerTitleStyle: { color: theme.colors.text },
-          headerShadowVisible: false,
+          headerShown: false,
           statusBarStyle: theme.resolvedMode === "dark" ? "light" : "dark",
         }}
       >
@@ -72,49 +70,6 @@ const RootNavigator = () => {
             sheetCornerRadius: 15,
           }}
         />
-        <Stack.Screen
-          name="ThemeSettings"
-          options={{
-            headerTitle: "Theme",
-            headerBackTitle: "Back",
-          }}
-        />
-        <Stack.Screen
-          name="Settings"
-          options={{
-            headerTitle: "Settings",
-            headerBackTitle: "Back",
-          }}
-        />
-        <Stack.Screen
-          name="CharacterSettings"
-          options={{
-            headerTitle: "Encumbrance & Weight",
-            headerBackTitle: "Back",
-          }}
-        />
-        <Stack.Screen
-          name="ManageCharacters"
-          options={{
-            headerTitle: "Manage Characters",
-            headerBackTitle: "Back",
-          }}
-        />
-        <Stack.Screen
-          name="CreateStorageForm"
-          options={{
-            headerBackTitle: "Back",
-            headerTitle: "Create new storage",
-          }}
-        />
-
-        <Stack.Screen
-          name="CreateItemForm"
-          options={{
-            headerBackTitle: "Back",
-            headerTitle: "Create new item",
-          }}
-        />
       </Stack>
     </ThemeProvider>
   );
@@ -123,11 +78,13 @@ const RootNavigator = () => {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <DatabaseProvider>
-        <CharacterProvider>
-          <RootNavigator />
-        </CharacterProvider>
-      </DatabaseProvider>
+      <SafeAreaProvider>
+        <DatabaseProvider>
+          <CharacterProvider>
+            <RootNavigator />
+          </CharacterProvider>
+        </DatabaseProvider>
+      </SafeAreaProvider>
     </AppThemeProvider>
   );
 }

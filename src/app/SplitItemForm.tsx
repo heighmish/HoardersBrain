@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
@@ -7,7 +8,7 @@ import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
 import { and, eq, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -126,7 +127,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
-      <Stack.Screen options={{ headerTitle: "Split stack" }} />
+      <AppHeader title="Split stack" />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"

@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
@@ -13,7 +14,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useTheme } from "@/stores/ThemeContext";
 import { Storage, storageLocationsTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -139,11 +140,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
-      <Stack.Screen
-        options={{
-          headerTitle: isEditing ? "Edit storage" : "Create new storage",
-        }}
-      />
+      <AppHeader title={isEditing ? "Edit storage" : "Create new storage"} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"

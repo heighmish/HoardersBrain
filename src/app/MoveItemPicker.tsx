@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Badge from "@/components/Basic/Badge";
 import ThemedText from "@/components/Basic/ThemedText";
 import { moveItemToContainer } from "@/components/itemOperations";
@@ -7,7 +8,7 @@ import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
 import { and, eq, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
@@ -100,15 +101,16 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
 
   return (
     <View
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.background,
-        padding: theme.spacing.md,
-        gap: theme.spacing.md,
-      }}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
       testID="move-picker-screen"
     >
-      <Stack.Screen options={{ headerTitle: "Move item" }} />
+      <AppHeader title="Move item" />
+      <View
+        style={{
+          padding: theme.spacing.md,
+          gap: theme.spacing.md,
+        }}
+      >
       <ThemedText variant="headline">{item.name}</ThemedText>
       {containers.data.length === 0 ? (
         <ThemedText variant="body">No other containers</ThemedText>
@@ -152,6 +154,7 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
           ))}
         </ScrollView>
       )}
+      </View>
     </View>
   );
 };

@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
@@ -81,7 +82,9 @@ const ManageCharacters = () => {
   };
 
   return (
-    <ScrollView
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Manage Characters" />
+      <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
@@ -160,6 +163,7 @@ const ManageCharacters = () => {
         </View>
       )}
     </ScrollView>
+    </View>
   );
 };
 

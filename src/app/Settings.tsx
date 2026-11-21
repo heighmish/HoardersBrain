@@ -1,4 +1,5 @@
 import { AntDesign } from "@expo/vector-icons";
+import AppHeader from "@/components/Basic/AppHeader";
 import { router } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import ThemedText from "@/components/Basic/ThemedText";
@@ -50,7 +51,9 @@ const Settings = () => {
   );
 
   return (
-    <ScrollView
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Settings" />
+      <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
@@ -85,6 +88,7 @@ const Settings = () => {
         )}
       </View>
     </ScrollView>
+    </View>
   );
 };
 

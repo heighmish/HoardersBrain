@@ -229,10 +229,15 @@ Icon in a header/row:
    practical that a color actually follows the mode (see
    `__tests__/themeScreens.test.tsx` for the pattern).
 10. **Sheets are terminal; pages navigate.** A formSheet's rows end in
-    actions (switch, save) — never push full pages from inside a sheet: the
-    native stack presents such pushes with the sheet's context and the
-    header arrives mid-swap (the bounce). Menus whose rows lead to pages
-    are themselves pages, pushed like any other screen.
+    actions (switch, save). Menus whose rows lead to pages are themselves
+    pages, pushed like any other screen — the Instagram pattern.
+11. **Pushed screens render `AppHeader`, never the native header.** The root
+    Stack sets `headerShown: false`. react-native-screens styles native header
+    items against a navigation bar that is not yet window-attached on iOS 26
+    (software-mansion/react-native-screens#4588, open at the time of writing),
+    so native back buttons pop and retint during pushes. `AppHeader` is
+    React-rendered, token-themed, and cannot bounce. Do not re-enable native
+    headers until that fix ships in an Expo-sanctioned release.
 
 ## Dynamic Type
 
@@ -251,11 +256,10 @@ presets, and primitives in their own idiom.
 
 ## Footguns
 
-- Tab-navigator headers and root Stack headers are different navigators. Both
-  need explicit themed options (`headerStyle`, `headerTintColor`,
-  `headerTitleStyle`, and — same class of bug — `statusBarStyle`); a header or
-  status bar you did not theme renders with white platform defaults in dark
-  mode.
+- The tab navigator header is the one native-slot header left, and it is
+  React-rendered: keep its themed options in `src/app/(tabs)/_layout.tsx`.
+  Pushed pages use `AppHeader` (see Rules); the root Stack's native headers
+  are disabled.
 - `Appearance.setColorScheme` in `src/stores/ThemeContext.tsx` is what makes
   an in-app Light/Dark override reach native chrome (headers, formSheets, tab
   bar, status-bar area). Do not remove it; "system" mode passes `"auto"`,

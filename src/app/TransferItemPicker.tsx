@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import ThemedText from "@/components/Basic/ThemedText";
 import { transferItemToCharacter } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
@@ -5,7 +6,7 @@ import { charactersTable, Item, itemsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
 import { eq, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
@@ -95,15 +96,16 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
 
   return (
     <View
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.background,
-        padding: theme.spacing.md,
-        gap: theme.spacing.md,
-      }}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
       testID="transfer-picker-screen"
     >
-      <Stack.Screen options={{ headerTitle: "Transfer item" }} />
+      <AppHeader title="Transfer item" />
+      <View
+        style={{
+          padding: theme.spacing.md,
+          gap: theme.spacing.md,
+        }}
+      >
       <ThemedText variant="headline">{item.name}</ThemedText>
       {characters.data.length === 0 ? (
         <ThemedText variant="body">No other characters</ThemedText>
@@ -143,6 +145,7 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
           ))}
         </ScrollView>
       )}
+      </View>
     </View>
   );
 };

@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
@@ -11,7 +12,7 @@ import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
@@ -133,7 +134,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
       style={{ flex: 1, backgroundColor: theme.colors.background }}
       testID="item-detail-screen"
     >
-      <Stack.Screen options={{ headerTitle: "Item detail" }} />
+      <AppHeader title="Item detail" />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{

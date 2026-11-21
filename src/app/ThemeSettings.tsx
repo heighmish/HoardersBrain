@@ -1,4 +1,5 @@
 import { AntDesign } from "@expo/vector-icons";
+import AppHeader from "@/components/Basic/AppHeader";
 import {
   PaletteSemantics,
   ThemeMode,
@@ -58,7 +59,9 @@ const ThemeSettings = () => {
   );
 
   return (
-    <ScrollView
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Theme" />
+      <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
@@ -146,6 +149,7 @@ const ThemeSettings = () => {
         })}
       </View>
     </ScrollView>
+    </View>
   );
 };
 

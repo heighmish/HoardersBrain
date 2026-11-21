@@ -1,3 +1,4 @@
+import AppHeader from "@/components/Basic/AppHeader";
 import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
@@ -98,14 +99,15 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
   };
 
   return (
-    <View
-      style={{
-        backgroundColor: theme.colors.background,
-        padding: theme.spacing.md,
-        gap: theme.spacing.lg,
-      }}
-    >
-      <View style={{ gap: theme.spacing.sm }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Encumbrance & Weight" />
+      <View
+        style={{
+          padding: theme.spacing.md,
+          gap: theme.spacing.lg,
+        }}
+      >
+        <View style={{ gap: theme.spacing.sm }}>
         <ThemedText variant="headline">Max Encumbrance</ThemedText>
         <NumericInput
           value={maxEncumbranceInput}
@@ -150,6 +152,7 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
         disabled={parsedMaxEncumbrance === null}
         fullWidth
       />
+      </View>
     </View>
   );
 };
