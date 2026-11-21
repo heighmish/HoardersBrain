@@ -37,13 +37,13 @@ Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens
 
 Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
 
-- [ ] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
+- [x] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
 - [x] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
 - [x] Edit character name; delete character (clean up child rows, then switch away)
-- [ ] Item detail screen: full description, stats, edit/delete entry points
-- [ ] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
-- [ ] Move items between containers; split stacks (3 potions, give 1 away)
-- [ ] Transfer items between characters (both sides get ledger entries)
+- [x] Item detail screen: full description, stats, edit/delete entry points
+- [x] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
+- [x] Move items between containers; split stacks (3 potions, give 1 away)
+- [x] Transfer items between characters (both sides get ledger entries)
 - [x] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
 - [x] Editable `max_encumbrance` in a character settings area
 - [x] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)

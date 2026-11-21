@@ -3,13 +3,14 @@ import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
+import { updateItemDetails } from "@/components/itemOperations";
 import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useTheme } from "@/stores/ThemeContext";
 import { Item, itemsTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
-import { router, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -18,10 +19,12 @@ import {
   ScrollView,
   View,
 } from "react-native";
+import { eq } from "drizzle-orm";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 type ItemInput = Omit<Item, "item_id" | "storage_location_id" | "weight">;
 
-const parseStorageId = (raw: string | undefined): number | null => {
+const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
     return null;
   }
@@ -31,29 +34,20 @@ const parseStorageId = (raw: string | undefined): number | null => {
 
 const CreateItemForm = () => {
   const theme = useTheme();
-  const db = useDatabase();
   const character = useSelectedCharacter();
-  const { storageId } = useLocalSearchParams<{ storageId?: string }>();
+  const { storageId, itemId } = useLocalSearchParams<{
+    storageId?: string;
+    itemId?: string;
+  }>();
 
-  const [itemInput, setItemInput] = useState<ItemInput>({
-    name: "",
-    description: null,
-    rarity: "Common",
-    character_id: character.id,
-    properties: null,
-    quantity: 1,
-    item_type: "consumable",
-  });
+  const editItemId = parseIdParam(itemId);
+  const createStorageId = parseIdParam(storageId);
 
-  const [weightText, setWeightText] = useState("1");
+  if (editItemId !== null) {
+    return <EditItemFormLoader itemId={editItemId} />;
+  }
 
-  const adjustWeight = (delta: number) => {
-    setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
-  };
-
-  const storageLocationId = parseStorageId(storageId);
-
-  if (storageLocationId === null) {
+  if (createStorageId === null) {
     return (
       <View
         style={{
@@ -69,16 +63,140 @@ const CreateItemForm = () => {
     );
   }
 
+  return (
+    <ItemFormBody
+      mode="create"
+      storageId={createStorageId}
+      initialInput={{
+        name: "",
+        description: null,
+        rarity: "Common",
+        character_id: character.id,
+        properties: null,
+        quantity: 1,
+        item_type: "consumable",
+      }}
+      initialWeightText="1"
+      initialQuantityText="1"
+    />
+  );
+};
+
+const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
+  const theme = useTheme();
+  const db = useDatabase();
+  const item = useLiveQuery(
+    db.query.itemsTable.findFirst({
+      where: eq(itemsTable.item_id, itemId),
+    }),
+    [itemId],
+  );
+
+  if (item.error) {
+    return (
+      <View
+        style={{
+          padding: theme.spacing.md,
+          backgroundColor: theme.colors.background,
+          flex: 1,
+        }}
+      >
+        <ThemedText variant="body">Failed to load item</ThemedText>
+      </View>
+    );
+  }
+
+  if (item.updatedAt === undefined) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
+    );
+  }
+
+  if (item.data === undefined) {
+    return (
+      <View
+        style={{
+          padding: theme.spacing.md,
+          backgroundColor: theme.colors.background,
+          flex: 1,
+        }}
+      >
+        <ThemedText variant="body">Item not found</ThemedText>
+      </View>
+    );
+  }
+
+  const loaded = item.data;
+
+  return (
+    <ItemFormBody
+      key={loaded.item_id}
+      mode="edit"
+      itemId={loaded.item_id}
+      initialInput={{
+        name: loaded.name,
+        description: loaded.description,
+        rarity: loaded.rarity,
+        character_id: loaded.character_id,
+        properties: loaded.properties,
+        quantity: loaded.quantity,
+        item_type: loaded.item_type,
+      }}
+      initialWeightText={String(loaded.weight)}
+      initialQuantityText={String(loaded.quantity)}
+    />
+  );
+};
+
+type ItemFormBodyProps = (
+  | { mode: "create"; storageId: number }
+  | { mode: "edit"; itemId: number }
+) & {
+  initialInput: ItemInput;
+  initialWeightText: string;
+  initialQuantityText: string;
+};
+
+const ItemFormBody = (props: ItemFormBodyProps) => {
+  const theme = useTheme();
+  const db = useDatabase();
+
+  const { mode, initialInput, initialWeightText, initialQuantityText } =
+    props;
+
+  const [itemInput, setItemInput] = useState<ItemInput>(initialInput);
+  const [weightText, setWeightText] = useState(initialWeightText);
+  const [quantityText, setQuantityText] = useState(initialQuantityText);
+
+  const adjustWeight = (delta: number) => {
+    setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
+  };
+
   const submit = async () => {
     if (itemInput.name === "") {
       return;
     }
 
-    await db.insert(itemsTable).values({
-      ...itemInput,
-      storage_location_id: storageLocationId,
-      weight: Math.max(0, parseFloat(weightText) || 0),
-    });
+    const quantity = Math.max(1, Number.parseInt(quantityText, 10) || 1);
+
+    if (props.mode === "create") {
+      await db.insert(itemsTable).values({
+        ...itemInput,
+        quantity,
+        storage_location_id: props.storageId,
+        weight: Math.max(0, parseFloat(weightText) || 0),
+      });
+    } else {
+      await updateItemDetails(db, props.itemId, {
+        name: itemInput.name,
+        description: itemInput.description,
+        item_type: itemInput.item_type,
+        weight: Math.max(0, parseFloat(weightText) || 0),
+        rarity: itemInput.rarity,
+        quantity,
+        properties: itemInput.properties,
+      });
+    }
     router.back();
   };
 
@@ -87,6 +205,9 @@ const CreateItemForm = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
+      <Stack.Screen
+        options={{ headerTitle: mode === "edit" ? "Edit item" : "Create new item" }}
+      />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -135,6 +256,14 @@ const CreateItemForm = () => {
           ))}
         </View>
 
+        <ThemedText variant="headline">Quantity?</ThemedText>
+        <Input
+          keyboardType="number-pad"
+          value={quantityText}
+          testID="item-quantity-input"
+          onChangeText={setQuantityText}
+        />
+
         <ThemedText variant="headline">Weight?</ThemedText>
         <NumericInput
           value={weightText}
@@ -145,10 +274,10 @@ const CreateItemForm = () => {
         />
 
         <Button
-          title="Create"
+          title={mode === "edit" ? "Save" : "Create"}
           onPress={submit}
-          testID="create-item-button"
-          style={{ alignSelf: "stretch" }}
+          testID={mode === "edit" ? "save-item-button" : "create-item-button"}
+          fullWidth
         />
       </ScrollView>
     </KeyboardAvoidingView>

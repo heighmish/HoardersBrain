@@ -1,7 +1,8 @@
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { Item } from "@/db/schema";
-import { View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, View } from "react-native";
 
 interface ItemProps {
   item: Item;
@@ -11,11 +12,19 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
   const theme = useTheme();
 
   return (
-    <View
-      style={{
+    <Pressable
+      accessible={false}
+      onPress={() => {
+        router.push({
+          pathname: "/ItemDetail",
+          params: { itemId: item.item_id },
+        });
+      }}
+      style={({ pressed }) => ({
         flexDirection: "row",
         justifyContent: "space-between",
-      }}
+        opacity: pressed ? 0.7 : 1,
+      })}
       testID={`item-row-${item.item_id}`}
     >
       <View style={{ flex: 8 }}>
@@ -36,7 +45,7 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
           {item.weight}
         </ThemedText>
       </View>
-    </View>
+    </Pressable>
   );
 };
 

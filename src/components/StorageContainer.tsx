@@ -9,7 +9,7 @@ import { rarityColors } from "@/constants/rarity";
 import { useTheme } from "@/stores/ThemeContext";
 import { itemsTable, Storage } from "@/db/schema";
 import React, { useState } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -40,6 +40,8 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     }
     setConfirmingDelete(false);
   };
+
+  const [expanded, setExpanded] = useState(false);
 
   const itemListHeader = (
     <View
@@ -181,13 +183,36 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         </View>
       </View>
       <FlatList
-        data={items.data.slice(0, 5)}
+        data={expanded ? items.data : items.data.slice(0, 5)}
         ListHeaderComponent={itemListHeader}
         renderItem={({ item }) => <ItemComponent item={item} />}
         keyExtractor={(item) => item.item_id.toString()}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={
           <ThemedText variant="subhead">No items</ThemedText>
+        }
+        ListFooterComponent={
+          items.data.length > 5 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                expanded ? "Show fewer items" : "Show all items"
+              }
+              onPress={() => {
+                setExpanded((prev) => !prev);
+              }}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.7 : 1,
+                alignSelf: "flex-start",
+                paddingVertical: theme.spacing.xs,
+              })}
+              testID={`container-expand-${storage.storage_location_id}`}
+            >
+              <ThemedText variant="subhead">
+                {expanded ? "Show fewer" : `Show all (${items.data.length})`}
+              </ThemedText>
+            </Pressable>
+          ) : undefined
         }
       />
     </View>
