@@ -224,10 +224,10 @@ Icon in a header/row:
    controller is ignored whenever a screen controller is topmost, which is
    exactly the black-icons-in-dark-mode bug. A new top-level navigator must
    repeat the same `statusBarStyle` and header options block (see Footguns).
-9. **Every screen and presentational component ships render tests** asserting
-   it renders in BOTH resolved modes without token crashes, and where
-   practical that a color actually follows the mode (see
-   `__tests__/themeScreens.test.tsx` for the pattern).
+9. **Verification is `npm run check` plus on-device checks** — there is no unit
+   suite (removed by owner decision, Nov 2026); see AGENTS.md "No tests".
+   Both resolved modes must be eyeballed on the device or via automation
+   screenshots when a screen's colors change.
 10. **Sheets are terminal; pages navigate.** A formSheet's rows end in
     actions (switch, save). Menus whose rows lead to pages are themselves
     pages, pushed like any other screen — the Instagram pattern.
@@ -282,8 +282,8 @@ presets, and primitives in their own idiom.
 ## Verify
 
 Follow the AGENTS.md verification ladder: `npm run check` (lint + typecheck +
-the design-token guardrail), then `npm run test` — this is where design work
-is proven, in both modes. Never validate work-in-progress with device flows;
+the design-token guardrail) — there is no unit suite; design work is proven on
+the device in both modes. Never validate work-in-progress with device flows;
 Maestro runs at merge gates only, against a stable Release build. At the gate,
 a change a person can see gets before/after screenshots from the platforms
 actually run (`.maestro/design-screens.yaml` captures them); if nothing

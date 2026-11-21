@@ -2,7 +2,7 @@ import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
   ReactNode,
   createContext,
@@ -52,7 +52,10 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
 
         if (charId !== null && Number.isInteger(charId)) {
           const character = await db.query.charactersTable.findFirst({
-            where: eq(charactersTable.character_id, charId),
+            where: and(
+              eq(charactersTable.character_id, charId),
+              isNull(charactersTable.deleted_at),
+            ),
           });
           if (character !== undefined) {
             setState({
