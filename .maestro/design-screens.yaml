@@ -64,23 +64,29 @@ name: Capture visual evidence across the core journey
     timeout: 30000
 - takeScreenshot: 06-inventory-with-item-light.png
 
-- longPressOn:
-    id: container-card-2
-- extendedWaitUntil:
-    visible: "Delete"
-    timeout: 30000
-- takeScreenshot: 07-container-actions.png
 - tapOn:
-    point: "50%, 20%"
+    id: container-menu-2
+- extendedWaitUntil:
+    visible: "Edit"
+    timeout: 30000
+- takeScreenshot: 07-container-menu.png
+- tapOn:
+    id: container-edit-action-2
+- extendedWaitUntil:
+    visible: "Does the storage have a fixed weight?"
+    timeout: 30000
+- takeScreenshot: 08-container-edit.png
+- tapOn:
+    id: back-button
 
 - tapOn:
     id: theme-settings-button
 - extendedWaitUntil:
     visible: "Mind Flayer · System"
     timeout: 30000
-- takeScreenshot: 08-theme-sheet.png
+- takeScreenshot: 09-theme-sheet.png
 
 - tapOn:
     id: theme-mode-dark
 - assertVisible: "Mind Flayer · Dark"
-- takeScreenshot: 09-theme-sheet-dark.png
+- takeScreenshot: 10-theme-sheet-dark.png

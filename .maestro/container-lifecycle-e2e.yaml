@@ -52,8 +52,8 @@ name: Create, edit, and delete a container end to end
     visible: "Rope of Climbing"
     timeout: 30000
 
-- longPressOn:
-    id: container-card-2
+- tapOn:
+    id: container-menu-2
 - extendedWaitUntil:
     visible: "Edit"
     timeout: 30000
@@ -73,13 +73,21 @@ name: Create, edit, and delete a container end to end
     visible: ".*Bag of Holding Two.*"
     timeout: 30000
 
-- longPressOn:
-    id: container-card-2
+- tapOn:
+    id: container-menu-2
 - extendedWaitUntil:
     visible: "Delete"
     timeout: 30000
 - tapOn:
     id: container-delete-action-2
+- extendedWaitUntil:
+    visible: "Delete container?"
+    timeout: 30000
+- tapOn:
+    id: delete-confirm-input
+- inputText: "Bag of Holding Two"
+- tapOn:
+    id: delete-confirm-button
 
 - extendedWaitUntil:
     notVisible: ".*Bag of Holding Two.*"

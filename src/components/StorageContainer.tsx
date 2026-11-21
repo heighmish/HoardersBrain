@@ -1,3 +1,5 @@
+import Button from "@/components/Basic/Button";
+import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
 import { deleteStorageContainer } from "@/components/storageLifecycle";
 import { useTheme } from "@/stores/ThemeContext";
@@ -13,6 +15,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
 import { router } from "expo-router";
+import { AntDesign } from "@expo/vector-icons";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -21,7 +24,9 @@ interface StorageContainerProps {
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const [actionsOpen, setActionsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const character = useLiveQuery(
     db.query.charactersTable.findFirst({
       where: eq(charactersTable.character_id, storage.character_id),
@@ -40,9 +45,19 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     [storage.storage_location_id],
   );
 
+  const confirmMatches = confirmText.trim() === storage.name;
+  const closeAll = () => {
+    setMenuOpen(false);
+    setConfirmOpen(false);
+    setConfirmText("");
+  };
+
   const deleteContainer = () => {
+    if (!confirmMatches) {
+      return;
+    }
     deleteStorageContainer(db, storage);
-    setActionsOpen(false);
+    closeAll();
   };
 
   const [expanded, setExpanded] = useState(false);
@@ -76,7 +91,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     </View>
   );
 
-  const actionRow = (
+  const menuRow = (
     label: string,
     onPress: () => void,
     testID: string,
@@ -101,23 +116,38 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   );
 
   return (
-    <Pressable
-      onPress={() => setActionsOpen(true)}
-      onLongPress={() => setActionsOpen(true)}
-      accessibilityRole="button"
-      accessibilityLabel={storage.name}
-      style={({ pressed }) => ({
+    <View
+      style={{
         backgroundColor: theme.colors.surface,
         boxShadow: theme.shadows.card,
         borderRadius: theme.radius.lg,
         borderCurve: "continuous",
         padding: theme.spacing.md,
-        opacity: pressed ? 0.7 : 1,
-      })}
+      }}
       testID={`container-card-${storage.storage_location_id}`}
     >
-      <View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: theme.spacing.xs,
+        }}
+      >
         <ThemedText variant="headline">{storage.name} </ThemedText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Container options"
+          onPress={() => setMenuOpen(true)}
+          style={({ pressed }) => ({
+            padding: theme.spacing.sm,
+            margin: -theme.spacing.sm,
+            opacity: pressed ? 0.6 : 1,
+          })}
+          testID={`container-menu-${storage.storage_location_id}`}
+        >
+          <AntDesign name="ellipsis" size={20} color={theme.colors.textMuted} />
+        </Pressable>
       </View>
       <FlatList
         data={expanded ? items.data : items.data.slice(0, 5)}
@@ -156,14 +186,13 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       />
       <Modal
         transparent
-        visible={actionsOpen}
-        onRequestClose={() => setActionsOpen(false)}
-        testID={`container-actions-${storage.storage_location_id}`}
+        visible={menuOpen}
+        onRequestClose={() => setMenuOpen(false)}
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close actions"
-          onPress={() => setActionsOpen(false)}
+          accessibilityLabel="Close menu"
+          onPress={() => setMenuOpen(false)}
           style={{
             flex: 1,
             justifyContent: "flex-end",
@@ -181,10 +210,10 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
               gap: theme.spacing.xs,
             }}
           >
-            {actionRow(
+            {menuRow(
               "Edit",
               () => {
-                setActionsOpen(false);
+                setMenuOpen(false);
                 router.push({
                   pathname: "/CreateStorageForm",
                   params: {
@@ -194,16 +223,72 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
               },
               `container-edit-action-${storage.storage_location_id}`,
             )}
-            {actionRow(
+            {menuRow(
               "Delete",
-              deleteContainer,
+              () => {
+                setMenuOpen(false);
+                setConfirmText("");
+                setConfirmOpen(true);
+              },
               `container-delete-action-${storage.storage_location_id}`,
               true,
             )}
           </Pressable>
         </Pressable>
       </Modal>
-    </Pressable>
+      <Modal
+        transparent
+        visible={confirmOpen}
+        onRequestClose={closeAll}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close delete confirmation"
+          onPress={closeAll}
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            backgroundColor: theme.colors.scrim,
+          }}
+        >
+          <Pressable
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.lg,
+              borderCurve: "continuous",
+              padding: theme.spacing.md,
+              marginHorizontal: theme.spacing.md,
+              gap: theme.spacing.md,
+            }}
+          >
+            <ThemedText variant="headline">Delete container?</ThemedText>
+            <ThemedText variant="subhead">
+              Type the container name to confirm.
+            </ThemedText>
+            <Input
+              value={confirmText}
+              onChangeText={setConfirmText}
+              placeholder={storage.name}
+              testID="delete-confirm-input"
+            />
+            <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={closeAll}
+                testID="delete-cancel-button"
+              />
+              <Button
+                title="Delete"
+                onPress={deleteContainer}
+                disabled={!confirmMatches}
+                testID="delete-confirm-button"
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
   );
 };
 
