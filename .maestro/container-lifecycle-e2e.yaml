@@ -37,13 +37,12 @@ name: Create, edit, and delete a container end to end
     visible: ".*Bag of Holding.*"
     timeout: 30000
 - tapOn:
-    text: "AddItem"
-    rightOf:
-      text: ".*Bag of Holding.*"
-
+    id: fab-add-item
 - extendedWaitUntil:
     visible: "Weight?"
     timeout: 30000
+- tapOn:
+    text: "Bag of Holding"
 - tapOn:
     text: "Name"
 - inputText: "Rope of Climbing"
@@ -53,10 +52,13 @@ name: Create, edit, and delete a container end to end
     visible: "Rope of Climbing"
     timeout: 30000
 
+- longPressOn:
+    id: container-card-2
+- extendedWaitUntil:
+    visible: "Edit"
+    timeout: 30000
 - tapOn:
-    text: "Edit"
-    below:
-      text: ".*Bag of Holding.*"
+    id: container-edit-action-2
 - extendedWaitUntil:
     visible: "Does the storage have a fixed weight?"
     timeout: 30000
@@ -71,17 +73,13 @@ name: Create, edit, and delete a container end to end
     visible: ".*Bag of Holding Two.*"
     timeout: 30000
 
-- tapOn:
-    text: "Delete"
-    below:
-      text: ".*Bag of Holding Two.*"
+- longPressOn:
+    id: container-card-2
 - extendedWaitUntil:
-    visible: "Delete container?"
+    visible: "Delete"
     timeout: 30000
 - tapOn:
-    text: "Delete"
-    rightOf:
-      text: "Delete container?"
+    id: container-delete-action-2
 
 - extendedWaitUntil:
     notVisible: ".*Bag of Holding Two.*"

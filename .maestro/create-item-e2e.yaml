@@ -36,12 +36,13 @@ name: Create an item end to end
     visible: ".*Bag of Holding.*"
     timeout: 30000
 - tapOn:
-    text: "AddItem"
-    rightOf: ".*Bag of Holding.*"
+    id: fab-add-item
 
 - extendedWaitUntil:
     visible: "Weight?"
     timeout: 30000
+- tapOn:
+    text: "Bag of Holding"
 - tapOn:
     text: "Name"
 - inputText: "Rope of Climbing"

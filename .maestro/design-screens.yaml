@@ -46,11 +46,12 @@ name: Capture visual evidence across the core journey
 - takeScreenshot: 04-inventory-with-storage-light.png
 
 - tapOn:
-    text: "AddItem"
-    rightOf: ".*Bag of Holding.*"
+    id: fab-add-item
 - extendedWaitUntil:
     visible: "Weight?"
     timeout: 30000
+- tapOn:
+    text: "Bag of Holding"
 - takeScreenshot: 05-create-item-form.png
 
 - tapOn:
@@ -63,14 +64,23 @@ name: Capture visual evidence across the core journey
     timeout: 30000
 - takeScreenshot: 06-inventory-with-item-light.png
 
+- longPressOn:
+    id: container-card-2
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 30000
+- takeScreenshot: 07-container-actions.png
+- tapOn:
+    point: "50%, 20%"
+
 - tapOn:
     id: theme-settings-button
 - extendedWaitUntil:
     visible: "Mind Flayer · System"
     timeout: 30000
-- takeScreenshot: 07-theme-sheet.png
+- takeScreenshot: 08-theme-sheet.png
 
 - tapOn:
     id: theme-mode-dark
 - assertVisible: "Mind Flayer · Dark"
-- takeScreenshot: 08-theme-sheet-dark.png
+- takeScreenshot: 09-theme-sheet-dark.png

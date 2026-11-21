@@ -50,6 +50,7 @@ export type PaletteSemantics = {
 
 export type ThemeColors = PaletteSemantics & {
   accentText: string;
+  scrim: string;
 };
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
@@ -82,6 +83,7 @@ export const buildThemeColors = (
 ): ThemeColors => ({
   ...palette,
   accentText: readableTextColor(palette.accent),
+  scrim: "rgba(0, 0, 0, 0.4)",
 });
 
 export const buildTypography = (colors: ThemeColors) =>

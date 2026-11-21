@@ -1,8 +1,5 @@
-import Badge from "@/components/Basic/Badge";
-import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
 import { deleteStorageContainer } from "@/components/storageLifecycle";
-import { rarityColors } from "@/constants/rarity";
 import { useTheme } from "@/stores/ThemeContext";
 import {
   charactersTable,
@@ -10,7 +7,7 @@ import {
   Storage,
 } from "@/db/schema";
 import React, { useState } from "react";
-import { FlatList, Pressable, View } from "react-native";
+import { FlatList, Modal, Pressable, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -24,7 +21,7 @@ interface StorageContainerProps {
 const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const character = useLiveQuery(
     db.query.charactersTable.findFirst({
       where: eq(charactersTable.character_id, storage.character_id),
@@ -43,9 +40,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     [storage.storage_location_id],
   );
 
-  const confirmDelete = () => {
+  const deleteContainer = () => {
     deleteStorageContainer(db, storage);
-    setConfirmingDelete(false);
+    setActionsOpen(false);
   };
 
   const [expanded, setExpanded] = useState(false);
@@ -55,6 +52,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       style={{
         flexDirection: "row",
         justifyContent: "space-between",
+        borderBottomWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.sm,
       }}
     >
       <View style={{ flex: 7 }}>
@@ -76,116 +76,48 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     </View>
   );
 
+  const actionRow = (
+    label: string,
+    onPress: () => void,
+    testID: string,
+    destructive?: boolean,
+  ) => (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        paddingVertical: theme.spacing.md,
+        opacity: pressed ? 0.6 : 1,
+      })}
+      testID={testID}
+    >
+      <ThemedText
+        variant="body"
+        style={{ color: destructive ? theme.colors.error : theme.colors.text }}
+      >
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+
   return (
-    <View
-      style={{
+    <Pressable
+      onPress={() => setActionsOpen(true)}
+      onLongPress={() => setActionsOpen(true)}
+      accessibilityRole="button"
+      accessibilityLabel={storage.name}
+      style={({ pressed }) => ({
         backgroundColor: theme.colors.surface,
         boxShadow: theme.shadows.card,
         borderRadius: theme.radius.lg,
         borderCurve: "continuous",
         padding: theme.spacing.md,
-      }}
+        opacity: pressed ? 0.7 : 1,
+      })}
       testID={`container-card-${storage.storage_location_id}`}
     >
       <View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: theme.spacing.sm,
-          }}
-        >
-          <ThemedText variant="headline">{storage.name} </ThemedText>
-          <View
-            style={{
-              flexDirection: "row",
-              gap: theme.spacing.sm,
-              alignItems: "center",
-              flexShrink: 1,
-            }}
-          >
-            <Badge text={storage.rarity} color={rarityColors[storage.rarity]} />
-            <Button
-              title="AddItem"
-              onPress={() => {
-                router.push({
-                  pathname: "/CreateItemForm",
-                  params: {
-                    storageId: storage.storage_location_id,
-                  },
-                });
-              }}
-              size="sm"
-              testID={`add-item-button-${storage.storage_location_id}`}
-            />
-          </View>
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            gap: theme.spacing.sm,
-            borderBottomWidth: 1,
-            borderColor: theme.colors.border,
-            marginBottom: theme.spacing.sm,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          {confirmingDelete ? (
-            <>
-              <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
-                Delete container?
-              </ThemedText>
-              <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
-                <Button
-                  title="Cancel"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => setConfirmingDelete(false)}
-                  testID={`cancel-delete-storage-${storage.storage_location_id}`}
-                />
-                <Button
-                  title="Delete"
-                  size="sm"
-                  onPress={confirmDelete}
-                  testID={`confirm-delete-storage-${storage.storage_location_id}`}
-                />
-              </View>
-            </>
-          ) : (
-            <>
-              {showWeight ? (
-                <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
-                  Storing: {storage.weight}lbs
-                </ThemedText>
-              ) : null}
-              <View style={{ flexDirection: "row", gap: theme.spacing.xs, alignItems: "center" }}>
-                <Button
-                  title="Edit"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => {
-                    router.push({
-                      pathname: "/CreateStorageForm",
-                      params: {
-                        storageId: storage.storage_location_id,
-                      },
-                    });
-                  }}
-                  testID={`edit-storage-button-${storage.storage_location_id}`}
-                />
-                <Button
-                  title="Delete"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => setConfirmingDelete(true)}
-                  testID={`delete-storage-button-${storage.storage_location_id}`}
-                />
-              </View>
-            </>
-          )}
-        </View>
+        <ThemedText variant="headline">{storage.name} </ThemedText>
       </View>
       <FlatList
         data={expanded ? items.data : items.data.slice(0, 5)}
@@ -222,7 +154,56 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           ) : undefined
         }
       />
-    </View>
+      <Modal
+        transparent
+        visible={actionsOpen}
+        onRequestClose={() => setActionsOpen(false)}
+        testID={`container-actions-${storage.storage_location_id}`}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close actions"
+          onPress={() => setActionsOpen(false)}
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: theme.colors.scrim,
+          }}
+        >
+          <Pressable
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.lg,
+              borderCurve: "continuous",
+              padding: theme.spacing.md,
+              marginBottom: theme.spacing.xl,
+              marginHorizontal: theme.spacing.md,
+              gap: theme.spacing.xs,
+            }}
+          >
+            {actionRow(
+              "Edit",
+              () => {
+                setActionsOpen(false);
+                router.push({
+                  pathname: "/CreateStorageForm",
+                  params: {
+                    storageId: storage.storage_location_id,
+                  },
+                });
+              },
+              `container-edit-action-${storage.storage_location_id}`,
+            )}
+            {actionRow(
+              "Delete",
+              deleteContainer,
+              `container-delete-action-${storage.storage_location_id}`,
+              true,
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </Pressable>
   );
 };
 
