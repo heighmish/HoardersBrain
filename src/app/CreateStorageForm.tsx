@@ -1,5 +1,6 @@
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
+import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
@@ -16,7 +17,6 @@ import {
   ScrollView,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -68,19 +68,7 @@ const CreateStorageForm = () => {
           gap: theme.spacing.sm,
         }}
       >
-        <TextInput
-          style={{
-            backgroundColor: theme.colors.surface,
-            color: theme.colors.text,
-            borderColor: theme.colors.border,
-            borderWidth: 1,
-            borderRadius: theme.radius.md,
-            borderCurve: "continuous",
-            paddingVertical: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.md,
-            fontSize: 17,
-          }}
-          placeholderTextColor={theme.colors.textMuted}
+        <Input
           placeholder="Name"
           value={storageInput.name}
           testID="storage-name-input"
@@ -88,19 +76,7 @@ const CreateStorageForm = () => {
             setStorageInput((prev) => ({ ...prev, name: text }))
           }
         />
-        <TextInput
-          style={{
-            backgroundColor: theme.colors.surface,
-            color: theme.colors.text,
-            borderColor: theme.colors.border,
-            borderWidth: 1,
-            borderRadius: theme.radius.md,
-            borderCurve: "continuous",
-            paddingVertical: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.md,
-            fontSize: 17,
-          }}
-          placeholderTextColor={theme.colors.textMuted}
+        <Input
           placeholder="Description"
           value={storageInput.description ?? ""}
           testID="storage-description-input"
