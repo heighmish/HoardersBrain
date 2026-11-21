@@ -238,7 +238,8 @@ presets, and primitives in their own idiom.
   defaults in dark mode.
 - `Appearance.setColorScheme` in `src/stores/ThemeContext.tsx` is what makes
   an in-app Light/Dark override reach native chrome (headers, formSheets, tab
-  bar, status-bar area). Do not remove it; "system" mode passes `null`.
+  bar, status-bar area). Do not remove it; "system" mode passes `"auto"`,
+  the reset value.
 - FormSheet content containers get an explicit themed background; the native
   sheet chrome itself follows `Appearance`.
 
