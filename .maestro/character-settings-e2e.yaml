@@ -1,0 +1,76 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - character-settings
+name: Character rename and settings end to end
+---
+# Exercises rename from the character sheet and the character settings screen:
+# renames the active character, edits max encumbrance, turns weight tracking
+# off, saves, and confirms the Carrying card disappears from the inventory.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- assertVisible: ".*QA Hero.*"
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+
+- tapOn:
+    id: rename-character-button
+- extendedWaitUntil:
+    visible:
+      id: character-rename-input
+    timeout: 30000
+- tapOn:
+    id: character-rename-input
+- eraseText
+- inputText: "QA Renamed"
+- tapOn:
+    id: character-rename-save
+
+- extendedWaitUntil:
+    visible: ".*QA Renamed.*"
+    timeout: 30000
+- tapOn:
+    text: "QA Renamed"
+
+- extendedWaitUntil:
+    visible: ".*QA Renamed.*"
+    timeout: 30000
+- tapOn:
+    id: character-settings-button
+
+- extendedWaitUntil:
+    visible: "Max Encumbrance"
+    timeout: 30000
+- tapOn:
+    id: character-max-encumbrance-input
+- eraseText
+- inputText: "150"
+- tapOn:
+    id: character-weight-tracking-toggle
+- tapOn:
+    id: character-settings-save
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: encumbrance-card
+    timeout: 30000

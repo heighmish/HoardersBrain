@@ -1,0 +1,75 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - delete-character
+name: Delete character end to end
+---
+# Creates two characters in the flow, deletes the active one from the
+# character sheet, and confirms the app lands on the remaining character
+# with the deleted one gone from the switcher.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Alpha"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Beta"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*QA Beta.*"
+    timeout: 30000
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn:
+    id: delete-character-button
+- extendedWaitUntil:
+    visible:
+      id: character-delete-confirm
+    timeout: 30000
+- tapOn:
+    id: character-delete-confirm
+
+- extendedWaitUntil:
+    visible: ".*QA Alpha.*"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: ".*QA Beta.*"
+    timeout: 30000
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible:
+      id: create-new-character-button
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: ".*QA Beta.*"
+    timeout: 30000
+- assertVisible: ".*QA Alpha.*"
