@@ -1,4 +1,6 @@
 import Button from "@/components/Basic/Button";
+import Input from "@/components/Basic/Input";
+import ThemedText from "@/components/Basic/ThemedText";
 import { splitItemStack } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
@@ -12,8 +14,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -39,7 +39,7 @@ const SplitItemForm = () => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -66,7 +66,7 @@ const SplitItemFormContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Failed to load item</Text>
+        <ThemedText variant="body">Failed to load item</ThemedText>
       </View>
     );
   }
@@ -84,7 +84,7 @@ const SplitItemFormContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -136,41 +136,27 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
         }}
       >
         <View style={{ gap: theme.spacing.xs }}>
-          <Text style={theme.type.headline}>{item.name}</Text>
-          <Text
-            style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}
-          >
+          <ThemedText variant="headline">{item.name}</ThemedText>
+          <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
             Quantity: {item.quantity}
-          </Text>
+          </ThemedText>
         </View>
         {maxAmount < 1 ? (
-          <Text style={theme.type.body}>Cannot split a stack of 1</Text>
+          <ThemedText variant="body">Cannot split a stack of 1</ThemedText>
         ) : (
           <>
             <View style={{ gap: theme.spacing.xs }}>
-              <Text style={theme.type.headline}>Amount?</Text>
-              <Text style={theme.type.subhead}>Choose 1 to {maxAmount}</Text>
-              <TextInput
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  borderWidth: 1,
-                  borderRadius: theme.radius.md,
-                  borderCurve: "continuous",
-                  paddingVertical: theme.spacing.sm,
-                  paddingHorizontal: theme.spacing.md,
-                  fontSize: 17,
-                }}
+              <ThemedText variant="headline">Amount?</ThemedText>
+              <ThemedText variant="subhead">Choose 1 to {maxAmount}</ThemedText>
+              <Input
                 keyboardType="number-pad"
-                placeholderTextColor={theme.colors.textMuted}
                 value={amountText}
                 testID="split-amount-input"
                 onChangeText={setAmountText}
               />
             </View>
             <View style={{ gap: theme.spacing.sm }}>
-              <Text style={theme.type.headline}>Destination</Text>
+              <ThemedText variant="headline">Destination</ThemedText>
               {containers.data.map((container) => (
                 <Pressable
                   key={container.storage_location_id}
@@ -194,7 +180,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
                   })}
                   testID={`split-destination-${container.storage_location_id}`}
                 >
-                  <Text style={theme.type.body}>{container.name}</Text>
+                  <ThemedText variant="body">{container.name}</ThemedText>
                 </Pressable>
               ))}
             </View>

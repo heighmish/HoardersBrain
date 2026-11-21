@@ -1,5 +1,6 @@
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
+import ThemedText from "@/components/Basic/ThemedText";
 import {
   deleteItemRow,
   removeOneFromStack,
@@ -11,7 +12,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -35,7 +36,7 @@ const ItemDetail = () => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -62,7 +63,7 @@ const ItemDetailContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Failed to load item</Text>
+        <ThemedText variant="body">Failed to load item</ThemedText>
       </View>
     );
   }
@@ -83,7 +84,7 @@ const ItemDetailContent = ({ itemId }: { itemId: number }) => {
           gap: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
         <Button
           title="Back"
           variant="secondary"
@@ -141,7 +142,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
         }}
       >
         <View style={{ gap: theme.spacing.sm }}>
-          <Text style={theme.type.title}>{item.name}</Text>
+          <ThemedText variant="title">{item.name}</ThemedText>
           <Badge text={item.rarity} color={rarityColors[item.rarity]} />
         </View>
         <View
@@ -155,30 +156,30 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
           }}
         >
           <View style={statRow}>
-            <Text style={theme.type.subhead}>Quantity</Text>
-            <Text style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}>
+            <ThemedText variant="subhead">Quantity</ThemedText>
+            <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
               {item.quantity}
-            </Text>
+            </ThemedText>
           </View>
           <View style={statRow}>
-            <Text style={theme.type.subhead}>Weight</Text>
-            <Text style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}>
+            <ThemedText variant="subhead">Weight</ThemedText>
+            <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
               {item.weight}
-            </Text>
+            </ThemedText>
           </View>
           <View style={statRow}>
-            <Text style={theme.type.subhead}>Type</Text>
-            <Text style={theme.type.body}>{item.item_type}</Text>
+            <ThemedText variant="subhead">Type</ThemedText>
+            <ThemedText variant="body">{item.item_type}</ThemedText>
           </View>
           {storage.data === undefined ? null : (
             <View style={statRow}>
-              <Text style={theme.type.subhead}>Container</Text>
-              <Text style={theme.type.body}>{storage.data.name}</Text>
+              <ThemedText variant="subhead">Container</ThemedText>
+              <ThemedText variant="body">{storage.data.name}</ThemedText>
             </View>
           )}
           <View style={statRow}>
-            <Text style={theme.type.subhead}>Description</Text>
-            <Text style={theme.type.body}>{item.description ?? "None"}</Text>
+            <ThemedText variant="subhead">Description</ThemedText>
+            <ThemedText variant="body">{item.description ?? "None"}</ThemedText>
           </View>
         </View>
         <View style={{ gap: theme.spacing.sm }}>

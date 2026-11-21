@@ -1,4 +1,5 @@
 import Badge from "@/components/Basic/Badge";
+import ThemedText from "@/components/Basic/ThemedText";
 import { moveItemToContainer } from "@/components/itemOperations";
 import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
@@ -7,7 +8,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { and, eq, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -31,7 +32,7 @@ const MoveItemPicker = () => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -58,7 +59,7 @@ const MoveItemPickerContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Failed to load item</Text>
+        <ThemedText variant="body">Failed to load item</ThemedText>
       </View>
     );
   }
@@ -76,7 +77,7 @@ const MoveItemPickerContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -108,9 +109,9 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
       testID="move-picker-screen"
     >
       <Stack.Screen options={{ headerTitle: "Move item" }} />
-      <Text style={theme.type.headline}>{item.name}</Text>
+      <ThemedText variant="headline">{item.name}</ThemedText>
       {containers.data.length === 0 ? (
-        <Text style={theme.type.body}>No other containers</Text>
+        <ThemedText variant="body">No other containers</ThemedText>
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
@@ -142,7 +143,7 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
               })}
               testID={`move-destination-${container.storage_location_id}`}
             >
-              <Text style={theme.type.body}>{container.name}</Text>
+              <ThemedText variant="body">{container.name}</ThemedText>
               <Badge
                 text={container.rarity}
                 color={rarityColors[container.rarity]}

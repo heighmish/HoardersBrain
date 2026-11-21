@@ -1,3 +1,4 @@
+import ThemedText from "@/components/Basic/ThemedText";
 import { transferItemToCharacter } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable, Item, itemsTable } from "@/db/schema";
@@ -5,7 +6,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { eq, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -29,7 +30,7 @@ const TransferItemPicker = () => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -56,7 +57,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Failed to load item</Text>
+        <ThemedText variant="body">Failed to load item</ThemedText>
       </View>
     );
   }
@@ -74,7 +75,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
           padding: theme.spacing.md,
         }}
       >
-        <Text style={theme.type.body}>Item not found</Text>
+        <ThemedText variant="body">Item not found</ThemedText>
       </View>
     );
   }
@@ -103,9 +104,9 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
       testID="transfer-picker-screen"
     >
       <Stack.Screen options={{ headerTitle: "Transfer item" }} />
-      <Text style={theme.type.headline}>{item.name}</Text>
+      <ThemedText variant="headline">{item.name}</ThemedText>
       {characters.data.length === 0 ? (
-        <Text style={theme.type.body}>No other characters</Text>
+        <ThemedText variant="body">No other characters</ThemedText>
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
@@ -137,7 +138,7 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
               })}
               testID={`transfer-target-${character.character_id}`}
             >
-              <Text style={theme.type.body}>{character.name}</Text>
+              <ThemedText variant="body">{character.name}</ThemedText>
             </Pressable>
           ))}
         </ScrollView>
