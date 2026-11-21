@@ -19,7 +19,7 @@ const parseMaxEncumbrance = (value: string): number | null => {
   return parsed;
 };
 
-const CharacterSettingsSheet = () => {
+const CharacterSettings = () => {
   const db = useDatabase();
   const character = useSelectedCharacter();
 
@@ -154,4 +154,4 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
   );
 };
 
-export default CharacterSettingsSheet;
+export default CharacterSettings;

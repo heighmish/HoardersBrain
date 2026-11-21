@@ -77,7 +77,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               accessibilityLabel="Settings"
               testID="settings-button"
               onPress={() => {
-                router.push("/SettingsSheet");
+                router.push("/Settings");
               }}
               style={({ pressed }) => ({
                 padding: theme.spacing.sm,

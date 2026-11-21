@@ -1,5 +1,5 @@
 import Index from "@/app/index";
-import ThemeSettingsSheet from "@/app/ThemeSettingsSheet";
+import ThemeSettings from "@/app/ThemeSettings";
 import { THEME_SETTINGS } from "@/constants/CacheKeys";
 import { createTestDb } from "@/testing/db";
 import { CharacterProvider } from "@/stores/CharacterContext";
@@ -46,7 +46,7 @@ const storedTheme = (settings: Record<string, unknown>) => {
 const renderSheet = async () => {
   await render(
     <ThemeProvider>
-      <ThemeSettingsSheet />
+      <ThemeSettings />
     </ThemeProvider>,
   );
 };
@@ -61,7 +61,7 @@ const renderCreationScreen = async () => {
   );
 };
 
-describe("ThemeSettingsSheet", () => {
+describe("ThemeSettings", () => {
   test("opens on the default preset in system mode", async () => {
     await renderSheet();
     expect(await screen.findByText("Mind Flayer · System")).toBeTruthy();

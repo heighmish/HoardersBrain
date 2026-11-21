@@ -44,7 +44,7 @@ const SwatchStrip = ({ palette }: { palette: PaletteSemantics }) => {
   );
 };
 
-const ThemeSettingsSheet = () => {
+const ThemeSettings = () => {
   const theme = useTheme();
   const { presetId, presetName, mode, selectPreset, setMode } = useTheme();
 
@@ -149,4 +149,4 @@ const ThemeSettingsSheet = () => {
   );
 };
 
-export default ThemeSettingsSheet;
+export default ThemeSettings;

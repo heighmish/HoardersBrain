@@ -1,6 +1,6 @@
 import ChangeCharacterSheet from "@/app/ChangeCharacterSheet";
 import ManageCharacters from "@/app/ManageCharacters";
-import CharacterSettingsSheet from "@/app/CharacterSettingsSheet";
+import CharacterSettings from "@/app/CharacterSettings";
 import Index from "@/app/index";
 import { LAST_CHARACTER_ID, THEME_SETTINGS } from "@/constants/CacheKeys";
 import {
@@ -106,7 +106,7 @@ const GatedSettingsSheet = () => {
   if (state.status !== "characterSelected") {
     return null;
   }
-  return <CharacterSettingsSheet />;
+  return <CharacterSettings />;
 };
 
 const renderWithProviders = async (ui: ReactElement) => {

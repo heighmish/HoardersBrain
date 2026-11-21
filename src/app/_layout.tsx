@@ -73,25 +73,21 @@ const RootNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="ThemeSettingsSheet"
+          name="ThemeSettings"
           options={{
             headerTitle: "Theme",
             headerBackTitle: "Back",
           }}
         />
         <Stack.Screen
-          name="SettingsSheet"
+          name="Settings"
           options={{
-            presentation: "formSheet",
-            headerShown: false,
-            sheetAllowedDetents: "fitToContents",
-            sheetGrabberVisible: false,
-            sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            headerTitle: "Settings",
+            headerBackTitle: "Back",
           }}
         />
         <Stack.Screen
-          name="CharacterSettingsSheet"
+          name="CharacterSettings"
           options={{
             headerTitle: "Encumbrance & Weight",
             headerBackTitle: "Back",

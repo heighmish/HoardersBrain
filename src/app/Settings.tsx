@@ -6,7 +6,7 @@ import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import type { ComponentProps } from "react";
 
-const SettingsSheet = () => {
+const Settings = () => {
   const theme = useTheme();
   const { state } = useCharacterContext();
 
@@ -51,17 +51,13 @@ const SettingsSheet = () => {
 
   return (
     <ScrollView
-      style={{ backgroundColor: theme.colors.surface }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
         padding: theme.spacing.md,
-        paddingTop: theme.spacing.xl,
         gap: theme.spacing.lg,
       }}
     >
-      <ThemedText variant="title">Settings</ThemedText>
-
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("Character customization")}
         {linkRow(
@@ -69,7 +65,7 @@ const SettingsSheet = () => {
           "Encumbrance & weight",
           "settings-encumbrance-row",
           () => {
-            router.push("/CharacterSettingsSheet");
+            router.push("/CharacterSettings");
           },
         )}
       </View>
@@ -77,7 +73,7 @@ const SettingsSheet = () => {
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("App customization")}
         {linkRow("skin", "Theme", "settings-theme-row", () => {
-          router.push("/ThemeSettingsSheet");
+          router.push("/ThemeSettings");
         })}
       </View>
 
@@ -96,4 +92,4 @@ const SettingsSheet = () => {
   );
 };
 
-export default SettingsSheet;
+export default Settings;
