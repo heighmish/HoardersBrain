@@ -57,6 +57,10 @@ Verification is:
 Do not create test files, testing utilities, or test scripts. If a change risks
 regression, verify it on the device and say so in the report.
 
+## Branch names
+
+Branch names are `type/summary`: the same types as commits, then a lowercase kebab-case summary of the work. `feat/soft-deletion`, `fix/sheet-inset`, `docs/agents-branch-names` — not `soft-delete-and-optional-weight`, and never a personal name, date, or device identifier. Create the branch before the first commit, so no PR ever starts from a non-conforming name.
+
 ## Commit messages
 
 Every commit subject is `type(scope): summary`. Both parts are required — an unscoped `feat:` is a violation, not a style choice.
