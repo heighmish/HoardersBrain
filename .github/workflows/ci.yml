@@ -29,3 +29,6 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Design token lint
+        run: npm run lint:design

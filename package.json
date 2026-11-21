@@ -52,7 +52,8 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "check": "npm run lint && npm run typecheck",
+    "lint:design": "bash scripts/lint-design-tokens.sh",
+    "check": "npm run lint && npm run typecheck && npm run lint:design",
     "prepare": "husky"
   },
   "jest": {
