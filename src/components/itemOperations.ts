@@ -172,7 +172,7 @@ export const findOrCreateCarryingStorage = async (
       name: ON_PERSON_NAME,
       weight: 0,
       carrying: true,
-      is_fixed_weight: true,
+      is_fixed_weight: false,
     })
     .returning();
   const storage = inserted[0];

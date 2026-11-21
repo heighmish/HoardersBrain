@@ -96,7 +96,7 @@ export const loadSampleData = async (
         name: ON_PERSON_NAME,
         weight: 0,
         carrying: true,
-        is_fixed_weight: true,
+        is_fixed_weight: false,
       },
       {
         character_id: characterId,
