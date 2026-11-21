@@ -228,6 +228,12 @@ Icon in a header/row:
    it renders in BOTH resolved modes without token crashes, and where
    practical that a color actually follows the mode (see
    `__tests__/themeScreens.test.tsx` for the pattern).
+10. **A formSheet never pushes pages from its own context.** Rows in a sheet
+    that lead to full pages use the shared `openPage` sequencing: dismiss the
+    sheet, then push after `theme.motion.base` so the page presents as a clean
+    stack push. A raw push from a sheet inherits the sheet's presentation;
+    `dismissTo` replaces the sheet and reveals the header mid-swap — both
+    bounce.
 
 ## Dynamic Type
 

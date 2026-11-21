@@ -14,6 +14,14 @@ const Settings = () => {
     return null;
   }
 
+  const openPage = (href: string) => {
+    router.dismiss();
+    // The push must land after the sheet's dismissal or it inherits the sheet's presentation.
+    setTimeout(() => {
+      router.push(href);
+    }, theme.motion.base);
+  };
+
   const subhead = (text: string) => (
     <ThemedText
       variant="caption"
@@ -68,19 +76,15 @@ const Settings = () => {
           "dashboard",
           "Encumbrance & weight",
           "settings-encumbrance-row",
-          () => {
-            router.dismiss();
-            router.push("/CharacterSettings");
-          },
+          () => openPage("/CharacterSettings"),
         )}
       </View>
 
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("App customization")}
-        {linkRow("skin", "Theme", "settings-theme-row", () => {
-          router.dismiss();
-          router.push("/ThemeSettings");
-        })}
+        {linkRow("skin", "Theme", "settings-theme-row", () =>
+          openPage("/ThemeSettings"),
+        )}
       </View>
 
       <View style={{ gap: theme.spacing.xs }}>
@@ -89,10 +93,7 @@ const Settings = () => {
           "team",
           "Rename or delete",
           "manage-characters-row",
-          () => {
-            router.dismiss();
-            router.push("/ManageCharacters");
-          },
+          () => openPage("/ManageCharacters"),
         )}
       </View>
     </ScrollView>
