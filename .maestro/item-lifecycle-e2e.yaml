@@ -1,0 +1,93 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - item-lifecycle
+name: Item lifecycle end to end
+---
+# Full journey: create a character, a container, and a stacked item; open the
+# item detail; edit the item; decrement the stack; remove the rest.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- tapOn: "Add Container"
+
+- extendedWaitUntil:
+    visible: "Description"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Bag of Holding"
+- tapOn: "Uncommon"
+- tapOn: "Create"
+
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- tapOn: "AddItem"
+
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Rope of Climbing"
+- tapOn:
+    id: item-quantity-input
+- eraseText
+- inputText: "3"
+- tapOn: "Create"
+
+- assertVisible: "Rope of Climbing"
+- assertVisible: "3"
+
+- tapOn:
+    text: "Rope of Climbing"
+- extendedWaitUntil:
+    id: item-detail-screen
+    timeout: 30000
+- assertVisible: "Quantity"
+- assertVisible: "Bag of Holding"
+- assertVisible: "Edit Item"
+
+- tapOn:
+    id: edit-item-button
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- tapOn:
+    id: item-name-input
+- eraseText
+- inputText: "Rope of Climbing II"
+- tapOn:
+    id: save-item-button
+- extendedWaitUntil:
+    visible: "Rope of Climbing II"
+    timeout: 30000
+
+- tapOn:
+    id: remove-one-button
+- extendedWaitUntil:
+    visible: "2"
+    timeout: 30000
+- assertVisible: "Remove All"
+
+- tapOn:
+    id: remove-all-button
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Rope of Climbing II"
+    timeout: 30000

@@ -1,0 +1,105 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - transfer-item
+name: Transfer an item between characters end to end
+---
+# Creates two characters, a container, and an item in-flow; transfers the full
+# stack to the second character's auto-created On Person container; verifies
+# the item is gone from the source and visible on the target.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- tapOn: "Add Container"
+
+- extendedWaitUntil:
+    visible: "Description"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Bag of Holding"
+- tapOn: "Create"
+
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- tapOn: "AddItem"
+
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- tapOn:
+    text: "Name"
+- inputText: "Healing Potion"
+- tapOn: "Create"
+
+- assertVisible: "Healing Potion"
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Second"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*QA Second.*"
+    timeout: 30000
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "QA Hero"
+    timeout: 30000
+- tapOn: "QA Hero"
+
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- tapOn:
+    text: "Healing Potion"
+- extendedWaitUntil:
+    id: item-detail-screen
+    timeout: 30000
+- tapOn:
+    id: transfer-item-button
+- extendedWaitUntil:
+    id: transfer-picker-screen
+    timeout: 30000
+- tapOn: "QA Second"
+
+- extendedWaitUntil:
+    notVisible: "Healing Potion"
+    timeout: 30000
+
+- tapOn:
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "QA Second"
+    timeout: 30000
+- tapOn: "QA Second"
+
+- extendedWaitUntil:
+    visible: "On Person"
+    timeout: 30000
+- assertVisible: "Healing Potion"
