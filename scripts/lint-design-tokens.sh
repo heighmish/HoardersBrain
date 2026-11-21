@@ -19,4 +19,12 @@ if [ -n "$fontsize_violations" ]; then
   status=1
 fi
 
+spacing_violations=$(grep -rnE "(padding|margin|gap)[A-Za-z]*: *-?(4|8|16|24|32|48)\b" src/app src/components || true)
+if [ -n "$spacing_violations" ]; then
+  echo "Spacing-scale literals in src/app or src/components:"
+  echo "$spacing_violations"
+  echo "A value that is already a spacing step must use theme.spacing.*; only genuinely off-grid values may stay inline, with a comment. See TOKENS.md."
+  status=1
+fi
+
 exit $status
