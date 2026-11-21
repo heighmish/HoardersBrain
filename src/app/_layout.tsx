@@ -82,8 +82,12 @@ const RootNavigator = () => {
         <Stack.Screen
           name="Settings"
           options={{
-            headerTitle: "Settings",
-            headerBackTitle: "Back",
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: false,
+            sheetExpandsWhenScrolledToEdge: true,
+            sheetCornerRadius: 15,
           }}
         />
         <Stack.Screen

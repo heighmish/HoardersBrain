@@ -51,13 +51,17 @@ const Settings = () => {
 
   return (
     <ScrollView
+      style={{ backgroundColor: theme.colors.surface }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
         padding: theme.spacing.md,
+        paddingTop: theme.spacing.xl,
         gap: theme.spacing.lg,
       }}
     >
+      <ThemedText variant="title">Settings</ThemedText>
+
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("Character customization")}
         {linkRow(
@@ -65,7 +69,7 @@ const Settings = () => {
           "Encumbrance & weight",
           "settings-encumbrance-row",
           () => {
-            router.push("/CharacterSettings");
+            router.dismissTo("/CharacterSettings");
           },
         )}
       </View>
@@ -73,7 +77,7 @@ const Settings = () => {
       <View style={{ gap: theme.spacing.xs }}>
         {subhead("App customization")}
         {linkRow("skin", "Theme", "settings-theme-row", () => {
-          router.push("/ThemeSettings");
+          router.dismissTo("/ThemeSettings");
         })}
       </View>
 
@@ -84,7 +88,7 @@ const Settings = () => {
           "Rename or delete",
           "manage-characters-row",
           () => {
-            router.push("/ManageCharacters");
+            router.dismissTo("/ManageCharacters");
           },
         )}
       </View>
