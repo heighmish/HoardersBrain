@@ -21,7 +21,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
   const theme = useTheme();
 
   return (
-    <View style={[styles.group, { borderColor: theme.colors.border }]}>
+    <View
+      style={[
+        styles.group,
+        { borderColor: theme.colors.border, borderRadius: theme.radius.md },
+      ]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Decrement"
@@ -29,12 +34,19 @@ const NumericInput: React.FC<NumericInputProps> = ({
         onPressIn={buttonDecrement}
         style={({ pressed }) => [
           styles.numberButton,
-          styles.numberButtonLeft,
+          {
+            borderTopLeftRadius: theme.radius.md,
+            borderBottomLeftRadius: theme.radius.md,
+          },
           pressed && { opacity: 0.6 },
         ]}
       >
         <Text
-          style={[styles.numberButtonText, { color: theme.colors.accent }]}
+          style={[
+            styles.numberButtonText,
+            theme.type.headline,
+            { color: theme.colors.accent },
+          ]}
         >
           -
         </Text>
@@ -42,10 +54,8 @@ const NumericInput: React.FC<NumericInputProps> = ({
       <TextInput
         style={[
           styles.numberField,
-          {
-            borderColor: theme.colors.border,
-            color: theme.colors.text,
-          },
+          { borderColor: theme.colors.border, color: theme.colors.text },
+          theme.type.body,
         ]}
         keyboardType="numeric"
         placeholderTextColor={theme.colors.textMuted}
@@ -58,12 +68,19 @@ const NumericInput: React.FC<NumericInputProps> = ({
         onPressIn={buttonIncrement}
         style={({ pressed }) => [
           styles.numberButton,
-          styles.numberButtonRight,
+          {
+            borderTopRightRadius: theme.radius.md,
+            borderBottomRightRadius: theme.radius.md,
+          },
           pressed && { opacity: 0.6 },
         ]}
       >
         <Text
-          style={[styles.numberButtonText, { color: theme.colors.accent }]}
+          style={[
+            styles.numberButtonText,
+            theme.type.headline,
+            { color: theme.colors.accent },
+          ]}
         >
           +
         </Text>
@@ -72,11 +89,11 @@ const NumericInput: React.FC<NumericInputProps> = ({
   );
 };
 
+// 44 is the platform minimum touch target, kept as a fixed control height.
 const styles = StyleSheet.create({
   group: {
     flexDirection: "row",
     borderWidth: 1,
-    borderRadius: 12,
   },
   numberButton: {
     justifyContent: "center",
@@ -84,17 +101,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
   },
-  numberButtonLeft: {
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-  },
-  numberButtonRight: {
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-  },
   numberButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
     textAlign: "center",
   },
   numberField: {
@@ -102,7 +109,6 @@ const styles = StyleSheet.create({
     flex: 2,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    fontSize: 17,
   },
 });
 

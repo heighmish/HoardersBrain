@@ -1,6 +1,7 @@
 import { ThemeColors } from "@/constants/theme";
 import { useTheme } from "@/stores/ThemeContext";
 import {
+  ActivityIndicator,
   Pressable,
   StyleProp,
   Text,
@@ -10,13 +11,14 @@ import {
 type ButtonVariant = "primary" | "secondary";
 type ButtonSize = "sm" | "md";
 
-interface ButtonProps {
+export interface ButtonProps {
   title: string;
   onPress: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
   testID?: string;
   disabled?: boolean;
+  loading?: boolean;
   fullWidth?: boolean;
   style?: StyleProp<ViewStyle>;
 }
@@ -34,11 +36,6 @@ const buildVariantStyles = (
         textColor: colors.text,
       };
 
-const buildSizeStyles = (size: ButtonSize) =>
-  size === "md"
-    ? { height: 50, paddingHorizontal: 24, fontSize: 17 }
-    : { height: 36, paddingHorizontal: 16, fontSize: 15 };
-
 const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
@@ -46,19 +43,34 @@ const Button: React.FC<ButtonProps> = ({
   size = "md",
   testID,
   disabled = false,
+  loading = false,
   fullWidth = false,
   style,
 }) => {
   const theme = useTheme();
   const variantStyles = buildVariantStyles(theme.colors, variant);
-  const sizeStyles = buildSizeStyles(size);
+
+  // 50/36 are iOS control heights, deliberately off the 4pt spacing grid
+  // to clear the 44pt touch minimum; padding and type map to tokens.
+  const sizeStyles =
+    size === "md"
+      ? {
+          height: 50,
+          paddingHorizontal: theme.spacing.lg,
+          type: theme.type.headline,
+        }
+      : {
+          height: 36,
+          paddingHorizontal: theme.spacing.md,
+          type: { ...theme.type.subhead, fontWeight: "600" as const },
+        };
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      disabled={disabled || loading}
       onPress={onPress}
       testID={testID}
       style={({ pressed }) => [
@@ -77,15 +89,13 @@ const Button: React.FC<ButtonProps> = ({
         style,
       ]}
     >
-      <Text
-        style={{
-          color: variantStyles.textColor,
-          fontSize: sizeStyles.fontSize,
-          fontWeight: "600",
-        }}
-      >
-        {title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={variantStyles.textColor} />
+      ) : (
+        <Text style={[sizeStyles.type, { color: variantStyles.textColor }]}>
+          {title}
+        </Text>
+      )}
     </Pressable>
   );
 };
