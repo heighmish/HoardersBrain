@@ -40,6 +40,7 @@ Flows live in `.maestro/`. They run against the stable Release gate build (see b
 - Keep visible labels and testIDs stable across UI changes. If a change must break one, update the affected flow in the same commit.
 - New flows use `appId: com.heighmish.HoardersBrain`, the `e2e` tag, and a descriptive `name:`.
 - Merge gates run against a stable target: `npx expo run:ios --configuration Release` rebuilds the app with the JS embedded (no Metro dependency, no dev-client launcher races) before a gate run; the dev build is for interactive development only.
+- Visual changes also run `.maestro/design-screens.yaml` at the gate: it walks the core journey and saves a screenshot per state. Its screenshots are the before/after evidence the merge report requires.
 
 ### Test cadence
 
@@ -51,7 +52,7 @@ Climb the verification ladder in order, and never skip straight to a device:
 
 New logic (db mutations, helpers, stores, encumbrance math) ships with unit tests. New screens ship with a render test where practical. Anything you can prove with a unit test, prove with a unit test.
 
-Write the test first and watch it fail, then make it pass. Never add a test that already passes on the old code, that asserts on a mock of the function you changed, or that snapshots a one-line fix.
+Write the test first and watch it fail, then make it pass. Never add a test that already passes on the old code, that asserts on a mock of the function you changed, or that snapshots a one-line fix. Render tests of brand-new components have no old code to fail on — write them alongside the component.
 
 Harness notes:
 - AsyncStorage is globally mocked by `jest.setup.ts`; the package's own `setupFiles` mock entry is inert under jest-expo 30, so don't re-add it.
@@ -63,7 +64,7 @@ Use conventional commit messages: `type(scope): summary`. Valid types: `feat`, `
 
 ## Pre-commit review
 
-Before committing a body of work, run a cheap-model review pass on the uncommitted `git diff` and judge its findings yourself:
+Before committing a body of work, run a cheap-model review pass on the diff of that body of work — `git diff main...HEAD`, whether or not the pieces are already committed — and judge its findings yourself:
 
 - Model: `opencode/deepseek-v4.1-flash-free` (free), spawned read-only via the subagent tool with a strict brief — only overtly wrong things (bugs, crashes, broken testIDs, regressions); style nits and false alarms are worse than silence.
 - Verify each finding against the code before acting on it. The reviewer is a smoke alarm, not an authority.
@@ -95,7 +96,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
-- Load the `hoarders-design` skill before building or restyling UI — it encodes the theme rules, the copy ban, native-surface coverage, and layout regression checks.
+- Read `TOKENS.md` before building or restyling UI — it is the design guide: the `useTheme` API, primitives, the copy ban, footguns, layout regression checks, and the verification rules.
 - Do not write user-facing copy. Functional labels and neutral placeholders only; taglines, flavor, and empty-state prose are owner-written or approved — use placeholder text and flag it in your report when unsure.
 - Comments are for constraints only. Never add a comment that repeats the code, narrates the change, or holds a bug's history — that belongs in the commit message. Keep a comment only when the code cannot show the constraint: a platform bug, a required call order, a value you must not change, or a sanctioned one-off token value (TOKENS.md). Delete a comment your change makes false.
 - Keep the repo replicable on any machine: never commit personal or environment-specific data — local IPs, absolute paths, device or simulator UDIDs, machine names. Write `~` for home directories, repo-relative paths for files, and document setup steps instead of machine state.

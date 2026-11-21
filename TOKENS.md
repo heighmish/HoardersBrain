@@ -1,8 +1,18 @@
-# TOKENS.md — HoardersBrain theming guide
+# TOKENS.md — HoardersBrain design guide
 
 Every screen draws from one visual source of truth: the theme tokens exposed by
 `useTheme()`. Read this before building a new screen. The brand is "a brain in a
-treasure chest" — a mind flayer hoarding loot, purple-forward.
+treasure chest" — a mind flayer hoarding loot, purple-forward. Beyond the
+tokens, this guide carries the design rules: copy, footguns, layout regression
+checks, and verification.
+
+## Copy
+
+You do not write product voice. Functional labels ("Create", "Add Container",
+"No items") are fine; taglines, flavor, and empty-state prose are not — the
+owner writes or approves every user-visible sentence. If a screen needs words
+you are unsure about, put neutral placeholder text and flag it in your report.
+Never invent subtitles or "on-brand" quips.
 
 ## The one hook
 
@@ -16,6 +26,7 @@ theme.type         // type scale (TextStyle objects, colors baked in)
 theme.spacing      // { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 }
 theme.radius       // { sm: 8, md: 12, lg: 16, full: 9999 }
 theme.shadows      // { card: "0 1px 2px rgba(0,0,0,0.05)", raised: "0 4px 12px rgba(0,0,0,0.10)" }
+theme.motion       // { fast: 150, base: 250, slow: 400 } — feedback, elements, surfaces
 theme.mode         // "system" | "light" | "dark"  — the user's preference
 theme.resolvedMode // "light" | "dark" — what is actually rendered
 theme.presetId     // "mind-flayer" | "dracula" | "tokyo-night" | "catppuccin" | "nord" | "gruvbox" | "custom:<id>"
@@ -26,7 +37,7 @@ theme.setMode(mode)
 theme.upsertCustomPalette(palette)
 ```
 
-`ThemeProvider` lives at the root (`app/_layout.tsx`); every screen can call
+`ThemeProvider` lives at the root (`src/app/_layout.tsx`); every screen can call
 `useTheme()`. Settings persist app-level via AsyncStorage.
 
 ## Semantic colors
@@ -52,7 +63,9 @@ semantic shape and are edited in `ThemeSettingsSheet`.
 
 ## Type scale
 
-Never write a raw `fontSize`. Use `theme.type.*` (Apple-style ramp):
+Never write a raw `fontSize`. Screens consume the ramp through
+`ThemedText`; `theme.type.*` directly is for primitives composing their own
+labels (Button, NumericInput):
 
 | Token        | Size | Weight | Color     |
 | ------------ | ---- | ------ | --------- |
@@ -64,14 +77,27 @@ Never write a raw `fontSize`. Use `theme.type.*` (Apple-style ramp):
 | `caption`    | 12   | 400    | textMuted  |
 
 ```tsx
-<Text style={theme.type.title}>Bag of Holding</Text>
-<Text style={[theme.type.body, { color: theme.colors.accentSecondary }]}>
+import ThemedText from "@/components/Basic/ThemedText";
+
+<ThemedText variant="title">Bag of Holding</ThemedText>
+<ThemedText variant="body" style={{ color: theme.colors.accentSecondary }}>
   Every great hoard begins with a mind.
-</Text>
-<Text style={[theme.type.body, { fontVariant: ["tabular-nums"] }]}>1.5</Text>
+</ThemedText>
+<ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>1.5</ThemedText>
 ```
 
+`variant` defaults to `body`; `style` merges last for color, `fontVariant`, and
+other tweaks, and every other `TextProps` (including `testID`) passes through.
+
 Counters and weights use `fontVariant: ["tabular-nums"]`.
+
+## Motion
+
+`theme.motion` holds the three durations the app animates with: `fast` (150)
+for state feedback like press and toggle, `base` (250) for element
+transitions, `slow` (400) for large surfaces like sheets and screens. Pick by
+what is moving, not by feel. Reaching for Reanimated or Animated counts as
+animation work — load the `expo-animation` skill first.
 
 ## Recipes
 
@@ -123,7 +149,9 @@ import Button from "@/components/Basic/Button";
 ```
 
 Variants: `primary` (accent fill) / `secondary` (surface + border).
-Sizes: `md` (50) / `sm` (36). Press and disabled states are built in, and
+Sizes: `md` (50) / `sm` (36) — iOS control heights, the sanctioned off-grid
+exception (they clear the 44pt minimum touch target); padding and type map to
+tokens. Press and disabled states are built in, and
 `loading` swaps the title for a spinner while the accessibility label keeps it
 (`accessibilityState.busy`).
 `style` merges last for layout tweaks (`alignSelf`, `height`).
@@ -167,17 +195,25 @@ Icon in a header/row:
    sources, verified, not invented. Enforced by `npm run lint:design`.
 2. **No raw `fontSize`** — the type ramp owns typography. Enforced by
    `npm run lint:design`.
-3. **Every `Pressable` needs a pressed state** (`opacity: pressed ? 0.7 : 1`)
+3. **Spacing steps are tokens** — a padding, margin, or gap that is already a
+   step (4, 8, 16, 24, 32, 48) must be `theme.spacing.*`; only genuinely
+   off-grid values may stay inline, with a comment. Enforced by
+   `npm run lint:design`.
+4. **Every `Pressable` needs a pressed state** (`opacity: pressed ? 0.7 : 1`)
    or use `Button`.
-4. **Readability on fills is computed, not hand-picked** — use
+5. **Readability on fills is computed, not hand-picked** — use
    `theme.colors.accentText` on accent fills; `readableTextColor(hex)` for any
    other fill.
-5. **Sheets set their own root** to `theme.colors.surface`
+6. **Sheets set their own root** to `theme.colors.surface`
    (`ChangeCharacterSheet`, `UpdateCurrencySheet`, `ThemeSettingsSheet`).
-6. **Maestro**: visible labels and testIDs are contracts — keep them stable;
+7. **Maestro**: visible labels and testIDs are contracts — keep them stable;
    if a change must break one, update the flow in the same commit.
-7. **StatusBar** follows the theme automatically from the root layout — do
+8. **StatusBar** follows the theme automatically from the root layout — do
    not render `<StatusBar>` in screens.
+9. **Every screen and presentational component ships render tests** asserting
+   it renders in BOTH resolved modes without token crashes, and where
+   practical that a color actually follows the mode (see
+   `__tests__/themeScreens.test.tsx` for the pattern).
 
 ## Dynamic Type
 
@@ -193,3 +229,37 @@ two or more screens, it has a nameable role ("Input", "Badge"), and its API is
 smaller than its implementation. Until then it stays colocated in the screen.
 Never introduce a second theme system beside `useTheme()` — extend the tokens,
 presets, and primitives in their own idiom.
+
+## Footguns
+
+- Tab-navigator headers and root Stack headers are different navigators. Both
+  need explicit themed options (`headerStyle`, `headerTintColor`,
+  `headerTitleStyle`); a header you did not theme renders with white platform
+  defaults in dark mode.
+- `Appearance.setColorScheme` in `src/stores/ThemeContext.tsx` is what makes
+  an in-app Light/Dark override reach native chrome (headers, formSheets, tab
+  bar, status-bar area). Do not remove it; "system" mode passes `null`.
+- FormSheet content containers get an explicit themed background; the native
+  sheet chrome itself follows `Appearance`.
+
+## Layout regression checks on every re-skin
+
+- Tap targets that were full-width stay full-width: use `Button`'s
+  `fullWidth` prop, never per-call-site `alignSelf: "stretch"` patches.
+- Cards sharing a row must survive their widest content (badges, tabular
+  numerals, long character names). Wrap, stack, or shrink deliberately — never
+  let content clip.
+- Compare the new layout against the previous one for width and height
+  regressions before finishing. The inventory summary cards (Currency /
+  Carrying) are a deliberately temporary stacked arrangement pending an owner
+  design pass — do not restyle them without owner direction.
+
+## Verify
+
+Follow the AGENTS.md verification ladder: `npm run check` (lint + typecheck +
+the design-token guardrail), then `npm run test` — this is where design work
+is proven, in both modes. Never validate work-in-progress with device flows;
+Maestro runs at merge gates only, against a stable Release build. At the gate,
+a change a person can see gets before/after screenshots from the platforms
+actually run (`.maestro/design-screens.yaml` captures them); if nothing
+visible changes, report `No UI change.`
