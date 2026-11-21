@@ -46,7 +46,6 @@ const Settings = () => {
       <ThemedText variant="body" style={{ flex: 1 }}>
         {label}
       </ThemedText>
-      <AntDesign name="right" size={16} color={theme.colors.textMuted} />
     </Pressable>
   );
 
