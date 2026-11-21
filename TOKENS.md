@@ -208,8 +208,14 @@ Icon in a header/row:
    (`ChangeCharacterSheet`, `UpdateCurrencySheet`, `ThemeSettingsSheet`).
 7. **Maestro**: visible labels and testIDs are contracts — keep them stable;
    if a change must break one, update the flow in the same commit.
-8. **StatusBar** follows the theme automatically from the root layout — do
-   not render `<StatusBar>` in screens.
+8. **System chrome comes from navigator options, never from screens.** The
+   root Stack's `screenOptions` sets `statusBarStyle` from `theme.resolvedMode`
+   — every native screen view controller answers iOS with that style, so
+   pushed forms and sheets never flash the platform default. Do not render
+   `<StatusBar>` anywhere, screens or root: an imperative set on the root
+   controller is ignored whenever a screen controller is topmost, which is
+   exactly the black-icons-in-dark-mode bug. A new top-level navigator must
+   repeat the same `statusBarStyle` and header options block (see Footguns).
 9. **Every screen and presentational component ships render tests** asserting
    it renders in BOTH resolved modes without token crashes, and where
    practical that a color actually follows the mode (see
@@ -234,8 +240,9 @@ presets, and primitives in their own idiom.
 
 - Tab-navigator headers and root Stack headers are different navigators. Both
   need explicit themed options (`headerStyle`, `headerTintColor`,
-  `headerTitleStyle`); a header you did not theme renders with white platform
-  defaults in dark mode.
+  `headerTitleStyle`, and — same class of bug — `statusBarStyle`); a header or
+  status bar you did not theme renders with white platform defaults in dark
+  mode.
 - `Appearance.setColorScheme` in `src/stores/ThemeContext.tsx` is what makes
   an in-app Light/Dark override reach native chrome (headers, formSheets, tab
   bar, status-bar area). Do not remove it; "system" mode passes `"auto"`,

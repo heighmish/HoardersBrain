@@ -6,7 +6,6 @@ import {
   Stack,
   ThemeProvider,
 } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { CharacterProvider } from "@/stores/CharacterContext";
 import {
   ThemeProvider as AppThemeProvider,
@@ -34,7 +33,6 @@ const RootNavigator = () => {
 
   return (
     <ThemeProvider value={navTheme}>
-      <StatusBar style={theme.resolvedMode === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: theme.colors.background },
