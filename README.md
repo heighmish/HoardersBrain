@@ -35,7 +35,7 @@ npm run check    # oxlint + tsc, run before committing
 
 ## Database
 
-The schema is defined in `db/schema.ts` with Drizzle. On launch, `DatabaseProvider` opens `hoardersbrain.db` in WAL mode, applies any pending migrations, and only renders the app once migrations have succeeded. Foreign keys are enforced (`PRAGMA foreign_keys = ON`).
+The schema is defined in `src/db/schema.ts` with Drizzle. On launch, `DatabaseProvider` opens `hoardersbrain.db` in WAL mode, applies any pending migrations, and only renders the app once migrations have succeeded. Foreign keys are enforced (`PRAGMA foreign_keys = ON`).
 
 Generate migrations with Drizzle Kit:
 

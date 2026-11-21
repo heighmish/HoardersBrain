@@ -18,7 +18,8 @@ npx expo start              # start the dev server
 npm run lint                # lint (oxlint)
 npm run typecheck           # typecheck (tsc --noEmit)
 npm run test                # unit tests (jest-expo, in-memory sqlite)
-npm run check               # lint + typecheck in one command
+npm run lint:design         # guardrail: no raw hex or fontSize in src/app, src/components
+npm run check               # lint + typecheck + design-token guardrail in one command
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
@@ -44,11 +45,13 @@ Flows live in `.maestro/`. They run against the stable Release gate build (see b
 
 Climb the verification ladder in order, and never skip straight to a device:
 
-1. `npm run check` (~15s) — lint + typecheck, run constantly while coding.
-2. `npm run test` — jest-expo unit suite. DB and logic run against the real migrations on in-memory better-sqlite3 (`testing/db.ts`, `createTestDb()`); components render via @testing-library/react-native (AsyncStorage is globally mocked). Milliseconds per test — this is the loop you iterate in.
+1. `npm run check` (~15s) — lint + typecheck + the design-token guardrail, run constantly while coding.
+2. `npm run test` — jest-expo unit suite. DB and logic run against the real migrations on in-memory better-sqlite3 (`src/testing/db.ts`, `createTestDb()`); components render via @testing-library/react-native (AsyncStorage is globally mocked). Milliseconds per test — this is the loop you iterate in.
 3. Maestro E2E — golden paths only, run by the coordinating agent at merge gates against the Release build. Never a work-in-progress validation tool: the dev build's launcher races `clearState` and will burn hours.
 
 New logic (db mutations, helpers, stores, encumbrance math) ships with unit tests. New screens ship with a render test where practical. Anything you can prove with a unit test, prove with a unit test.
+
+Write the test first and watch it fail, then make it pass. Never add a test that already passes on the old code, that asserts on a mock of the function you changed, or that snapshots a one-line fix.
 
 Harness notes:
 - AsyncStorage is globally mocked by `jest.setup.ts`; the package's own `setupFiles` mock entry is inert under jest-expo 30, so don't re-add it.
@@ -66,9 +69,19 @@ Before committing a body of work, run a cheap-model review pass on the uncommitt
 - Verify each finding against the code before acting on it. The reviewer is a smoke alarm, not an authority.
 - Address the accurate findings, then commit. A clean pass commits as-is.
 
+## Official sources win
+
+These rules are adapted from official Expo guidance. When a rule here seems to
+conflict with the sources below, the official source wins — fix the rule, not
+the code.
+
+- Expo's canonical app `AGENTS.md`: https://github.com/expo/expo/blob/main/packages/create-expo/template/agent-files/AGENTS.md
+- Expo's own repo rules for agents: https://github.com/expo/expo/blob/main/AGENTS.md
+- Expo design-system skill: https://github.com/expo/skills/blob/main/plugins/expo/skills/expo-design-system/SKILL.md
+
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, db, stores, constants) outside `app/`. The `@/*` path alias maps to the project root.
+- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, db, stores, constants) in `src/` but outside `src/app/`. The `@/*` path alias maps to `src/*`.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
 
@@ -84,7 +97,7 @@ Docs: https://docs.expo.dev/eas/index.md
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
 - Load the `hoarders-design` skill before building or restyling UI — it encodes the theme rules, the copy ban, native-surface coverage, and layout regression checks.
 - Do not write user-facing copy. Functional labels and neutral placeholders only; taglines, flavor, and empty-state prose are owner-written or approved — use placeholder text and flag it in your report when unsure.
-- Do not write code comments. Code must be self-explanatory; never add `//`, `/* */`, or JSDoc explanations.
+- Comments are for constraints only. Never add a comment that repeats the code, narrates the change, or holds a bug's history — that belongs in the commit message. Keep a comment only when the code cannot show the constraint: a platform bug, a required call order, a value you must not change, or a sanctioned one-off token value (TOKENS.md). Delete a comment your change makes false.
 - Keep the repo replicable on any machine: never commit personal or environment-specific data — local IPs, absolute paths, device or simulator UDIDs, machine names. Write `~` for home directories, repo-relative paths for files, and document setup steps instead of machine state.
 
 ## Code style
@@ -96,8 +109,9 @@ Docs: https://docs.expo.dev/eas/index.md
 
 This repo is often worked on by several agents in parallel. When a task arrives with an explicit scope:
 
-- Touch only the files your task owns. Shared files (`app/_layout.tsx`, `ROADMAP.md`) are merged centrally — keep edits there minimal.
+- Touch only the files your task owns. Shared files (`src/app/_layout.tsx`, `ROADMAP.md`) are merged centrally — keep edits there minimal.
 - Exactly one agent owns schema changes at a time. Never run `drizzle-kit generate` unless your task explicitly grants migration ownership; concurrent generations corrupt the drizzle journal.
 - A solo agent works directly on a feature branch in the main tree (Metro serves it for E2E). Parallel agents work in separate worktrees and leave device flows to the coordinator, who runs E2E serially after each merge.
 - Commit small conventional commits on your branch. Tick the `ROADMAP.md` checkboxes for items you completed.
 - Report done only when `npm run check` passes, `npm run test` is green for your work, and your final diff has passed a pre-commit review pass (see above).
+- Reports state what you ran and the result. A change a person can see gets before/after screenshots at the merge gate, from the platforms actually run; name any platform you could not run. If nothing visible changes, say `No UI change.`

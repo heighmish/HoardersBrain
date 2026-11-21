@@ -45,7 +45,7 @@ theme.colors.warning          // feedback tone (≥ max encumbrance)
 theme.colors.error            // feedback tone (≥ 1.5× max encumbrance)
 ```
 
-Presets ship as **data** in `constants/themePresets.ts` (each defines `light`
+Presets ship as **data** in `src/constants/themePresets.ts` (each defines `light`
 and `dark` variants; sources are official palettes: Dracula family, Tokyo
 Night, Catppuccin Mocha/Latte, Nord, Gruvbox). Custom palettes are the same
 semantic shape and are edited in `ThemeSettingsSheet`.
@@ -96,24 +96,22 @@ Card:
 >
 ```
 
-Input:
+Input — use the primitive, never hand-roll a TextInput:
 
 ```tsx
-<TextInput
-  style={{
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
-    borderColor: theme.colors.border,
-    borderWidth: 1,
-    borderRadius: theme.radius.md,
-    borderCurve: "continuous",
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    fontSize: 17,
-  }}
-  placeholderTextColor={theme.colors.textMuted}
+import Input from "@/components/Basic/Input";
+
+<Input
+  value={name}
+  onChangeText={setName}
+  placeholder="Name"
+  testID="thing-name-input"
 />
 ```
+
+Themed defaults are built in: surface fill, hairline border, `theme.type.body`
+typography, muted placeholder color. All other `TextInputProps` pass through,
+and `style` merges last for layout tweaks.
 
 Buttons — use the primitive, never hand-roll a Pressable:
 
@@ -125,7 +123,9 @@ import Button from "@/components/Basic/Button";
 ```
 
 Variants: `primary` (accent fill) / `secondary` (surface + border).
-Sizes: `md` (50) / `sm` (36). Press and disabled states are built in.
+Sizes: `md` (50) / `sm` (36). Press and disabled states are built in, and
+`loading` swaps the title for a spinner while the accessibility label keeps it
+(`accessibilityState.busy`).
 `style` merges last for layout tweaks (`alignSelf`, `height`).
 
 Badges — two kinds, both from the primitive:
@@ -139,7 +139,7 @@ import { rarityColors } from "@/constants/rarity";
 <Badge text={rarity} color={rarityColors[rarity]} filled={false} /> // outline chip
 ```
 
-Rarity colors are **not themed** — `constants/rarity.ts` is a separate,
+Rarity colors are **not themed** — `src/constants/rarity.ts` is a separate,
 mode-independent palette. Phase 3 will data-drive rarities; keep the split.
 
 Toggles — native `Switch`, themed track, testID on the Switch:
@@ -161,11 +161,12 @@ Icon in a header/row:
 
 ## Rules
 
-1. **No color literals in `app/` or `components/`** — hex values live only in
-   `constants/theme.ts`, `constants/themePresets.ts`, and
-   `constants/rarity.ts`. New preset values must come from official palette
-   sources, verified, not invented.
-2. **No raw `fontSize`** — the type ramp owns typography.
+1. **No color literals in `src/app/` or `src/components/`** — hex values live
+   only in `src/constants/theme.ts`, `src/constants/themePresets.ts`, and
+   `src/constants/rarity.ts`. New preset values must come from official palette
+   sources, verified, not invented. Enforced by `npm run lint:design`.
+2. **No raw `fontSize`** — the type ramp owns typography. Enforced by
+   `npm run lint:design`.
 3. **Every `Pressable` needs a pressed state** (`opacity: pressed ? 0.7 : 1`)
    or use `Button`.
 4. **Readability on fills is computed, not hand-picked** — use
@@ -177,3 +178,18 @@ Icon in a header/row:
    if a change must break one, update the flow in the same commit.
 7. **StatusBar** follows the theme automatically from the root layout — do
    not render `<StatusBar>` in screens.
+
+## Dynamic Type
+
+Text scales with the user's system text-size setting (`allowFontScaling` is on
+by default). Size rows with padding or `minHeight` so they can grow, and let
+labels wrap before reaching for `maxFontSizeMultiplier` on constrained chrome.
+Never disable scaling app-wide.
+
+## When to extract
+
+Promote a view into `src/components/` only when all three hold: it appears in
+two or more screens, it has a nameable role ("Input", "Badge"), and its API is
+smaller than its implementation. Until then it stays colocated in the screen.
+Never introduce a second theme system beside `useTheme()` — extend the tokens,
+presets, and primitives in their own idiom.

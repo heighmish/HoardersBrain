@@ -14,10 +14,16 @@ You do not write product voice. Functional labels ("Create", "Add Container", "N
 ## Theme coverage — every surface, both modes
 
 - Tab-navigator headers and root Stack headers are different navigators. Both need explicit themed options (`headerStyle`, `headerTintColor`, `headerTitleStyle`); a header you did not theme renders with white platform defaults in dark mode.
-- `Appearance.setColorScheme` in `stores/ThemeContext.tsx` is what makes an in-app Light/Dark override reach native chrome (headers, formSheets, tab bar, status-bar area). Do not remove it; "system" mode passes `null`.
+- `Appearance.setColorScheme` in `src/stores/ThemeContext.tsx` is what makes an in-app Light/Dark override reach native chrome (headers, formSheets, tab bar, status-bar area). Do not remove it; "system" mode passes `null`.
 - Every screen and presentational component ships render tests asserting it renders in BOTH resolved modes without token crashes, and where practical that a color actually follows the mode (see `__tests__/themeScreens.test.tsx` for the pattern).
 - FormSheet content containers get an explicit themed background; the native sheet chrome itself follows `Appearance`.
-- Rarity colors live in `constants/rarity.ts`, deliberately outside the theme — Phase 3 will data-drive them. `Badge` takes feedback `tone` or an explicit rarity `color`.
+- Rarity colors live in `src/constants/rarity.ts`, deliberately outside the theme — Phase 3 will data-drive them. `Badge` takes feedback `tone` or an explicit rarity `color`.
+
+## Token discipline
+
+- Hex colors and raw font sizes never appear in `src/app/` or `src/components/` — `npm run lint:design` fails the build on both. Colors come from `useTheme()`, typography from `theme.type.*`.
+- Hand-rolled `TextInput` styling and `Pressable` buttons are drift: use the `Input` and `Button` primitives. Promote a new shared primitive only when it appears in two or more screens, has a nameable role, and its API is smaller than its implementation (TOKENS.md "When to extract").
+- Text scales with the system text-size setting: size rows with padding or `minHeight` so they can grow, and never disable `allowFontScaling`.
 
 ## Layout regression checks on every re-skin
 
@@ -27,4 +33,4 @@ You do not write product voice. Functional labels ("Create", "Add Container", "N
 
 ## Verify
 
-Follow the AGENTS.md verification ladder: `npm run check`, then `npm run test` — this is where design work is proven, in both modes. Never validate work-in-progress with device flows; Maestro runs at merge gates only, against a stable Release build.
+Follow the AGENTS.md verification ladder: `npm run check` (lint + typecheck + the design-token guardrail), then `npm run test` — this is where design work is proven, in both modes. Never validate work-in-progress with device flows; Maestro runs at merge gates only, against a stable Release build. At the gate, a change a person can see gets before/after screenshots from the platforms actually run; if nothing visible changes, report `No UI change.`
