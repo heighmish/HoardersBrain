@@ -45,7 +45,9 @@ name: Capture visual evidence across the core journey
     timeout: 30000
 - takeScreenshot: 04-inventory-with-storage-light.png
 
-- tapOn: "AddItem"
+- tapOn:
+    text: "AddItem"
+    rightOf: ".*Bag of Holding.*"
 - extendedWaitUntil:
     visible: "Weight?"
     timeout: 30000

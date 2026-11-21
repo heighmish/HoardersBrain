@@ -35,7 +35,9 @@ name: Create an item end to end
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
     timeout: 30000
-- tapOn: "AddItem"
+- tapOn:
+    text: "AddItem"
+    rightOf: ".*Bag of Holding.*"
 
 - extendedWaitUntil:
     visible: "Weight?"
