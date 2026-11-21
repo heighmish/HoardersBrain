@@ -8,9 +8,9 @@ import {
 } from "@/components/itemOperations";
 import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
+import { Item, itemsTable, storageLocationsTable, charactersTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
@@ -50,7 +50,7 @@ const ItemDetailContent = ({ itemId }: { itemId: number }) => {
   const db = useDatabase();
   const item = useLiveQuery(
     db.query.itemsTable.findFirst({
-      where: eq(itemsTable.item_id, itemId),
+      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
     }),
     [itemId],
   );
@@ -112,13 +112,24 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
   const db = useDatabase();
   const storage = useLiveQuery(
     db.query.storageLocationsTable.findFirst({
-      where: eq(
-        storageLocationsTable.storage_location_id,
-        item.storage_location_id,
+      where: and(
+        eq(
+          storageLocationsTable.storage_location_id,
+          item.storage_location_id,
+        ),
+        isNull(storageLocationsTable.deleted_at),
       ),
     }),
     [item.storage_location_id],
   );
+  const character = useLiveQuery(
+    db.query.charactersTable.findFirst({
+      where: eq(charactersTable.character_id, item.character_id),
+      columns: { weight_tracking: true },
+    }),
+    [item.character_id],
+  );
+  const showWeight = character.data?.weight_tracking !== false;
 
   const handleRemoveOne = async () => {
     await removeOneFromStack(db, item.item_id);
@@ -162,12 +173,14 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
               {item.quantity}
             </ThemedText>
           </View>
-          <View style={statRow}>
-            <ThemedText variant="subhead">Weight</ThemedText>
-            <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
-              {item.weight}
-            </ThemedText>
-          </View>
+          {showWeight ? (
+            <View style={statRow}>
+              <ThemedText variant="subhead">Weight</ThemedText>
+              <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
+                {item.weight}
+              </ThemedText>
+            </View>
+          ) : null}
           <View style={statRow}>
             <ThemedText variant="subhead">Type</ThemedText>
             <ThemedText variant="body">{item.item_type}</ThemedText>

@@ -9,7 +9,7 @@ import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useTheme } from "@/stores/ThemeContext";
-import { Item, itemsTable } from "@/db/schema";
+import { Item, itemsTable, charactersTable } from "@/db/schema";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -20,10 +20,13 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
-type ItemInput = Omit<Item, "item_id" | "storage_location_id" | "weight">;
+type ItemInput = Omit<
+  Item,
+  "item_id" | "storage_location_id" | "weight" | "deleted_at"
+>;
 
 const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -88,7 +91,7 @@ const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
   const db = useDatabase();
   const item = useLiveQuery(
     db.query.itemsTable.findFirst({
-      where: eq(itemsTable.item_id, itemId),
+      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
     }),
     [itemId],
   );
@@ -169,6 +172,15 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const [weightText, setWeightText] = useState(initialWeightText);
   const [quantityText, setQuantityText] = useState(initialQuantityText);
 
+  const character = useLiveQuery(
+    db.query.charactersTable.findFirst({
+      where: eq(charactersTable.character_id, initialInput.character_id),
+      columns: { weight_tracking: true },
+    }),
+    [initialInput.character_id],
+  );
+  const showWeight = character.data?.weight_tracking !== false;
+
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
@@ -179,20 +191,25 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
     }
 
     const quantity = Math.max(1, Number.parseInt(quantityText, 10) || 1);
+    const weight = showWeight
+      ? Math.max(0, parseFloat(weightText) || 0)
+      : mode === "create"
+        ? 0
+        : Math.max(0, parseFloat(initialWeightText) || 0);
 
     if (props.mode === "create") {
       await db.insert(itemsTable).values({
         ...itemInput,
         quantity,
         storage_location_id: props.storageId,
-        weight: Math.max(0, parseFloat(weightText) || 0),
+        weight,
       });
     } else {
       await updateItemDetails(db, props.itemId, {
         name: itemInput.name,
         description: itemInput.description,
         item_type: itemInput.item_type,
-        weight: Math.max(0, parseFloat(weightText) || 0),
+        weight,
         rarity: itemInput.rarity,
         quantity,
         properties: itemInput.properties,
@@ -263,14 +280,18 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           onChangeText={setQuantityText}
         />
 
-        <ThemedText variant="headline">Weight?</ThemedText>
-        <NumericInput
-          value={weightText}
-          testID="item-weight-input"
-          onChangeText={setWeightText}
-          buttonDecrement={() => adjustWeight(-0.5)}
-          buttonIncrement={() => adjustWeight(0.5)}
-        />
+        {showWeight ? (
+          <>
+            <ThemedText variant="headline">Weight?</ThemedText>
+            <NumericInput
+              value={weightText}
+              testID="item-weight-input"
+              onChangeText={setWeightText}
+              buttonDecrement={() => adjustWeight(-0.5)}
+              buttonIncrement={() => adjustWeight(0.5)}
+            />
+          </>
+        ) : null}
 
         <Button
           title={mode === "edit" ? "Save" : "Create"}

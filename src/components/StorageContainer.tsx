@@ -1,17 +1,18 @@
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
-import {
-  deleteStorageContainer,
-  ON_PERSON_STORAGE_NAME,
-} from "@/components/storageLifecycle";
+import { deleteStorageContainer } from "@/components/storageLifecycle";
 import { rarityColors } from "@/constants/rarity";
 import { useTheme } from "@/stores/ThemeContext";
-import { itemsTable, Storage } from "@/db/schema";
+import {
+  charactersTable,
+  itemsTable,
+  Storage,
+} from "@/db/schema";
 import React, { useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
 import { router } from "expo-router";
@@ -24,20 +25,26 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
   const theme = useTheme();
   const db = useDatabase();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const isOnPerson = storage.name === ON_PERSON_STORAGE_NAME;
+  const character = useLiveQuery(
+    db.query.charactersTable.findFirst({
+      where: eq(charactersTable.character_id, storage.character_id),
+      columns: { weight_tracking: true },
+    }),
+    [storage.character_id],
+  );
+  const showWeight = character.data?.weight_tracking !== false;
   const items = useLiveQuery(
     db.query.itemsTable.findMany({
-      where: eq(itemsTable.storage_location_id, storage.storage_location_id),
+      where: and(
+        eq(itemsTable.storage_location_id, storage.storage_location_id),
+        isNull(itemsTable.deleted_at),
+      ),
     }),
     [storage.storage_location_id],
   );
 
   const confirmDelete = () => {
-    try {
-      deleteStorageContainer(db, storage);
-    } catch (error) {
-      console.error("[StorageContainer]: Container delete failed", error);
-    }
+    deleteStorageContainer(db, storage);
     setConfirmingDelete(false);
   };
 
@@ -62,7 +69,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
         }}
       >
         <ThemedText variant="subhead">Qty</ThemedText>
-        <ThemedText variant="subhead">Weight</ThemedText>
+        {showWeight ? (
+          <ThemedText variant="subhead">Weight</ThemedText>
+        ) : null}
       </View>
     </View>
   );
@@ -126,9 +135,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           {confirmingDelete ? (
             <>
               <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
-                {items.data.length === 0
-                  ? "Delete container?"
-                  : "Items move to On Person."}
+                Delete container?
               </ThemedText>
               <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
                 <Button
@@ -148,9 +155,11 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
             </>
           ) : (
             <>
-              <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
-                Storing: {storage.weight}lbs
-              </ThemedText>
+              {showWeight ? (
+                <ThemedText variant="subhead" style={{ flexShrink: 1 }}>
+                  Storing: {storage.weight}lbs
+                </ThemedText>
+              ) : null}
               <View style={{ flexDirection: "row", gap: theme.spacing.xs, alignItems: "center" }}>
                 <Button
                   title="Edit"
@@ -166,17 +175,13 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
                   }}
                   testID={`edit-storage-button-${storage.storage_location_id}`}
                 />
-                {isOnPerson ? (
-                  <ThemedText variant="caption">Cannot be deleted</ThemedText>
-                ) : (
-                  <Button
-                    title="Delete"
-                    variant="secondary"
-                    size="sm"
-                    onPress={() => setConfirmingDelete(true)}
-                    testID={`delete-storage-button-${storage.storage_location_id}`}
-                  />
-                )}
+                <Button
+                  title="Delete"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => setConfirmingDelete(true)}
+                  testID={`delete-storage-button-${storage.storage_location_id}`}
+                />
               </View>
             </>
           )}
@@ -185,7 +190,9 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       <FlatList
         data={expanded ? items.data : items.data.slice(0, 5)}
         ListHeaderComponent={itemListHeader}
-        renderItem={({ item }) => <ItemComponent item={item} />}
+        renderItem={({ item }) => (
+          <ItemComponent item={item} showWeight={showWeight} />
+        )}
         keyExtractor={(item) => item.item_id.toString()}
         showsVerticalScrollIndicator={true}
         ListEmptyComponent={

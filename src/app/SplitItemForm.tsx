@@ -6,7 +6,7 @@ import { splitItemStack } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -53,7 +53,7 @@ const SplitItemFormContent = ({ itemId }: { itemId: number }) => {
   const db = useDatabase();
   const item = useLiveQuery(
     db.query.itemsTable.findFirst({
-      where: eq(itemsTable.item_id, itemId),
+      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
     }),
     [itemId],
   );
@@ -104,6 +104,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
       where: and(
         eq(storageLocationsTable.character_id, item.character_id),
         ne(storageLocationsTable.storage_location_id, item.storage_location_id),
+        isNull(storageLocationsTable.deleted_at),
       ),
     }),
     [item.character_id, item.storage_location_id],

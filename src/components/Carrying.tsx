@@ -7,7 +7,7 @@ import {
   itemsTable,
   storageLocationsTable,
 } from "@/db/schema";
-import { and, eq, sum } from "drizzle-orm";
+import { and, eq, isNull, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
@@ -46,12 +46,20 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
       .from(itemsTable)
       .leftJoin(
         storageLocationsTable,
-        eq(
-          itemsTable.storage_location_id,
-          storageLocationsTable.storage_location_id,
+        and(
+          eq(
+            itemsTable.storage_location_id,
+            storageLocationsTable.storage_location_id,
+          ),
+          isNull(storageLocationsTable.deleted_at),
         ),
       )
-      .where(eq(itemsTable.character_id, characterId)),
+      .where(
+        and(
+          eq(itemsTable.character_id, characterId),
+          isNull(itemsTable.deleted_at),
+        ),
+      ),
     [characterId],
   );
 
@@ -65,6 +73,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
         and(
           eq(storageLocationsTable.character_id, characterId),
           eq(storageLocationsTable.carrying, true),
+          isNull(storageLocationsTable.deleted_at),
         ),
       ),
     [characterId],
@@ -76,8 +85,9 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
 
   const itemsWeight = items.data.reduce((total, data) => {
     if (
-      data.storage_locations?.carrying === false ||
-      data.storage_locations?.is_fixed_weight === true
+      data.storage_locations === null ||
+      data.storage_locations.carrying === false ||
+      data.storage_locations.is_fixed_weight === true
     ) {
       return total;
     }

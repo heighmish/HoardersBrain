@@ -3,7 +3,7 @@ import { FlatList, Pressable, View } from "react-native";
 import { storageLocationsTable } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
@@ -33,7 +33,10 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
   const storageLocations = useLiveQuery(
     db.query.storageLocationsTable.findMany({
-      where: eq(storageLocationsTable.character_id, character.id),
+      where: and(
+        eq(storageLocationsTable.character_id, character.id),
+        isNull(storageLocationsTable.deleted_at),
+      ),
     }),
     [character],
   );

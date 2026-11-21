@@ -5,8 +5,8 @@ tags:
 name: Create, edit, and delete a container end to end
 ---
 # Golden path: create a character and a container, add an item to the
-# container, rename the container, then delete it and confirm the item
-# moved to the On Person container.
+# container, rename the container, then delete it and confirm the
+# container is gone (soft-deleted: the item is hidden with it).
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
@@ -76,18 +76,15 @@ name: Create, edit, and delete a container end to end
     below:
       text: ".*Bag of Holding Two.*"
 - extendedWaitUntil:
-    visible: "Items move to On Person."
+    visible: "Delete container?"
     timeout: 30000
 - tapOn:
     text: "Delete"
     rightOf:
-      text: "Items move to On Person."
+      text: "Delete container?"
 
 - extendedWaitUntil:
-    visible: ".*On Person.*"
+    notVisible: ".*Bag of Holding Two.*"
     timeout: 30000
-- assertVisible:
-    text: "Rope of Climbing"
-    below:
-      text: ".*On Person.*"
 - assertNotVisible: ".*Bag of Holding.*"
+- assertNotVisible: "Rope of Climbing"

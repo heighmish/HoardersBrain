@@ -20,6 +20,7 @@ export const charactersTable = sqliteTable("characters", {
   weight_tracking: integer("weight_tracking", { mode: "boolean" })
     .default(true)
     .notNull(),
+  deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
 });
 
 export const itemsTable = sqliteTable(
@@ -39,6 +40,7 @@ export const itemsTable = sqliteTable(
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
     quantity: integer("quantity").default(1).notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (table) => [
     index("idx_items_char_storage").on(
@@ -71,6 +73,7 @@ export const storageLocationsTable = sqliteTable(
     carrying: integer("carrying", { mode: "boolean" }).default(false).notNull(),
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (table) => [
     index("idx_storage_char").on(table.character_id),

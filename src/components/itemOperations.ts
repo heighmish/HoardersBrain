@@ -8,7 +8,7 @@ import {
   storageLocationsTable,
   Storage,
 } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 
@@ -33,7 +33,7 @@ export const loadItemById = async (
   itemId: number,
 ): Promise<Item | undefined> =>
   db.query.itemsTable.findFirst({
-    where: eq(itemsTable.item_id, itemId),
+    where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
   });
 
 export const loadStorageById = async (
@@ -41,7 +41,10 @@ export const loadStorageById = async (
   storageId: number,
 ): Promise<Storage | undefined> =>
   db.query.storageLocationsTable.findFirst({
-    where: eq(storageLocationsTable.storage_location_id, storageId),
+    where: and(
+      eq(storageLocationsTable.storage_location_id, storageId),
+      isNull(storageLocationsTable.deleted_at),
+    ),
   });
 
 export const updateItemDetails = async (
@@ -56,7 +59,10 @@ export const deleteItemRow = async (
   db: ItemFlowDb,
   itemId: number,
 ): Promise<void> => {
-  await db.delete(itemsTable).where(eq(itemsTable.item_id, itemId));
+  await db
+    .update(itemsTable)
+    .set({ deleted_at: new Date() })
+    .where(eq(itemsTable.item_id, itemId));
 };
 
 export const removeOneFromStack = async (
@@ -145,14 +151,15 @@ export const moveItemToContainer = async (
     .where(eq(itemsTable.item_id, itemId));
 };
 
-export const findOrCreateOnPersonStorage = async (
+export const findOrCreateCarryingStorage = async (
   db: ItemFlowDb,
   characterId: number,
 ): Promise<Storage> => {
   const existing = await db.query.storageLocationsTable.findFirst({
     where: and(
       eq(storageLocationsTable.character_id, characterId),
-      eq(storageLocationsTable.name, ON_PERSON_NAME),
+      eq(storageLocationsTable.carrying, true),
+      isNull(storageLocationsTable.deleted_at),
     ),
   });
   if (existing !== undefined) {
@@ -170,7 +177,7 @@ export const findOrCreateOnPersonStorage = async (
     .returning();
   const storage = inserted[0];
   if (storage === undefined) {
-    throw new Error("On Person container insert failed");
+    throw new Error("Carrying container insert failed");
   }
   return storage;
 };
@@ -187,7 +194,7 @@ export const transferItemToCharacter = async (
   if (item.character_id === targetCharacterId) {
     return;
   }
-  const onPerson = await findOrCreateOnPersonStorage(db, targetCharacterId);
+  const onPerson = await findOrCreateCarryingStorage(db, targetCharacterId);
   const sourceCharacter = await db.query.charactersTable.findFirst({
     where: eq(charactersTable.character_id, item.character_id),
   });

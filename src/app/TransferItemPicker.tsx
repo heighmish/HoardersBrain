@@ -4,7 +4,7 @@ import { transferItemToCharacter } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable, Item, itemsTable } from "@/db/schema";
 import { useTheme } from "@/stores/ThemeContext";
-import { eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
@@ -44,7 +44,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
   const db = useDatabase();
   const item = useLiveQuery(
     db.query.itemsTable.findFirst({
-      where: eq(itemsTable.item_id, itemId),
+      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
     }),
     [itemId],
   );
@@ -89,7 +89,10 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const db = useDatabase();
   const characters = useLiveQuery(
     db.query.charactersTable.findMany({
-      where: ne(charactersTable.character_id, item.character_id),
+      where: and(
+        ne(charactersTable.character_id, item.character_id),
+        isNull(charactersTable.deleted_at),
+      ),
     }),
     [item.character_id],
   );
