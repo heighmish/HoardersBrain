@@ -1,6 +1,7 @@
 import {
   buildThemeColors,
   isHexColor,
+  motion,
   normalizeHex,
   readableTextColor,
 } from "@/constants/theme";
@@ -79,6 +80,16 @@ describe("theme color pairing", () => {
         expect(contrastRatio(colors.accentText, variant.accent)).toBeGreaterThan(4);
       }
     }
+  });
+});
+
+describe("motion tokens", () => {
+  test("durations keep state feedback, element, and surface scales apart", () => {
+    expect(motion.fast).toBe(150);
+    expect(motion.base).toBe(250);
+    expect(motion.slow).toBe(400);
+    expect(motion.fast).toBeLessThan(motion.base);
+    expect(motion.base).toBeLessThan(motion.slow);
   });
 });
 

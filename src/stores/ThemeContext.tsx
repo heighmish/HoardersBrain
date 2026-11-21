@@ -8,6 +8,7 @@ import {
   buildThemeColors,
   buildTypography,
   isHexColor,
+  motion,
   radius,
   shadows,
   spacing,
@@ -50,6 +51,7 @@ type ThemeContextType = {
   spacing: typeof spacing;
   radius: typeof radius;
   shadows: typeof shadows;
+  motion: typeof motion;
   customPalettes: CustomPalette[];
   selectPreset: (presetId: string) => void;
   setMode: (mode: ThemeMode) => void;
@@ -233,6 +235,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         spacing,
         radius,
         shadows,
+        motion,
         customPalettes: state.customPalettes,
         selectPreset,
         setMode,

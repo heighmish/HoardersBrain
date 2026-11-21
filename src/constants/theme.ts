@@ -23,6 +23,14 @@ export const shadows = {
   raised: "0 4px 12px rgba(0, 0, 0, 0.10)",
 } as const;
 
+export const motion = {
+  fast: 150,
+  base: 250,
+  slow: 400,
+} as const;
+
+export type Motion = (typeof motion)[keyof typeof motion];
+
 export type ThemeMode = "system" | "light" | "dark";
 
 export type ResolvedThemeMode = "light" | "dark";
