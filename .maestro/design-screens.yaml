@@ -1,0 +1,74 @@
+appId: com.heighmish.HoardersBrain
+tags:
+  - e2e
+  - design
+name: Capture visual evidence across the core journey
+---
+# Evidence flow for merge gates: walks the same golden path as the
+# create-storage and create-item flows, saving a screenshot at each
+# meaningful state, then flips the theme to dark in the settings sheet.
+# Run it at gates after visual changes and attach the screenshots to
+# the merge report as the before/after evidence AGENTS.md requires.
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 60000
+- takeScreenshot: 01-character-creation.png
+
+- tapOn:
+    text: "Character Name"
+- inputText: "QA Hero"
+- tapOn: "Create Character"
+
+- extendedWaitUntil:
+    visible: ".*Currency.*"
+    timeout: 30000
+- takeScreenshot: 02-inventory-empty-light.png
+
+- tapOn: "Add Container"
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- takeScreenshot: 03-create-storage-form.png
+
+- tapOn:
+    text: "Name"
+- inputText: "Bag of Holding"
+- tapOn: "Uncommon"
+- tapOn: "Create"
+
+- extendedWaitUntil:
+    visible: ".*Bag of Holding.*"
+    timeout: 30000
+- takeScreenshot: 04-inventory-with-storage-light.png
+
+- tapOn: "AddItem"
+- extendedWaitUntil:
+    visible: "Weight?"
+    timeout: 30000
+- takeScreenshot: 05-create-item-form.png
+
+- tapOn:
+    text: "Name"
+- inputText: "Rope of Climbing"
+- tapOn: "Create"
+
+- extendedWaitUntil:
+    visible: "Rope of Climbing"
+    timeout: 30000
+- takeScreenshot: 06-inventory-with-item-light.png
+
+- tapOn:
+    id: theme-settings-button
+- extendedWaitUntil:
+    visible: "Mind Flayer · System"
+    timeout: 30000
+- takeScreenshot: 07-theme-sheet.png
+
+- tapOn:
+    id: theme-mode-dark
+- assertVisible: "Mind Flayer · Dark"
+- takeScreenshot: 08-theme-sheet-dark.png
