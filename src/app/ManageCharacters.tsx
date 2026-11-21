@@ -5,15 +5,12 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import {
   charactersTable,
-  itemsTable,
-  ledgerTable,
-  storageLocationsTable,
 } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -50,18 +47,15 @@ const ManageCharacters = () => {
   const confirmDelete = async () => {
     const target = character;
 
-    await db.delete(itemsTable).where(eq(itemsTable.character_id, target.id));
     await db
-      .delete(storageLocationsTable)
-      .where(eq(storageLocationsTable.character_id, target.id));
-    await db.delete(ledgerTable).where(eq(ledgerTable.character_id, target.id));
-    await db
-      .delete(charactersTable)
+      .update(charactersTable)
+      .set({ deleted_at: new Date() })
       .where(eq(charactersTable.character_id, target.id));
 
     const remaining = await db
       .select()
       .from(charactersTable)
+      .where(isNull(charactersTable.deleted_at))
       .orderBy(charactersTable.character_id);
     const next = remaining[0];
 

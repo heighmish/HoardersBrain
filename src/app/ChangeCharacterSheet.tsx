@@ -7,13 +7,19 @@ import { useTheme } from "@/stores/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AntDesign } from "@expo/vector-icons";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { charactersTable } from "@/db/schema";
+import { isNull } from "drizzle-orm";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
   const theme = useTheme();
   const db = useDatabase();
-  const characters = useLiveQuery(db.query.charactersTable.findMany());
+  const characters = useLiveQuery(
+    db.query.charactersTable.findMany({
+      where: isNull(charactersTable.deleted_at),
+    }),
+  );
   const { state, selectCharacter, clearCharacter } = useCharacterContext();
 
   if (characters.error) {

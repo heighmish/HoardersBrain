@@ -6,9 +6,10 @@ import { Pressable, View } from "react-native";
 
 interface ItemProps {
   item: Item;
+  showWeight?: boolean;
 }
 
-const ItemComponent: React.FC<ItemProps> = ({ item }) => {
+const ItemComponent: React.FC<ItemProps> = ({ item, showWeight = true }) => {
   const theme = useTheme();
 
   return (
@@ -41,9 +42,11 @@ const ItemComponent: React.FC<ItemProps> = ({ item }) => {
         <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
           {item.quantity}
         </ThemedText>
-        <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
-          {item.weight}
-        </ThemedText>
+        {showWeight ? (
+          <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
+            {item.weight}
+          </ThemedText>
+        ) : null}
       </View>
     </Pressable>
   );

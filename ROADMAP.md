@@ -38,8 +38,8 @@ Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens
 Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
 
 - [x] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
-- [x] Edit + delete containers (non-empty policy decided: items move to the auto-created On Person container)
-- [x] Edit character name; delete character (clean up child rows, then switch away)
+- [x] Edit + delete containers (policy superseded Nov 2026 by soft deletion — see Decisions)
+- [x] Edit character name; delete character (child rows now survive as soft-deleted data)
 - [x] Item detail screen: full description, stats, edit/delete entry points
 - [x] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
 - [x] Move items between containers; split stacks (3 potions, give 1 away)
@@ -47,6 +47,19 @@ Edit and delete for all existing entities; no schema changes. All FKs are `ON DE
 - [x] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
 - [x] Editable `max_encumbrance` in a character settings area
 - [x] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)
+
+## Phase 1.5 — CRUD UX pass *(M)*
+
+Phase 1 checkboxes mean *implemented*, not *finished*. These core features work
+but are not shaped the way a person would want to use them. Soft deletion makes
+most of the current friction (confirmations, re-home warnings, undeletable
+containers) unnecessary — nothing is destroyed, so the UI can stop guarding.
+
+- [ ] Container cards lose the permanent AddItem/Edit/Delete row; tapping a card opens a container detail page with the item list and actions; long-press offers quick actions
+- [ ] Item detail demotes Split/Move/Transfer into an overflow menu behind one primary Edit action; Delete becomes a single destructive row
+- [ ] Delete confirmations removed everywhere; deletion is instant and reversible in data (restore/undo UI arrives with the Phase 12 ledger)
+- [ ] Rename character surfaced near the character switcher instead of three screens deep
+- [ ] Item and storage forms reviewed for length, ordering, and defaults
 
 ## Phase 2 — Data-driven currencies *(L)*
 
@@ -184,10 +197,11 @@ History of item and currency changes per character.
 - **Game-system handling** (Nov 2026) — creation-time presets only, no persistent system entity. Picking a system seeds definitions; everything stays editable after. See Phase 11.
 - **Attunement** (Nov 2026) — not a first-class feature; system-specific mechanics belong to custom attributes (Phase 7), with an attunement boolean in the default definitions. Equipped IS first-class (worn/wielded is system-agnostic) — Phase 4.
 - **Party view** (Nov 2026) — deferred until the networking/auth chapter, together with multiplayer sync (icebox).
-- **Container deletion** (Nov 2026) — deleting a non-empty container moves its items to the character's On Person container; nothing is destroyed implicitly.
+- **Container deletion** (Nov 2026, revised) — soft deletion only: rows are flagged with `deleted_at`, never removed; every container is deletable including the carrying one; items stay attached to a soft-deleted container. The name-based "On Person" protection and item re-homing are removed; item transfer targets the carrying-role container (`carrying = true`), creating one only as a fallback.
+- **Checkbox semantics** (Nov 2026) — ROADMAP checkboxes record implementation, not UX quality. Phase 1.5 exists because shipped-but-unusable is not done.
 - **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on) ships with Phase 1 despite the phase's no-schema note.
 - **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Brand concept (not an asset task): an open fantasy chest holding a brain amid scattered loot.
-- **Testing architecture** (Nov 2026) — jest-expo + better-sqlite3 in-memory is the fast verification loop for all agents (unit-first ladder in AGENTS.md). Maestro E2E covers golden paths at merge gates against a stable build, never as a work-in-progress tool; a QA release build replaces the dev build as the E2E target. No CI E2E yet.
+- **Testing architecture** (Nov 2026, revised) — owner decision: agents do not write tests and the jest unit suite was removed entirely (`__tests__/`, `src/testing/`, jest config/deps). Verification is `npm run check` plus on-device checks on the owner's Android dev build; Maestro E2E remains a coordinator-run merge gate against a stable Release build. No CI E2E yet.
 - **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach. The inventory summary arrangement stays the owner's original compact side-by-side cards until a proper design pass; encumbrance stays optional-tier (Phase 1's weight-tracking toggle hides the Carrying card).
 - **Custom palettes deferred** (Nov 2026) — editor UI dropped to keep the theme sheet simple; presets + mode switching are the focus for now. The palette data layer and ThemeContext API remain, so custom themes can return without schema work.
 - **Agent-written copy banned** (Nov 2026) — agents write functional labels and placeholders only; taglines, flavor, and empty-state prose are owner-written or approved. The Phase 0.5 flavor strings were removed.

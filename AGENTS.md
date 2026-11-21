@@ -17,7 +17,6 @@ npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — re
 npx expo start              # start the dev server
 npm run lint                # lint (oxlint)
 npm run typecheck           # typecheck (tsc --noEmit)
-npm run test                # unit tests (jest-expo, in-memory sqlite)
 npm run lint:design         # guardrail: no raw hex or fontSize in src/app, src/components
 npm run check               # lint + typecheck + design-token guardrail in one command
 npx expo-doctor             # diagnose dependency and config issues
@@ -42,25 +41,32 @@ Flows live in `.maestro/`. They run against the stable Release gate build (see b
 - Merge gates run against a stable target: `npx expo run:ios --configuration Release` rebuilds the app with the JS embedded (no Metro dependency, no dev-client launcher races) before a gate run; the dev build is for interactive development only.
 - Visual changes also run `.maestro/design-screens.yaml` at the gate: it walks the core journey and saves a screenshot per state. Its screenshots are the before/after evidence the merge report requires.
 
-### Test cadence
+### No tests
 
-Climb the verification ladder in order, and never skip straight to a device:
+Agents do not write, add, or maintain tests. There is no unit suite (`__tests__/`,
+`src/testing/`, and the jest config were removed by owner decision, Nov 2026).
+Verification is:
 
 1. `npm run check` (~15s) — lint + typecheck + the design-token guardrail, run constantly while coding.
-2. `npm run test` — jest-expo unit suite. DB and logic run against the real migrations on in-memory better-sqlite3 (`src/testing/db.ts`, `createTestDb()`); components render via @testing-library/react-native (AsyncStorage is globally mocked). Milliseconds per test — this is the loop you iterate in.
-3. Maestro E2E — golden paths only, run by the coordinating agent at merge gates against the Release build. Never a work-in-progress validation tool: the dev build's launcher races `clearState` and will burn hours.
+2. On-device verification — the dev build on the owner's phone (and the Expo MCP
+   automation tools when a device is connected) is the proof that behavior works.
+3. Maestro E2E — golden paths only, run by the coordinating agent at merge gates
+   against the Release build. Never a work-in-progress validation tool: the dev
+   build's launcher races `clearState` and will burn hours.
 
-New logic (db mutations, helpers, stores, encumbrance math) ships with unit tests. New screens ship with a render test where practical. Anything you can prove with a unit test, prove with a unit test.
-
-Write the test first and watch it fail, then make it pass. Never add a test that already passes on the old code, that asserts on a mock of the function you changed, or that snapshots a one-line fix. Render tests of brand-new components have no old code to fail on — write them alongside the component.
-
-Harness notes:
-- AsyncStorage is globally mocked by `jest.setup.ts`; the package's own `setupFiles` mock entry is inert under jest-expo 30, so don't re-add it.
-- After `fireEvent.changeText`, flush before synchronous assertions with `await act(async () => {})`, or just use `findBy*` queries.
+Do not create test files, testing utilities, or test scripts. If a change risks
+regression, verify it on the device and say so in the report.
 
 ## Commit messages
 
-Use conventional commit messages: `type(scope): summary`. Valid types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. The scope is optional.
+Every commit subject is `type(scope): summary`. Both parts are required — an unscoped `feat:` is a violation, not a style choice.
+
+- Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`.
+- Scope: the area touched, lowercase, one word. Reuse a scope already in `git log` when one fits (`ui`, `items`, `storage`, `character`, `settings`, `theme`, `maestro`, `roadmap`, `db`, `config`); otherwise pick the narrowest word that names the change.
+- Summary: imperative mood, lowercase, no trailing period.
+- PR titles follow the same rule: `type(scope): summary`, matching the branch's dominant change. Never a free-form prose title — `gh pr create --title "feat(items): ..."`.
+
+Before pushing or opening a PR, read back `git log <base>..HEAD --oneline`: every subject must parse as `type(scope): summary`. Retitle commits you already made (`git rebase -i` reword) rather than adding an unscoped commit on top.
 
 ## Pre-commit review
 
@@ -114,5 +120,5 @@ This repo is often worked on by several agents in parallel. When a task arrives 
 - Exactly one agent owns schema changes at a time. Never run `drizzle-kit generate` unless your task explicitly grants migration ownership; concurrent generations corrupt the drizzle journal.
 - A solo agent works directly on a feature branch in the main tree (Metro serves it for E2E). Parallel agents work in separate worktrees and leave device flows to the coordinator, who runs E2E serially after each merge.
 - Commit small conventional commits on your branch. Tick the `ROADMAP.md` checkboxes for items you completed.
-- Report done only when `npm run check` passes, `npm run test` is green for your work, and your final diff has passed a pre-commit review pass (see above).
+- Report done only when `npm run check` passes and your final diff has passed a pre-commit review pass (see above). Behavior changes are verified on the device (see No tests).
 - Reports state what you ran and the result. A change a person can see gets before/after screenshots at the merge gate, from the platforms actually run; name any platform you could not run. If nothing visible changes, say `No UI change.`

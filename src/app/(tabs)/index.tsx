@@ -3,7 +3,7 @@ import { FlatList, Pressable, View } from "react-native";
 import { storageLocationsTable } from "@/db/schema";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
@@ -14,7 +14,6 @@ import {
 } from "@/stores/CharacterContext";
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
-import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
 
 const Inventory = () => {
@@ -33,7 +32,10 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
   const storageLocations = useLiveQuery(
     db.query.storageLocationsTable.findMany({
-      where: eq(storageLocationsTable.character_id, character.id),
+      where: and(
+        eq(storageLocationsTable.character_id, character.id),
+        isNull(storageLocationsTable.deleted_at),
+      ),
     }),
     [character],
   );
@@ -105,20 +107,53 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         <FlatList
           data={storageLocations.data}
           renderItem={({ item }) => <StorageContainer storage={item} />}
-          contentContainerStyle={{ gap: theme.spacing.sm }}
-          keyExtractor={(item) => item.storage_location_id.toString()}
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Button
-          title="Add Container"
-          onPress={() => {
-            router.push("/CreateStorageForm");
+          contentContainerStyle={{
+            gap: theme.spacing.sm,
+            paddingBottom: theme.spacing.xxl,
           }}
-          testID="add-container-button"
-          fullWidth
+          keyExtractor={(item) => item.storage_location_id.toString()}
+          ListFooterComponent={
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                router.push("/CreateStorageForm");
+              }}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.6 : 1,
+                paddingVertical: theme.spacing.md,
+              })}
+              testID="add-container-button"
+            >
+              <ThemedText variant="subhead" style={{ color: theme.colors.textMuted }}>
+                Add Container
+              </ThemedText>
+            </Pressable>
+          }
         />
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Add Item"
+        testID="fab-add-item"
+        onPress={() => {
+          router.push("/CreateItemForm");
+        }}
+        style={({ pressed }) => ({
+          position: "absolute",
+          bottom: theme.spacing.lg,
+          right: theme.spacing.lg,
+          width: 56,
+          height: 56,
+          borderRadius: theme.radius.full,
+          backgroundColor: theme.colors.accent,
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: theme.shadows.raised,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <AntDesign name="plus" size={24} color={theme.colors.accentText} />
+      </Pressable>
     </View>
   );
 };

@@ -49,6 +49,16 @@ const RootNavigator = () => {
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
+          name="ContainerMenuSheet"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 15,
+          }}
+        />
+        <Stack.Screen
           name="ChangeCharacterSheet"
           options={{
             presentation: "formSheet",

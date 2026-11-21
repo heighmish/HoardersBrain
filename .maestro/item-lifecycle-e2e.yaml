@@ -35,11 +35,14 @@ name: Item lifecycle end to end
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
     timeout: 30000
-- tapOn: "AddItem"
+- tapOn:
+    id: fab-add-item
 
 - extendedWaitUntil:
     visible: "Weight?"
     timeout: 30000
+- tapOn:
+    text: "Bag of Holding"
 - tapOn:
     text: "Name"
 - inputText: "Rope of Climbing"

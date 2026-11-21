@@ -24,7 +24,9 @@ import {
   Switch,
   View,
 } from "react-native";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { charactersTable } from "@/db/schema";
 
 const parseStorageId = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -55,7 +57,10 @@ const EditStorageLoader = ({ storageId }: { storageId: number }) => {
   useEffect(() => {
     const loadStorage = async () => {
       const row = await db.query.storageLocationsTable.findFirst({
-        where: eq(storageLocationsTable.storage_location_id, storageId),
+        where: and(
+          eq(storageLocationsTable.storage_location_id, storageId),
+          isNull(storageLocationsTable.deleted_at),
+        ),
       });
       setLoadedStorage(row ?? null);
     };
@@ -95,6 +100,16 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const character = useSelectedCharacter();
   const isEditing = initialStorage !== null;
 
+  const characterId = initialStorage?.character_id ?? character.id;
+  const weightSettings = useLiveQuery(
+    db.query.charactersTable.findFirst({
+      where: eq(charactersTable.character_id, characterId),
+      columns: { weight_tracking: true },
+    }),
+    [characterId],
+  );
+  const showWeight = weightSettings.data?.weight_tracking !== false;
+
   const [storageInput, setStorageInput] = useState<StorageInput>({
     name: initialStorage?.name ?? "",
     description: initialStorage?.description ?? null,
@@ -120,7 +135,9 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
 
     const values = {
       ...storageInput,
-      weight: Math.max(0, parseFloat(weightText) || 0),
+      weight: showWeight
+        ? Math.max(0, parseFloat(weightText) || 0)
+        : (initialStorage?.weight ?? 0),
     };
 
     if (initialStorage === null) {
@@ -189,16 +206,21 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           ))}
         </View>
 
-        <ThemedText variant="headline">Weight?</ThemedText>
-        <NumericInput
-          value={weightText}
-          testID="storage-weight-input"
-          onChangeText={setWeightText}
-          buttonDecrement={() => adjustWeight(-0.5)}
-          buttonIncrement={() => adjustWeight(0.5)}
-        />
+        {showWeight ? (
+          <>
+            <ThemedText variant="headline">Weight?</ThemedText>
+            <NumericInput
+              value={weightText}
+              testID="storage-weight-input"
+              onChangeText={setWeightText}
+              buttonDecrement={() => adjustWeight(-0.5)}
+              buttonIncrement={() => adjustWeight(0.5)}
+            />
+          </>
+        ) : null}
 
-        <Pressable
+        {showWeight ? (
+          <Pressable
           style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}
           accessibilityRole="switch"
           accessibilityState={{ checked: storageInput.is_fixed_weight }}
@@ -227,6 +249,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
             testID="fixed-weight-toggle"
           />
         </Pressable>
+        ) : null}
 
         <Pressable
           style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}

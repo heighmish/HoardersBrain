@@ -1,6 +1,7 @@
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
+import { ON_PERSON_NAME } from "@/components/itemOperations";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -48,7 +49,7 @@ export default function Index() {
 
     await db.insert(storageLocationsTable).values({
       character_id: created.id,
-      name: "On Person",
+      name: ON_PERSON_NAME,
       weight: 0,
       carrying: true,
       is_fixed_weight: true,
