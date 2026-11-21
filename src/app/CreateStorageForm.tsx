@@ -6,7 +6,6 @@ import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
 import {
   StorageInput,
-  deleteStorageContainer,
   updateStorageContainer,
 } from "@/components/storageLifecycle";
 import { rarityColors } from "@/constants/rarity";
@@ -127,14 +126,6 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
-  };
-
-  const deleteContainer = () => {
-    if (initialStorage === null) {
-      return;
-    }
-    deleteStorageContainer(db, initialStorage);
-    router.back();
   };
 
   const submit = async () => {
@@ -296,32 +287,6 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           testID={isEditing ? "save-storage-button" : "create-storage-button"}
           style={{ alignSelf: "stretch" }}
         />
-
-        {isEditing ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={deleteContainer}
-            style={({ pressed }) => ({
-              marginTop: theme.spacing.lg,
-              marginHorizontal: -theme.spacing.md,
-              paddingHorizontal: theme.spacing.md,
-              paddingTop: theme.spacing.md,
-              borderTopWidth: 1,
-              borderColor: theme.colors.border,
-              alignSelf: "stretch",
-              alignItems: "center",
-              opacity: pressed ? 0.5 : 1,
-            })}
-            testID="delete-storage-button"
-          >
-            <ThemedText
-              variant="body"
-              style={{ color: theme.colors.error, textAlign: "center" }}
-            >
-              Delete
-            </ThemedText>
-          </Pressable>
-        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

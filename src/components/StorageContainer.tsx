@@ -9,13 +9,18 @@ import {
   Storage,
 } from "@/db/schema";
 import React, { useState } from "react";
-import { FlatList, Modal, Pressable, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, View } from "react-native";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import ItemComponent from "./ItemComponent";
 import { router } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+} from "react-native-reanimated";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -45,7 +50,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
     [storage.storage_location_id],
   );
 
-  const confirmMatches = confirmText.trim() === storage.name;
+  const confirmMatches = confirmText.trim() === storage.name.trim();
   const closeAll = () => {
     setMenuOpen(false);
     setConfirmOpen(false);
@@ -187,6 +192,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
       <Modal
         transparent
         visible={menuOpen}
+        animationType="none"
         onRequestClose={() => setMenuOpen(false)}
       >
         <Pressable
@@ -196,10 +202,24 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           style={{
             flex: 1,
             justifyContent: "flex-end",
-            backgroundColor: theme.colors.scrim,
           }}
         >
-          <Pressable
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
+            style={{
+              ...({
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              } as const),
+              backgroundColor: theme.colors.scrim,
+            }}
+          />
+          <Animated.View
+            entering={SlideInDown.springify().dampingRatio(0.8)}
             style={{
               backgroundColor: theme.colors.surface,
               borderRadius: theme.radius.lg,
@@ -233,12 +253,13 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
               `container-delete-action-${storage.storage_location_id}`,
               true,
             )}
-          </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
       <Modal
         transparent
         visible={confirmOpen}
+        animationType="none"
         onRequestClose={closeAll}
       >
         <Pressable
@@ -248,44 +269,60 @@ const StorageContainer: React.FC<StorageContainerProps> = ({ storage }) => {
           style={{
             flex: 1,
             justifyContent: "center",
-            backgroundColor: theme.colors.scrim,
           }}
         >
-          <Pressable
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
             style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: theme.radius.lg,
-              borderCurve: "continuous",
-              padding: theme.spacing.md,
-              marginHorizontal: theme.spacing.md,
-              gap: theme.spacing.md,
+              ...({
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              } as const),
+              backgroundColor: theme.colors.scrim,
             }}
-          >
-            <ThemedText variant="headline">Delete container?</ThemedText>
-            <ThemedText variant="subhead">
-              Type the container name to confirm.
-            </ThemedText>
-            <Input
-              value={confirmText}
-              onChangeText={setConfirmText}
-              placeholder={storage.name}
-              testID="delete-confirm-input"
-            />
-            <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
-              <Button
-                title="Cancel"
-                variant="secondary"
-                onPress={closeAll}
-                testID="delete-cancel-button"
+          />
+          <KeyboardAvoidingView behavior="padding">
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.radius.lg,
+                borderCurve: "continuous",
+                padding: theme.spacing.md,
+                marginHorizontal: theme.spacing.md,
+                gap: theme.spacing.md,
+              }}
+            >
+              <ThemedText variant="headline">Delete container?</ThemedText>
+              <ThemedText variant="subhead">
+                Type the container name to confirm.
+              </ThemedText>
+              <Input
+                value={confirmText}
+                onChangeText={setConfirmText}
+                placeholder={storage.name}
+                testID="delete-confirm-input"
               />
-              <Button
-                title="Delete"
-                onPress={deleteContainer}
-                disabled={!confirmMatches}
-                testID="delete-confirm-button"
-              />
-            </View>
-          </Pressable>
+              <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+                <Button
+                  title="Cancel"
+                  variant="secondary"
+                  onPress={closeAll}
+                  testID="delete-cancel-button"
+                />
+                <Button
+                  title="Delete"
+                  onPress={deleteContainer}
+                  disabled={!confirmMatches}
+                  testID="delete-confirm-button"
+                />
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </View>
