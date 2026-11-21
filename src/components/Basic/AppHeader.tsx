@@ -35,7 +35,7 @@ const AppHeader = ({ title }: { title: string }) => {
           onPress={() => router.back()}
           style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <AntDesign name="left" size={24} color={theme.colors.accent} />
+          <AntDesign name="arrow-left" size={24} color={theme.colors.accent} />
         </Pressable>
         <ThemedText variant="headline">{title}</ThemedText>
       </View>
