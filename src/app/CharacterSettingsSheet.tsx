@@ -102,11 +102,9 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
       style={{
         backgroundColor: theme.colors.background,
         padding: theme.spacing.md,
-        paddingTop: theme.spacing.xl,
         gap: theme.spacing.lg,
       }}
     >
-      <ThemedText variant="title">Encumbrance & Weight</ThemedText>
       <View style={{ gap: theme.spacing.sm }}>
         <ThemedText variant="headline">Max Encumbrance</ThemedText>
         <NumericInput

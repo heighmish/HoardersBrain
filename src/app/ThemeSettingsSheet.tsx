@@ -1,3 +1,4 @@
+import { AntDesign } from "@expo/vector-icons";
 import {
   PaletteSemantics,
   ThemeMode,
@@ -58,17 +59,14 @@ const ThemeSettingsSheet = () => {
 
   return (
     <ScrollView
-      style={{ backgroundColor: theme.colors.surface }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
         padding: theme.spacing.md,
-        paddingTop: theme.spacing.xl,
         gap: theme.spacing.md,
       }}
     >
       <View style={{ gap: theme.spacing.xs }}>
-        <ThemedText variant="title">Theme</ThemedText>
         <ThemedText variant="subhead" testID="theme-state-line">
           {presetName} · {modeLabel(mode)}
         </ThemedText>
@@ -140,12 +138,7 @@ const ThemeSettingsSheet = () => {
               <View style={{ flexDirection: "row", alignItems: "center", gap: theme.spacing.sm }}>
                 <SwatchStrip palette={preset[theme.resolvedMode]} />
                 {selected && (
-                  <ThemedText
-                    variant="caption"
-                    style={{ color: theme.colors.accent }}
-                  >
-                    Selected
-                  </ThemedText>
+                  <AntDesign name="check" size={16} color={theme.colors.accent} />
                 )}
               </View>
             </Pressable>

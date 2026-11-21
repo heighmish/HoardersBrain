@@ -6,6 +6,14 @@ treasure chest" — a mind flayer hoarding loot, purple-forward. Beyond the
 tokens, this guide carries the design rules: copy, footguns, layout regression
 checks, and verification.
 
+## North star
+
+Design north star: **Instagram** — interaction and structure follow its
+patterns: pushed pages over stacked sheets, icon + label + chevron list rows,
+checkmarks for selection, hairline separators, content-forward surfaces with
+minimal borders. The palette stays HoardersBrain's own; the north star governs
+structure and interaction, not color.
+
 ## Copy
 
 You do not write product voice. Functional labels ("Create", "Add Container",

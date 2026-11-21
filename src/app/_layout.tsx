@@ -75,12 +75,8 @@ const RootNavigator = () => {
         <Stack.Screen
           name="ThemeSettingsSheet"
           options={{
-            presentation: "formSheet",
-            headerShown: false,
-            sheetAllowedDetents: "fitToContents",
-            sheetGrabberVisible: false,
-            sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            headerTitle: "Theme",
+            headerBackTitle: "Back",
           }}
         />
         <Stack.Screen
@@ -97,12 +93,15 @@ const RootNavigator = () => {
         <Stack.Screen
           name="CharacterSettingsSheet"
           options={{
-            presentation: "formSheet",
-            headerShown: false,
-            sheetAllowedDetents: "fitToContents",
-            sheetGrabberVisible: false,
-            sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            headerTitle: "Encumbrance & Weight",
+            headerBackTitle: "Back",
+          }}
+        />
+        <Stack.Screen
+          name="ManageCharacters"
+          options={{
+            headerTitle: "Manage Characters",
+            headerBackTitle: "Back",
           }}
         />
         <Stack.Screen

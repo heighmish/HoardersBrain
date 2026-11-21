@@ -1,5 +1,5 @@
 import ChangeCharacterSheet from "@/app/ChangeCharacterSheet";
-import SettingsSheet from "@/app/SettingsSheet";
+import ManageCharacters from "@/app/ManageCharacters";
 import CharacterSettingsSheet from "@/app/CharacterSettingsSheet";
 import Index from "@/app/index";
 import { LAST_CHARACTER_ID, THEME_SETTINGS } from "@/constants/CacheKeys";
@@ -195,7 +195,7 @@ describe("character rename", () => {
       LAST_CHARACTER_ID,
       hero.character_id.toString(),
     );
-    await renderWithProviders(<SettingsSheet />);
+    await renderWithProviders(<ManageCharacters />);
     await screen.findByTestId("rename-character-button");
     expect(screen.getByTestId("probe-status").props.children).toBe(
       `characterSelected:${hero.character_id}:QA Hero`,
@@ -223,7 +223,7 @@ describe("character rename", () => {
       LAST_CHARACTER_ID,
       hero.character_id.toString(),
     );
-    await renderWithProviders(<SettingsSheet />);
+    await renderWithProviders(<ManageCharacters />);
 
     await fireEvent.press(await screen.findByTestId("rename-character-button"));
     const input = await screen.findByTestId("character-rename-input");
@@ -252,7 +252,7 @@ describe("character delete", () => {
       LAST_CHARACTER_ID,
       second.character_id.toString(),
     );
-    await renderWithProviders(<SettingsSheet />);
+    await renderWithProviders(<ManageCharacters />);
 
     await fireEvent.press(await screen.findByTestId("delete-character-button"));
     await fireEvent.press(await screen.findByTestId("character-delete-confirm"));
@@ -294,7 +294,7 @@ describe("character delete", () => {
       LAST_CHARACTER_ID,
       hero.character_id.toString(),
     );
-    await renderWithProviders(<SettingsSheet />);
+    await renderWithProviders(<ManageCharacters />);
 
     await fireEvent.press(await screen.findByTestId("delete-character-button"));
     await fireEvent.press(await screen.findByTestId("character-delete-confirm"));
@@ -443,14 +443,14 @@ describe("theme coverage", () => {
     ).toBeTruthy();
   });
 
-  test("the settings sheet renders its management actions in resolved dark mode", async () => {
+  test("the manage characters screen renders its actions in resolved dark mode", async () => {
     await storedTheme({ presetId: "gruvbox", mode: "dark", customPalettes: [] });
     const hero = await insertCharacter(currentDb(), "QA Hero");
     await AsyncStorage.setItem(
       LAST_CHARACTER_ID,
       hero.character_id.toString(),
     );
-    await renderWithProviders(<SettingsSheet />);
+    await renderWithProviders(<ManageCharacters />);
 
     expect(
       await screen.findByTestId("rename-character-button"),
