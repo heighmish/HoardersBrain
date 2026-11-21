@@ -42,6 +42,7 @@ const RootNavigator = () => {
           headerTintColor: theme.colors.accent,
           headerTitleStyle: { color: theme.colors.text },
           headerShadowVisible: false,
+          statusBarStyle: theme.resolvedMode === "dark" ? "light" : "dark",
         }}
       >
         <Stack.Screen
@@ -75,6 +76,28 @@ const RootNavigator = () => {
         />
         <Stack.Screen
           name="ThemeSettingsSheet"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: false,
+            sheetExpandsWhenScrolledToEdge: true,
+            sheetCornerRadius: 15,
+          }}
+        />
+        <Stack.Screen
+          name="SettingsSheet"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: false,
+            sheetExpandsWhenScrolledToEdge: true,
+            sheetCornerRadius: 15,
+          }}
+        />
+        <Stack.Screen
+          name="CharacterSettingsSheet"
           options={{
             presentation: "formSheet",
             headerShown: false,

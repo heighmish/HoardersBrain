@@ -6,7 +6,7 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { eq } from "drizzle-orm";
 import StorageContainer from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
-import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "@/stores/ThemeContext";
 import {
   SelectedCharacter,
@@ -72,46 +72,20 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           ),
           headerTitle: () => <></>,
           headerRight: () => (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: theme.spacing.xs,
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              testID="settings-button"
+              onPress={() => {
+                router.push("/SettingsSheet");
               }}
+              style={({ pressed }) => ({
+                padding: theme.spacing.sm,
+                opacity: pressed ? 0.6 : 1,
+              })}
             >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Character settings"
-                testID="character-settings-button"
-                onPress={() => {
-                  router.push("/CharacterSettingsSheet");
-                }}
-                style={({ pressed }) => ({
-                  padding: theme.spacing.sm,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <AntDesign name="setting" size={22} color={theme.colors.accent} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Theme settings"
-                testID="theme-settings-button"
-                onPress={() => {
-                  router.push("/ThemeSettingsSheet");
-                }}
-                style={({ pressed }) => ({
-                  padding: theme.spacing.sm,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <FontAwesome5
-                  name="brain"
-                  size={22}
-                  color={theme.colors.accent}
-                />
-              </Pressable>
-            </View>
+              <AntDesign name="setting" size={22} color={theme.colors.accent} />
+            </Pressable>
           ),
         }}
       />

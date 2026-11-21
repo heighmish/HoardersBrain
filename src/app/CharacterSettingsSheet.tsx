@@ -7,7 +7,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { charactersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { Stack, router } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import { Switch, View } from "react-native";
 
@@ -100,13 +100,13 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
   return (
     <View
       style={{
-        flex: 1,
         backgroundColor: theme.colors.background,
         padding: theme.spacing.md,
+        paddingTop: theme.spacing.xl,
         gap: theme.spacing.lg,
       }}
     >
-      <Stack.Screen options={{ title: "Character Settings" }} />
+      <ThemedText variant="title">Encumbrance & Weight</ThemedText>
       <View style={{ gap: theme.spacing.sm }}>
         <ThemedText variant="headline">Max Encumbrance</ThemedText>
         <NumericInput

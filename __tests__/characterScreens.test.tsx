@@ -1,4 +1,5 @@
 import ChangeCharacterSheet from "@/app/ChangeCharacterSheet";
+import SettingsSheet from "@/app/SettingsSheet";
 import CharacterSettingsSheet from "@/app/CharacterSettingsSheet";
 import Index from "@/app/index";
 import { LAST_CHARACTER_ID, THEME_SETTINGS } from "@/constants/CacheKeys";
@@ -123,10 +124,6 @@ const storedTheme = async (settings: Record<string, unknown>) => {
   await AsyncStorage.setItem(THEME_SETTINGS, JSON.stringify(settings));
 };
 
-const selectRow = async (characterId: number) => {
-  await fireEvent.press(screen.getByTestId(`character-row-${characterId}`));
-};
-
 beforeEach(async () => {
   jest.clearAllMocks();
   mockDb.current = createTestDb();
@@ -194,10 +191,12 @@ describe("character creation", () => {
 describe("character rename", () => {
   test("updates the database row and keeps the context name in sync", async () => {
     const hero = await insertCharacter(currentDb(), "QA Hero");
-    await renderWithProviders(<ChangeCharacterSheet />);
-    await screen.findByTestId("create-new-character-button");
-
-    await selectRow(hero.character_id);
+    await AsyncStorage.setItem(
+      LAST_CHARACTER_ID,
+      hero.character_id.toString(),
+    );
+    await renderWithProviders(<SettingsSheet />);
+    await screen.findByTestId("rename-character-button");
     expect(screen.getByTestId("probe-status").props.children).toBe(
       `characterSelected:${hero.character_id}:QA Hero`,
     );
@@ -220,11 +219,13 @@ describe("character rename", () => {
 
   test("keeps the save button disabled for a blank rename input", async () => {
     const hero = await insertCharacter(currentDb(), "QA Hero");
-    await renderWithProviders(<ChangeCharacterSheet />);
-    await screen.findByTestId("create-new-character-button");
+    await AsyncStorage.setItem(
+      LAST_CHARACTER_ID,
+      hero.character_id.toString(),
+    );
+    await renderWithProviders(<SettingsSheet />);
 
-    await selectRow(hero.character_id);
-    await fireEvent.press(screen.getByTestId("rename-character-button"));
+    await fireEvent.press(await screen.findByTestId("rename-character-button"));
     const input = await screen.findByTestId("character-rename-input");
 
     await fireEvent.changeText(input, "   ");
@@ -247,14 +248,14 @@ describe("character delete", () => {
     const hero = await insertCharacter(db, "QA Hero");
     const second = await insertCharacter(db, "QA Second");
     await seedChildRows(db, second.character_id);
+    await AsyncStorage.setItem(
+      LAST_CHARACTER_ID,
+      second.character_id.toString(),
+    );
+    await renderWithProviders(<SettingsSheet />);
 
-    await renderWithProviders(<ChangeCharacterSheet />);
-    await screen.findByTestId("create-new-character-button");
-
-    await selectRow(second.character_id);
-    await fireEvent.press(screen.getByTestId("delete-character-button"));
-    await screen.findByTestId("character-delete-confirm");
-    await fireEvent.press(screen.getByTestId("character-delete-confirm"));
+    await fireEvent.press(await screen.findByTestId("delete-character-button"));
+    await fireEvent.press(await screen.findByTestId("character-delete-confirm"));
 
     expect(
       await db.query.itemsTable.findMany({
@@ -289,14 +290,14 @@ describe("character delete", () => {
     const db = currentDb();
     const hero = await insertCharacter(db, "QA Hero");
     await seedChildRows(db, hero.character_id);
+    await AsyncStorage.setItem(
+      LAST_CHARACTER_ID,
+      hero.character_id.toString(),
+    );
+    await renderWithProviders(<SettingsSheet />);
 
-    await renderWithProviders(<ChangeCharacterSheet />);
-    await screen.findByTestId("create-new-character-button");
-
-    await selectRow(hero.character_id);
-    await fireEvent.press(screen.getByTestId("delete-character-button"));
-    await screen.findByTestId("character-delete-confirm");
-    await fireEvent.press(screen.getByTestId("character-delete-confirm"));
+    await fireEvent.press(await screen.findByTestId("delete-character-button"));
+    await fireEvent.press(await screen.findByTestId("character-delete-confirm"));
 
     expect(await db.query.charactersTable.findMany()).toHaveLength(0);
     expect(await db.query.itemsTable.findMany()).toHaveLength(0);
@@ -432,14 +433,28 @@ describe("character settings sheet", () => {
 });
 
 describe("theme coverage", () => {
-  test("the change character sheet renders its actions in resolved dark mode", async () => {
+  test("the character switcher renders its rows in resolved dark mode", async () => {
     await storedTheme({ presetId: "gruvbox", mode: "dark", customPalettes: [] });
     const hero = await insertCharacter(currentDb(), "QA Hero");
     await renderWithProviders(<ChangeCharacterSheet />);
 
-    await screen.findByTestId(`character-row-${hero.character_id}`);
-    await selectRow(hero.character_id);
-    expect(screen.getByTestId("rename-character-button")).toBeTruthy();
+    expect(
+      await screen.findByTestId(`character-row-${hero.character_id}`),
+    ).toBeTruthy();
+  });
+
+  test("the settings sheet renders its management actions in resolved dark mode", async () => {
+    await storedTheme({ presetId: "gruvbox", mode: "dark", customPalettes: [] });
+    const hero = await insertCharacter(currentDb(), "QA Hero");
+    await AsyncStorage.setItem(
+      LAST_CHARACTER_ID,
+      hero.character_id.toString(),
+    );
+    await renderWithProviders(<SettingsSheet />);
+
+    expect(
+      await screen.findByTestId("rename-character-button"),
+    ).toBeTruthy();
     expect(screen.getByTestId("delete-character-button")).toBeTruthy();
   });
 
