@@ -10,6 +10,7 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const parseIdParam = (raw: string | undefined): number | null => {
   if (raw === undefined) {
@@ -33,8 +34,13 @@ const ContainerMenuSheet = () => {
 const SheetContent = ({ storageId }: { storageId: number }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+
+  const sheetGap = {
+    paddingBottom: insets.bottom + theme.spacing.lg,
+  };
 
   const storage = useLiveQuery(
     db.query.storageLocationsTable.findFirst({
@@ -95,6 +101,7 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
         style={{
           backgroundColor: theme.colors.surface,
           padding: theme.spacing.md,
+          ...sheetGap,
           gap: theme.spacing.md,
         }}
       >
@@ -131,6 +138,7 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
       style={{
         backgroundColor: theme.colors.surface,
         padding: theme.spacing.md,
+        ...sheetGap,
         gap: theme.spacing.xs,
       }}
     >
