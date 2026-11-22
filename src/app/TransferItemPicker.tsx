@@ -1,20 +1,24 @@
 import AppHeader from "@/components/Basic/AppHeader";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { transferItemToCharacter } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { charactersTable, Item, itemsTable } from "@/db/schema";
+import { transferItemToCharacter } from "@/db/repositories/items";
+import { charactersTable, Item } from "@/db/schema";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { parseIdParam } from "@/utils/params";
+import { and, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
+const goBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+    return;
   }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+  router.replace("/(tabs)");
 };
 
 const TransferItemPicker = () => {
@@ -22,62 +26,49 @@ const TransferItemPicker = () => {
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
-  if (parsedItemId === null) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
-  }
-
-  return <TransferItemPickerContent itemId={parsedItemId} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Transfer item" />
+      {parsedItemId === null ? (
+        <ScreenState
+          kind="message"
+          message="Item not found"
+          actionLabel="Back"
+          onAction={goBack}
+        />
+      ) : (
+        <TransferItemPickerContent itemId={parsedItemId} />
+      )}
+    </View>
+  );
 };
 
 const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useItem(itemId);
 
-  if (item.error) {
+  if (item.status === "error") {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Failed to load item"
+        actionLabel="Back"
+        onAction={goBack}
+      />
     );
   }
 
-  if (item.updatedAt === undefined) {
-    return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
+  if (item.status === "loading") {
+    return <ScreenState kind="loading" />;
   }
 
-  if (item.data === undefined) {
+  if (item.status === "missing") {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={goBack}
+      />
     );
   }
 
@@ -87,6 +78,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
 const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
   const characters = useLiveQuery(
     db.query.charactersTable.findMany({
       where: and(
@@ -97,18 +89,21 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
     [item.character_id],
   );
 
+  const transferToCharacter = (targetCharacterId: number) => {
+    void action.run(async () => {
+      await transferItemToCharacter(db, item.item_id, targetCharacterId);
+      router.dismiss(2);
+    }, "Failed to transfer item.");
+  };
+
   return (
     <View
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
       testID="transfer-picker-screen"
+      style={{
+        padding: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
     >
-      <AppHeader title="Transfer item" />
-      <View
-        style={{
-          padding: theme.spacing.md,
-          gap: theme.spacing.md,
-        }}
-      >
       <ThemedText variant="headline">{item.name}</ThemedText>
       {characters.data.length === 0 ? (
         <ThemedText variant="body">No other characters</ThemedText>
@@ -122,14 +117,9 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
               key={character.character_id}
               accessibilityRole="button"
               accessibilityLabel={character.name}
-              onPress={async () => {
-                await transferItemToCharacter(
-                  db,
-                  item.item_id,
-                  character.character_id,
-                );
-                router.dismiss(2);
-              }}
+              accessibilityState={{ disabled: action.submitting }}
+              disabled={action.submitting}
+              onPress={() => transferToCharacter(character.character_id)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
                 backgroundColor: theme.colors.surface,
@@ -148,7 +138,11 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
           ))}
         </ScrollView>
       )}
-      </View>
+      {action.error !== null ? (
+        <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+          {action.error}
+        </ThemedText>
+      ) : null}
     </View>
   );
 };

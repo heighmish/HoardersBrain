@@ -1,24 +1,16 @@
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
-import { deleteStorageContainer } from "@/components/storageLifecycle";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { storageLocationsTable } from "@/db/schema";
+import { softDeleteStorageContainer } from "@/db/repositories";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useContainer } from "@/hooks/useContainer";
 import { useTheme } from "@/stores/ThemeContext";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
 
 const ContainerMenuSheet = () => {
   const { storageId } = useLocalSearchParams<{ storageId?: string }>();
@@ -37,22 +29,38 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
   const insets = useSafeAreaInsets();
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const { submitting, error, run, clearError } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   const sheetGap = {
     paddingBottom: insets.bottom + theme.spacing.lg,
   };
 
-  const storage = useLiveQuery(
-    db.query.storageLocationsTable.findFirst({
-      where: and(
-        eq(storageLocationsTable.storage_location_id, storageId),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [storageId],
-  );
+  const storage = useContainer(storageId);
 
-  if (storage.error || storage.updatedAt === undefined || storage.data === undefined) {
+  if (storage.status === "error") {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          padding: theme.spacing.md,
+          ...sheetGap,
+          gap: theme.spacing.md,
+        }}
+      >
+        <ThemedText variant="body">Failed to load storage container</ThemedText>
+        <Button
+          title="Close"
+          variant="secondary"
+          onPress={() => router.dismiss()}
+          testID="container-menu-close-button"
+        />
+      </View>
+    );
+  }
+
+  if (storage.status !== "ready") {
     return null;
   }
 
@@ -67,8 +75,11 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
     if (!confirmMatches) {
       return;
     }
-    deleteStorageContainer(db, container);
-    closeSheet();
+
+    run(async () => {
+      await softDeleteStorageContainer(db, container.storage_location_id);
+      closeSheet();
+    }, "Failed to delete container.");
   };
 
   const menuRow = (
@@ -115,18 +126,28 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
           placeholder={container.name}
           testID="delete-confirm-input"
         />
+        {error !== null && (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {error}
+          </ThemedText>
+        )}
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
           <Button
             title="Cancel"
             variant="secondary"
-            onPress={() => setConfirming(false)}
+            onPress={() => {
+              clearError();
+              setConfirming(false);
+            }}
             testID="delete-cancel-button"
+            disabled={submitting}
           />
           <Button
             title="Delete"
             onPress={deleteContainer}
-            disabled={!confirmMatches}
             testID="delete-confirm-button"
+            loading={submitting}
+            disabled={submitting || !confirmMatches}
           />
         </View>
       </View>

@@ -1,11 +1,7 @@
-import React from "react";
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { View } from "react-native";
 import { DatabaseProvider } from "@/db/DatabaseProvider";
-import {
-  DarkTheme,
-  DefaultTheme,
-  Stack,
-  ThemeProvider,
-} from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CharacterProvider } from "@/stores/CharacterContext";
 import {
@@ -13,12 +9,13 @@ import {
   useTheme,
 } from "@/stores/ThemeContext";
 import { useWindowDimensions } from "react-native";
+import Button from "@/components/Basic/Button";
+import ThemedText from "@/components/Basic/ThemedText";
 
 const RootNavigator = () => {
   const theme = useTheme();
   const { height } = useWindowDimensions();
-  const baseNavTheme =
-    theme.resolvedMode === "dark" ? DarkTheme : DefaultTheme;
+  const baseNavTheme = theme.resolvedMode === "dark" ? DarkTheme : DefaultTheme;
   const navTheme = {
     ...baseNavTheme,
     colors: {
@@ -85,16 +82,70 @@ const RootNavigator = () => {
   );
 };
 
+const ErrorFallback: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: theme.spacing.md,
+        padding: theme.spacing.lg,
+      }}
+    >
+      <ThemedText variant="headline">Something went wrong.</ThemedText>
+      <Button title="Try again" onPress={onRetry} />
+    </View>
+  );
+};
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(error, info.componentStack);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback onRetry={this.handleRetry} />;
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <SafeAreaProvider>
-        <DatabaseProvider>
-          <CharacterProvider>
-            <RootNavigator />
-          </CharacterProvider>
-        </DatabaseProvider>
-      </SafeAreaProvider>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <DatabaseProvider>
+            <CharacterProvider>
+              <RootNavigator />
+            </CharacterProvider>
+          </DatabaseProvider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
     </AppThemeProvider>
   );
 }

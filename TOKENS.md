@@ -66,8 +66,8 @@ theme.colors.error            // feedback tone (≥ 1.5× max encumbrance)
 
 Presets ship as **data** in `src/constants/themePresets.ts` (each defines `light`
 and `dark` variants; sources are official palettes: Dracula family, Tokyo
-Night, Catppuccin Mocha/Latte, Nord, Gruvbox). Custom palettes are the same
-semantic shape and are edited in `ThemeSettingsSheet`.
+Night, Catppuccin Mocha/Latte, Nord, Gruvbox). Custom palettes use the same
+semantic shape (editor UI deferred; see `ROADMAP.md`).
 
 ## Type scale
 
@@ -213,7 +213,7 @@ Icon in a header/row:
    `theme.colors.accentText` on accent fills; `readableTextColor(hex)` for any
    other fill.
 6. **Sheets set their own root** to `theme.colors.surface`
-   (`ChangeCharacterSheet`, `UpdateCurrencySheet`, `ThemeSettingsSheet`).
+   (`ChangeCharacterSheet`, `ContainerMenuSheet`, `UpdateCurrencySheet`).
 7. **Maestro**: visible labels and testIDs are contracts — keep them stable;
    if a change must break one, update the flow in the same commit.
 8. **System chrome comes from navigator options, never from screens.** The

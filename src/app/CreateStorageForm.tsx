@@ -3,19 +3,25 @@ import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
+import { RarityArray } from "@/constants/databaseTypes";
+import { rarityColors } from "@/constants/rarity";
+import { useDatabase } from "@/db/DatabaseProvider";
 import {
+  createStorageContainer,
   StorageInput,
   updateStorageContainer,
-} from "@/components/storageLifecycle";
-import { rarityColors } from "@/constants/rarity";
-import { RarityArray } from "@/constants/databaseTypes";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { useTheme } from "@/stores/ThemeContext";
-import { Storage, storageLocationsTable } from "@/db/schema";
+} from "@/db/repositories";
+import type { Storage } from "@/db/schema";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacter } from "@/hooks/useCharacter";
+import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
+import { useTheme } from "@/stores/ThemeContext";
+import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -23,71 +29,61 @@ import {
   ScrollView,
   Switch,
   View,
+  ViewStyle,
 } from "react-native";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { charactersTable } from "@/db/schema";
 
-const parseStorageId = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
+const returnToInventory = () =>
+  router.canGoBack() ? router.back() : router.replace("/(tabs)");
 
 const CreateStorageForm = () => {
+  const theme = useTheme();
   const { storageId } = useLocalSearchParams<{ storageId?: string }>();
-  const editingId = parseStorageId(storageId);
+  const editingId = parseIdParam(storageId);
 
-  if (editingId === null) {
-    return <StorageForm initialStorage={null} />;
-  }
-  return <EditStorageLoader storageId={editingId} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader
+        title={editingId === null ? "Create new storage" : "Edit storage"}
+      />
+      {editingId === null ? (
+        <StorageForm initialStorage={null} />
+      ) : (
+        <EditStorageLoader storageId={editingId} />
+      )}
+    </View>
+  );
 };
 
 const EditStorageLoader = ({ storageId }: { storageId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
+  const storage = useContainer(storageId);
 
-  const [loadedStorage, setLoadedStorage] = useState<Storage | null | undefined>(
-    undefined,
-  );
-
-  useEffect(() => {
-    const loadStorage = async () => {
-      const row = await db.query.storageLocationsTable.findFirst({
-        where: and(
-          eq(storageLocationsTable.storage_location_id, storageId),
-          isNull(storageLocationsTable.deleted_at),
-        ),
-      });
-      setLoadedStorage(row ?? null);
-    };
-    loadStorage();
-  }, [db, storageId]);
-
-  if (loadedStorage === undefined) {
+  if (storage.status === "error") {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
+      <ScreenState
+        kind="message"
+        message="Failed to load storage container"
+        actionLabel="Back"
+        onAction={returnToInventory}
+      />
     );
   }
 
-  if (loadedStorage === null) {
+  if (storage.status === "loading") {
+    return <ScreenState kind="loading" />;
+  }
+
+  if (storage.status === "missing") {
     return (
-      <View
-        style={{
-          flex: 1,
-          padding: theme.spacing.md,
-          backgroundColor: theme.colors.background,
-        }}
-      >
-        <ThemedText variant="body">Storage container not found.</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Storage container not found."
+        actionLabel="Back"
+        onAction={returnToInventory}
+      />
     );
   }
 
-  return <StorageForm initialStorage={loadedStorage} />;
+  return <StorageForm initialStorage={storage.data} />;
 };
 
 interface StorageFormProps {
@@ -99,16 +95,15 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const db = useDatabase();
   const character = useSelectedCharacter();
   const isEditing = initialStorage !== null;
+  const { submitting, error, run } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   const characterId = initialStorage?.character_id ?? character.id;
-  const weightSettings = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, characterId),
-      columns: { weight_tracking: true },
-    }),
-    [characterId],
-  );
-  const showWeight = weightSettings.data?.weight_tracking !== false;
+  const characterQuery = useCharacter(characterId);
+  const showWeight =
+    characterQuery.status !== "ready" ||
+    characterQuery.data.weight_tracking !== false;
 
   const [storageInput, setStorageInput] = useState<StorageInput>({
     name: initialStorage?.name ?? "",
@@ -128,7 +123,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
 
-  const submit = async () => {
+  const submit = () => {
     if (storageInput.name === "") {
       return;
     }
@@ -140,24 +135,33 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         : (initialStorage?.weight ?? 0),
     };
 
-    if (initialStorage === null) {
-      await db.insert(storageLocationsTable).values(values);
-    } else {
-      updateStorageContainer(
-        db,
-        initialStorage.storage_location_id,
-        values,
-      );
-    }
-    router.back();
+    run(async () => {
+      if (initialStorage === null) {
+        await createStorageContainer(db, values);
+      } else {
+        await updateStorageContainer(
+          db,
+          initialStorage.storage_location_id,
+          values,
+        );
+      }
+      router.back();
+    }, "Failed to save storage.");
   };
+
+  const switchRowStyle = (pressed: boolean): ViewStyle => ({
+    flexDirection: "row",
+    gap: theme.spacing.md,
+    alignItems: "center",
+    paddingVertical: theme.spacing.xs,
+    opacity: pressed ? 0.7 : 1,
+  });
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1 }}
     >
-      <AppHeader title={isEditing ? "Edit storage" : "Create new storage"} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -183,7 +187,13 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           }
         />
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.xs,
+          }}
+        >
           {RarityArray.map((rarity) => (
             <Pressable
               onPress={() =>
@@ -195,6 +205,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
               key={`create-storage-rarity-${rarity}`}
               accessibilityRole="button"
               accessibilityState={{ selected: storageInput.rarity === rarity }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               testID={`storage-rarity-${rarity}`}
             >
               <Badge
@@ -221,38 +232,38 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
 
         {showWeight ? (
           <Pressable
-          style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: storageInput.is_fixed_weight }}
-          onPress={() =>
-            setStorageInput((prev) => ({
-              ...prev,
-              is_fixed_weight: !prev.is_fixed_weight,
-            }))
-          }
-        >
-          <ThemedText variant="body">
-            Does the storage have a fixed weight?
-          </ThemedText>
-          <Switch
-            value={storageInput.is_fixed_weight}
-            onValueChange={(value) =>
+            style={({ pressed }) => switchRowStyle(pressed)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: storageInput.is_fixed_weight }}
+            onPress={() =>
               setStorageInput((prev) => ({
                 ...prev,
-                is_fixed_weight: value,
+                is_fixed_weight: !prev.is_fixed_weight,
               }))
             }
-            trackColor={{
-              false: theme.colors.border,
-              true: theme.colors.accent,
-            }}
-            testID="fixed-weight-toggle"
-          />
-        </Pressable>
+          >
+            <ThemedText variant="body">
+              Does the storage have a fixed weight?
+            </ThemedText>
+            <Switch
+              value={storageInput.is_fixed_weight}
+              onValueChange={(value) =>
+                setStorageInput((prev) => ({
+                  ...prev,
+                  is_fixed_weight: value,
+                }))
+              }
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.accent,
+              }}
+              testID="fixed-weight-toggle"
+            />
+          </Pressable>
         ) : null}
 
         <Pressable
-          style={{ flexDirection: "row", gap: theme.spacing.md, alignItems: "center", paddingVertical: theme.spacing.xs }}
+          style={({ pressed }) => switchRowStyle(pressed)}
           accessibilityRole="switch"
           accessibilityState={{ checked: storageInput.carrying }}
           onPress={() =>
@@ -262,9 +273,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
             }))
           }
         >
-          <ThemedText variant="body">
-            Are you carrying the storage?
-          </ThemedText>
+          <ThemedText variant="body">Are you carrying the storage?</ThemedText>
           <Switch
             value={storageInput.carrying}
             onValueChange={(value) =>
@@ -281,11 +290,19 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           />
         </Pressable>
 
+        {error !== null && (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {error}
+          </ThemedText>
+        )}
+
         <Button
           title={isEditing ? "Save" : "Create"}
           onPress={submit}
           testID={isEditing ? "save-storage-button" : "create-storage-button"}
-          style={{ alignSelf: "stretch" }}
+          loading={submitting}
+          disabled={submitting || storageInput.name === ""}
+          fullWidth
         />
       </ScrollView>
     </KeyboardAvoidingView>

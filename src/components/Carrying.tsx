@@ -1,117 +1,100 @@
-import Badge, { BadgeTone } from "@/components/Basic/Badge";
+import Badge from "@/components/Basic/Badge";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
-import {
-  charactersTable,
-  itemsTable,
-  storageLocationsTable,
-} from "@/db/schema";
-import { and, eq, isNull, sum } from "drizzle-orm";
+import { itemsTable, Storage, storageLocationsTable } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
+import { useCharacter } from "@/hooks/useCharacter";
+import {
+  CarriedItemRow,
+  calculateCarriedItemsWeight,
+  determineEncumbranceTone,
+} from "@/utils/encumbrance";
 
 interface CarryingProps {
   characterId: number;
 }
 
-const determineEncumbranceTone = (
-  carrying: number,
-  maxEncumbrance: number,
-): BadgeTone => {
-  if (carrying >= maxEncumbrance * 1.5) {
-    return "error";
-  }
-  if (carrying >= maxEncumbrance) {
-    return "warning";
-  }
-  return "success";
-};
-
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const maxEncumbrance = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, characterId),
-      columns: { max_encumbrance: true, weight_tracking: true },
+  const character = useCharacter(characterId);
+
+  // Separate single-table live queries: drizzle-orm/expo-sqlite only listens
+  // for changes on the primary table, so a joined query misses container edits.
+  const items = useLiveQuery(
+    db.query.itemsTable.findMany({
+      where: and(
+        eq(itemsTable.character_id, characterId),
+        isNull(itemsTable.deleted_at),
+      ),
     }),
     [characterId],
   );
 
-  const items = useLiveQuery(
-    db
-      .select()
-      .from(itemsTable)
-      .leftJoin(
-        storageLocationsTable,
-        and(
-          eq(
-            itemsTable.storage_location_id,
-            storageLocationsTable.storage_location_id,
-          ),
-          isNull(storageLocationsTable.deleted_at),
-        ),
-      )
-      .where(
-        and(
-          eq(itemsTable.character_id, characterId),
-          isNull(itemsTable.deleted_at),
-        ),
+  const containers = useLiveQuery(
+    db.query.storageLocationsTable.findMany({
+      where: and(
+        eq(storageLocationsTable.character_id, characterId),
+        isNull(storageLocationsTable.deleted_at),
       ),
+    }),
     [characterId],
   );
 
-  const containerWeightQuery = useLiveQuery(
-    db
-      .select({
-        totalWeight: sum(storageLocationsTable.weight),
-      })
-      .from(storageLocationsTable)
-      .where(
-        and(
-          eq(storageLocationsTable.character_id, characterId),
-          isNull(storageLocationsTable.deleted_at),
-        ),
-      ),
-    [characterId],
+  const containerById = new Map<number, Storage>(
+    containers.data.map((container) => [
+      container.storage_location_id,
+      container,
+    ]),
   );
 
-  const containerWeight = Number(
-    containerWeightQuery.data[0]?.totalWeight ?? 0,
-  );
+  const carriedRows: CarriedItemRow[] = items.data.flatMap((item) => {
+    const storage = containerById.get(item.storage_location_id);
 
-  const itemsWeight = items.data.reduce((total, data) => {
-    if (
-      data.storage_locations === null ||
-      data.storage_locations.is_fixed_weight === true
-    ) {
-      return total;
+    if (storage === undefined) {
+      return [];
     }
 
-    return total + data.items.weight * data.items.quantity;
-  }, 0);
+    return [
+      {
+        itemWeight: item.weight,
+        itemQuantity: item.quantity,
+        isFixedWeight: storage.is_fixed_weight,
+        isCarrying: storage.carrying,
+      },
+    ];
+  });
 
-  const totalCarriedWeight = itemsWeight + containerWeight;
+  const containerWeight = containers.data.reduce(
+    (total, container) => (container.carrying ? total + container.weight : total),
+    0,
+  );
+  const totalCarriedWeight =
+    calculateCarriedItemsWeight(carriedRows) + containerWeight;
 
-  if (maxEncumbrance.error || items.error || containerWeightQuery.error) {
+  if (character.status === "error" || items.error || containers.error) {
     return (
       <View>
-        <ThemedText variant="body">Failed to load character information</ThemedText>
+        <ThemedText variant="body">
+          Failed to load character information
+        </ThemedText>
       </View>
     );
   }
 
   if (
-    maxEncumbrance.data === undefined ||
+    character.status !== "ready" ||
     items.updatedAt === undefined ||
-    containerWeightQuery.updatedAt === undefined
+    containers.updatedAt === undefined
   ) {
     return null;
   }
 
-  if (maxEncumbrance.data.weight_tracking === false) {
+  if (character.data.weight_tracking === false) {
     return null;
   }
 
@@ -133,7 +116,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
         <Badge
           tone={determineEncumbranceTone(
             totalCarriedWeight,
-            maxEncumbrance.data.max_encumbrance,
+            character.data.max_encumbrance,
           )}
           text="Encumbrance"
         />
@@ -141,8 +124,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
           variant="caption"
           style={{ color: theme.colors.text, fontVariant: ["tabular-nums"] }}
         >
-          Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
-          lb
+          Carrying: {totalCarriedWeight}/{character.data.max_encumbrance} lb
         </ThemedText>
       </View>
       <AntDesign name="right" color={theme.colors.textMuted} />

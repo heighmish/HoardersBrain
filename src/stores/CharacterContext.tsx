@@ -1,13 +1,16 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
+import { findActiveCharacterById } from "@/db/repositories/characters";
 import { charactersTable } from "@/db/schema";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { and, eq, isNull } from "drizzle-orm";
+import { asc, isNull } from "drizzle-orm";
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -46,17 +49,21 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
 
   useEffect(() => {
     const loadLastCharacter = async () => {
+      let storedId: string | null = null;
       try {
-        const storedId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
+        storedId = await AsyncStorage.getItem(LAST_CHARACTER_ID);
+      } catch (error) {
+        console.error(
+          "[CharacterContext]: Error reading last used character id",
+          error,
+        );
+      }
+
+      try {
         const charId = storedId === null ? null : Number.parseInt(storedId, 10);
 
         if (charId !== null && Number.isInteger(charId)) {
-          const character = await db.query.charactersTable.findFirst({
-            where: and(
-              eq(charactersTable.character_id, charId),
-              isNull(charactersTable.deleted_at),
-            ),
-          });
+          const character = await findActiveCharacterById(db, charId);
           if (character !== undefined) {
             setState({
               status: "characterSelected",
@@ -69,13 +76,33 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
           }
         }
 
+        const fallbackCharacter = await db.query.charactersTable.findFirst({
+          where: isNull(charactersTable.deleted_at),
+          orderBy: asc(charactersTable.character_id),
+        });
+
+        if (fallbackCharacter !== undefined) {
+          AsyncStorage.setItem(
+            LAST_CHARACTER_ID,
+            String(fallbackCharacter.character_id),
+          ).catch(console.error);
+          setState({
+            status: "characterSelected",
+            character: {
+              id: fallbackCharacter.character_id,
+              name: fallbackCharacter.name,
+            },
+          });
+          return;
+        }
+
         if (storedId !== null) {
-          await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+          AsyncStorage.removeItem(LAST_CHARACTER_ID).catch(console.error);
         }
         setState({ status: "noCharacter" });
       } catch (error) {
         console.error(
-          "[CharacterContext]: Error loading last used character id",
+          "[CharacterContext]: Error loading last used character",
           error,
         );
         setState({ status: "noCharacter" });
@@ -84,18 +111,25 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
     loadLastCharacter();
   }, [db]);
 
-  const selectCharacter = (character: SelectedCharacter) => {
+  const selectCharacter = useCallback((character: SelectedCharacter) => {
     setState({ status: "characterSelected", character });
-  };
+    AsyncStorage.setItem(LAST_CHARACTER_ID, String(character.id)).catch(
+      console.error,
+    );
+  }, []);
 
-  const clearCharacter = () => {
+  const clearCharacter = useCallback(() => {
     setState({ status: "noCharacter" });
-  };
+    AsyncStorage.removeItem(LAST_CHARACTER_ID).catch(console.error);
+  }, []);
+
+  const value = useMemo(
+    () => ({ state, selectCharacter, clearCharacter }),
+    [state, selectCharacter, clearCharacter],
+  );
 
   return (
-    <CharacterContext.Provider
-      value={{ state, selectCharacter, clearCharacter }}
-    >
+    <CharacterContext.Provider value={value}>
       {children}
     </CharacterContext.Provider>
   );

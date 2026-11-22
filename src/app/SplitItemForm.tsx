@@ -1,11 +1,15 @@
 import AppHeader from "@/components/Basic/AppHeader";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { splitItemStack } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
+import { splitItemStack } from "@/db/repositories/items";
+import { Item, storageLocationsTable } from "@/db/schema";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
+import { parseIdParam } from "@/utils/params";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
@@ -18,12 +22,12 @@ import {
   View,
 } from "react-native";
 
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
+const goBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+    return;
   }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+  router.replace("/(tabs)");
 };
 
 const SplitItemForm = () => {
@@ -31,62 +35,49 @@ const SplitItemForm = () => {
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
-  if (parsedItemId === null) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
-  }
-
-  return <SplitItemFormContent itemId={parsedItemId} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Split stack" />
+      {parsedItemId === null ? (
+        <ScreenState
+          kind="message"
+          message="Item not found"
+          actionLabel="Back"
+          onAction={goBack}
+        />
+      ) : (
+        <SplitItemFormContent itemId={parsedItemId} />
+      )}
+    </View>
+  );
 };
 
 const SplitItemFormContent = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useItem(itemId);
 
-  if (item.error) {
+  if (item.status === "error") {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Failed to load item"
+        actionLabel="Back"
+        onAction={goBack}
+      />
     );
   }
 
-  if (item.updatedAt === undefined) {
-    return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
+  if (item.status === "loading") {
+    return <ScreenState kind="loading" />;
   }
 
-  if (item.data === undefined) {
+  if (item.status === "missing") {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={goBack}
+      />
     );
   }
 
@@ -98,6 +89,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
   const db = useDatabase();
   const [amountText, setAmountText] = useState("1");
   const [destinationId, setDestinationId] = useState<number | null>(null);
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
 
   const containers = useLiveQuery(
     db.query.storageLocationsTable.findMany({
@@ -115,20 +107,22 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
   const amountValid =
     Number.isInteger(amount) && amount >= 1 && amount <= maxAmount;
 
-  const split = async () => {
+  const split = () => {
     if (!amountValid || destinationId === null) {
       return;
     }
-    await splitItemStack(db, item.item_id, amount, destinationId);
-    router.back();
+
+    void action.run(async () => {
+      await splitItemStack(db, item.item_id, amount, destinationId);
+      router.back();
+    }, "Failed to split stack.");
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1 }}
     >
-      <AppHeader title="Split stack" />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -165,7 +159,9 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
                   accessibilityRole="button"
                   accessibilityState={{
                     selected: destinationId === container.storage_location_id,
+                    disabled: action.submitting,
                   }}
+                  disabled={action.submitting}
                   onPress={() => {
                     setDestinationId(container.storage_location_id);
                   }}
@@ -190,9 +186,20 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
               title="Split"
               testID="confirm-split-button"
               onPress={split}
-              disabled={!amountValid || destinationId === null}
+              loading={action.submitting}
+              disabled={
+                action.submitting || !amountValid || destinationId === null
+              }
               fullWidth
             />
+            {action.error !== null ? (
+              <ThemedText
+                variant="caption"
+                style={{ color: theme.colors.error }}
+              >
+                {action.error}
+              </ThemedText>
+            ) : null}
           </>
         )}
       </ScrollView>

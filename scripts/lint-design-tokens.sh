@@ -27,4 +27,13 @@ if [ -n "$spacing_violations" ]; then
   status=1
 fi
 
+textinput_violations=$(grep -rnE "\bTextInput\b" src/app src/components \
+  | grep -vE '^src/components/Basic/(Input|NumericInput)\.tsx:' || true)
+if [ -n "$textinput_violations" ]; then
+  echo "Raw TextInput imports or usage in src/app or src/components:"
+  echo "$textinput_violations"
+  echo "Use the Input or NumericInput primitive instead of hand-rolling a TextInput. See TOKENS.md."
+  status=1
+fi
+
 exit $status
