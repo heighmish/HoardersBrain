@@ -73,7 +73,7 @@ name: Capture visual evidence across the core journey
 - tapOn:
     id: container-edit-action-2
 - extendedWaitUntil:
-    visible: "Does the storage have a fixed weight?"
+    visible: "Fixed weight"
     timeout: 30000
 - takeScreenshot: 08-container-edit.png
 - tapOn:

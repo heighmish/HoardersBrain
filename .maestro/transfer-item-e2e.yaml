@@ -103,6 +103,6 @@ name: Transfer an item between characters end to end
 - tapOn: "QA Second"
 
 - extendedWaitUntil:
-    visible: ".*On Person.*"
+    visible: ".*Equipped.*"
     timeout: 30000
 - assertVisible: "Healing Potion"

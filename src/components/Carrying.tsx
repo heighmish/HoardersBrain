@@ -124,7 +124,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
           variant="caption"
           style={{ color: theme.colors.text, fontVariant: ["tabular-nums"] }}
         >
-          Carrying: {totalCarriedWeight}/{character.data.max_encumbrance} lb
+          Carrying: {totalCarriedWeight}/{character.data.max_encumbrance}
         </ThemedText>
       </View>
       <AntDesign name="right" color={theme.colors.textMuted} />

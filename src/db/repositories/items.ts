@@ -7,7 +7,7 @@ import {
   ledgerTable,
   storageLocationsTable,
 } from "@/db/schema";
-import { findActiveStorageById, ON_PERSON_NAME } from "./containers";
+import { findActiveStorageById, DEFAULT_CONTAINER_NAME } from "./containers";
 import { and, eq, isNull } from "drizzle-orm";
 
 type RepositoryTransaction = Parameters<
@@ -68,7 +68,7 @@ const findOrCreateCarryingStorageInTransaction = (
     .insert(storageLocationsTable)
     .values({
       character_id: characterId,
-      name: ON_PERSON_NAME,
+      name: DEFAULT_CONTAINER_NAME,
       description: null,
       weight: 0,
       is_fixed_weight: false,

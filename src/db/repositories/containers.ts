@@ -2,7 +2,7 @@ import type { AppDatabase } from "@/db/DatabaseProvider";
 import { Storage, storageLocationsTable } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 
-export const ON_PERSON_NAME = "On Person";
+export const DEFAULT_CONTAINER_NAME = "Equipped";
 
 export type StorageInput = Omit<
   Storage,

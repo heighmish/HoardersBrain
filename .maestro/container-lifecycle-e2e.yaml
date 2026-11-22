@@ -60,7 +60,7 @@ name: Create, edit, and delete a container end to end
 - tapOn:
     id: container-edit-action-2
 - extendedWaitUntil:
-    visible: "Does the storage have a fixed weight?"
+    visible: "Fixed weight"
     timeout: 30000
 - tapOn:
     id: storage-name-input

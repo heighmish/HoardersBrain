@@ -1,5 +1,5 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
-import { ON_PERSON_NAME } from "@/db/repositories/containers";
+import { DEFAULT_CONTAINER_NAME } from "@/db/repositories/containers";
 import {
   charactersTable,
   itemsTable,
@@ -106,7 +106,7 @@ export const loadSampleData = async (
       .values([
         {
           character_id: characterId,
-          name: ON_PERSON_NAME,
+          name: DEFAULT_CONTAINER_NAME,
           description: null,
           weight: 0,
           is_fixed_weight: false,
@@ -143,7 +143,7 @@ export const loadSampleData = async (
         SAMPLE_ITEMS.map((item) => ({
           character_id: characterId,
           storage_location_id: containerId(
-            item.container === "carrying" ? ON_PERSON_NAME : SAMPLE_POUCH_NAME,
+            item.container === "carrying" ? DEFAULT_CONTAINER_NAME : SAMPLE_POUCH_NAME,
           ),
           name: item.name,
           item_type: item.item_type,
