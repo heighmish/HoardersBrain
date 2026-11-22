@@ -1,6 +1,7 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
 import { Character, charactersTable, storageLocationsTable } from "@/db/schema";
-import { ON_PERSON_NAME } from "./containers";
+import { DEFAULT_CONTAINER_NAME } from "./containers";
+import { seedDefaultTagsInTransaction } from "./tags";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 export const findActiveCharacterById = async (
@@ -28,7 +29,7 @@ export const createCharacterWithDefaultContainer = async (
     tx.insert(storageLocationsTable)
       .values({
         character_id: created.character_id,
-        name: ON_PERSON_NAME,
+        name: DEFAULT_CONTAINER_NAME,
         description: null,
         weight: 0,
         is_fixed_weight: false,
@@ -37,6 +38,8 @@ export const createCharacterWithDefaultContainer = async (
         properties: null,
       })
       .run();
+
+    seedDefaultTagsInTransaction(tx, created.character_id);
 
     return { id: created.character_id, name: created.name };
   });

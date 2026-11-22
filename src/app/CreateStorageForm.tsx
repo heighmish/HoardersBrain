@@ -15,7 +15,6 @@ import {
 } from "@/db/repositories";
 import type { Storage } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { useCharacter } from "@/hooks/useCharacter";
 import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
@@ -29,7 +28,6 @@ import {
   ScrollView,
   Switch,
   View,
-  ViewStyle,
 } from "react-native";
 
 const returnToInventory = () =>
@@ -43,7 +41,7 @@ const CreateStorageForm = () => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AppHeader
-        title={editingId === null ? "Create new storage" : "Edit storage"}
+        title={editingId === null ? "New container" : "Edit container"}
       />
       {editingId === null ? (
         <StorageForm initialStorage={null} />
@@ -99,12 +97,6 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
     keepBusyOnSuccess: true,
   });
 
-  const characterId = initialStorage?.character_id ?? character.id;
-  const characterQuery = useCharacter(characterId);
-  const showWeight =
-    characterQuery.status !== "ready" ||
-    characterQuery.data.weight_tracking !== false;
-
   const [storageInput, setStorageInput] = useState<StorageInput>({
     name: initialStorage?.name ?? "",
     description: initialStorage?.description ?? null,
@@ -124,15 +116,15 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   };
 
   const submit = () => {
-    if (storageInput.name === "") {
+    const trimmedName = storageInput.name.trim();
+    if (trimmedName.length === 0) {
       return;
     }
 
     const values = {
       ...storageInput,
-      weight: showWeight
-        ? Math.max(0, parseFloat(weightText) || 0)
-        : (initialStorage?.weight ?? 0),
+      name: trimmedName,
+      weight: Math.max(0, parseFloat(weightText) || 0),
     };
 
     run(async () => {
@@ -146,16 +138,20 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         );
       }
       router.back();
-    }, "Failed to save storage.");
+    }, "Failed to save container.");
   };
 
-  const switchRowStyle = (pressed: boolean): ViewStyle => ({
-    flexDirection: "row",
-    gap: theme.spacing.md,
-    alignItems: "center",
-    paddingVertical: theme.spacing.xs,
-    opacity: pressed ? 0.7 : 1,
-  });
+  const sectionLabel = (label: string) => (
+    <ThemedText
+      variant="caption"
+      style={{
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+      }}
+    >
+      {label}
+    </ThemedText>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -167,72 +163,98 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: theme.spacing.md,
-          gap: theme.spacing.sm,
+          gap: theme.spacing.md,
         }}
       >
-        <Input
-          placeholder="Name"
-          value={storageInput.name}
-          testID="storage-name-input"
-          onChangeText={(text) =>
-            setStorageInput((prev) => ({ ...prev, name: text }))
-          }
-        />
-        <Input
-          placeholder="Description"
-          value={storageInput.description ?? ""}
-          testID="storage-description-input"
-          onChangeText={(text) =>
-            setStorageInput((prev) => ({ ...prev, description: text }))
-          }
-        />
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Name")}
+          <Input
+            placeholder="Name"
+            value={storageInput.name}
+            testID="storage-name-input"
+            onChangeText={(text) =>
+              setStorageInput((prev) => ({ ...prev, name: text }))
+            }
+          />
+        </View>
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Weight")}
+          <NumericInput
+            value={weightText}
+            testID="storage-weight-input"
+            onChangeText={setWeightText}
+            buttonDecrement={() => adjustWeight(-0.5)}
+            buttonIncrement={() => adjustWeight(0.5)}
+          />
+        </View>
 
         <View
           style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: theme.spacing.xs,
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            overflow: "hidden",
           }}
         >
-          {RarityArray.map((rarity) => (
-            <Pressable
-              onPress={() =>
+          <Pressable
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: theme.spacing.md,
+              padding: theme.spacing.md,
+              opacity: pressed ? 0.7 : 1,
+            })}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: storageInput.carrying }}
+            onPress={() =>
+              setStorageInput((prev) => ({
+                ...prev,
+                carrying: !prev.carrying,
+              }))
+            }
+          >
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <ThemedText variant="body">Carrying</ThemedText>
+              <ThemedText variant="caption">
+                Counts toward encumbrance
+              </ThemedText>
+            </View>
+            <Switch
+              value={storageInput.carrying}
+              onValueChange={(value) =>
                 setStorageInput((prev) => ({
                   ...prev,
-                  rarity: rarity,
+                  carrying: value,
                 }))
               }
-              key={`create-storage-rarity-${rarity}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: storageInput.rarity === rarity }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              testID={`storage-rarity-${rarity}`}
-            >
-              <Badge
-                text={rarity}
-                color={rarityColors[rarity]}
-                filled={storageInput.rarity === rarity}
-              />
-            </Pressable>
-          ))}
-        </View>
-
-        {showWeight ? (
-          <>
-            <ThemedText variant="headline">Weight?</ThemedText>
-            <NumericInput
-              value={weightText}
-              testID="storage-weight-input"
-              onChangeText={setWeightText}
-              buttonDecrement={() => adjustWeight(-0.5)}
-              buttonIncrement={() => adjustWeight(0.5)}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.accent,
+              }}
+              testID="carrying-toggle"
             />
-          </>
-        ) : null}
+          </Pressable>
 
-        {showWeight ? (
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.colors.border,
+            }}
+          />
+
           <Pressable
-            style={({ pressed }) => switchRowStyle(pressed)}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: theme.spacing.md,
+              padding: theme.spacing.md,
+              opacity: pressed ? 0.7 : 1,
+            })}
             accessibilityRole="switch"
             accessibilityState={{ checked: storageInput.is_fixed_weight }}
             onPress={() =>
@@ -242,9 +264,12 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
               }))
             }
           >
-            <ThemedText variant="body">
-              Does the storage have a fixed weight?
-            </ThemedText>
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <ThemedText variant="body">Fixed weight</ThemedText>
+              <ThemedText variant="caption">
+                Ignores contents (e.g. Bag of Holding)
+              </ThemedText>
+            </View>
             <Switch
               value={storageInput.is_fixed_weight}
               onValueChange={(value) =>
@@ -260,35 +285,52 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
               testID="fixed-weight-toggle"
             />
           </Pressable>
-        ) : null}
+        </View>
 
-        <Pressable
-          style={({ pressed }) => switchRowStyle(pressed)}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: storageInput.carrying }}
-          onPress={() =>
-            setStorageInput((prev) => ({
-              ...prev,
-              carrying: !prev.carrying,
-            }))
-          }
-        >
-          <ThemedText variant="body">Are you carrying the storage?</ThemedText>
-          <Switch
-            value={storageInput.carrying}
-            onValueChange={(value) =>
-              setStorageInput((prev) => ({
-                ...prev,
-                carrying: value,
-              }))
-            }
-            trackColor={{
-              false: theme.colors.border,
-              true: theme.colors.accent,
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Rarity")}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: theme.spacing.xs,
             }}
-            testID="carrying-toggle"
+          >
+            {RarityArray.map((rarity) => (
+              <Pressable
+                onPress={() =>
+                  setStorageInput((prev) => ({
+                    ...prev,
+                    rarity: rarity,
+                  }))
+                }
+                key={`create-storage-rarity-${rarity}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: storageInput.rarity === rarity }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                testID={`storage-rarity-${rarity}`}
+              >
+                <Badge
+                  text={rarity}
+                  color={rarityColors[rarity]}
+                  filled={storageInput.rarity === rarity}
+                />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Description")}
+          <Input
+            placeholder="Description"
+            value={storageInput.description ?? ""}
+            testID="storage-description-input"
+            onChangeText={(text) =>
+              setStorageInput((prev) => ({ ...prev, description: text }))
+            }
           />
-        </Pressable>
+        </View>
 
         {error !== null && (
           <ThemedText variant="caption" style={{ color: theme.colors.error }}>
@@ -301,7 +343,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           onPress={submit}
           testID={isEditing ? "save-storage-button" : "create-storage-button"}
           loading={submitting}
-          disabled={submitting || storageInput.name === ""}
+          disabled={submitting || storageInput.name.trim().length === 0}
           fullWidth
         />
       </ScrollView>

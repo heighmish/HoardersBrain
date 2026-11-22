@@ -4,10 +4,19 @@ import {
   charactersTable,
   Item,
   itemsTable,
+  itemTagsTable,
   ledgerTable,
   storageLocationsTable,
 } from "@/db/schema";
-import { findActiveStorageById, ON_PERSON_NAME } from "./containers";
+import { findActiveStorageById, DEFAULT_CONTAINER_NAME } from "./containers";
+import {
+  remapItemTagsInTransaction,
+  setItemTagsInTransaction,
+} from "./tags";
+import {
+  CoinDenomination,
+  deductFromPurse,
+} from "@/utils/currency";
 import { and, eq, isNull } from "drizzle-orm";
 
 type RepositoryTransaction = Parameters<
@@ -21,6 +30,8 @@ export type ItemDetails = {
   weight: number;
   rarity: Rarity;
   quantity: number;
+  value: number | null;
+  value_currency: CoinDenomination | null;
   properties: unknown;
 };
 
@@ -34,6 +45,8 @@ export type ItemCreateInput = {
   rarity?: Rarity;
   properties?: unknown;
   quantity?: number;
+  value?: number | null;
+  value_currency?: CoinDenomination | null;
 };
 
 const loadItemByIdInTransaction = (
@@ -68,7 +81,7 @@ const findOrCreateCarryingStorageInTransaction = (
     .insert(storageLocationsTable)
     .values({
       character_id: characterId,
-      name: ON_PERSON_NAME,
+      name: DEFAULT_CONTAINER_NAME,
       description: null,
       weight: 0,
       is_fixed_weight: false,
@@ -80,17 +93,106 @@ const findOrCreateCarryingStorageInTransaction = (
     .get();
 };
 
+export type ItemAcquisition =
+  | { kind: "looted" | "found"; note?: string }
+  | {
+      kind: "bought";
+      amount: number;
+      denomination: CoinDenomination;
+      deductFromPurse: boolean;
+      note?: string;
+    };
+
+const formatLedgerAcquisition = (
+  name: string,
+  quantity: number,
+  acquisition: ItemAcquisition,
+  deducted: boolean,
+): string => {
+  const qtyLabel = `${name} x${quantity}`;
+  const note = acquisition.note?.trim();
+  const noteSuffix = note && note.length > 0 ? ` — ${note}` : "";
+
+  if (acquisition.kind !== "bought") {
+    const label = acquisition.kind === "looted" ? "Looted" : "Found";
+    return `${label} ${qtyLabel}${noteSuffix}`;
+  }
+
+  const costPart =
+    acquisition.amount > 0
+      ? `${acquisition.amount} ${acquisition.denomination}`
+      : "0 gp";
+  if (acquisition.amount > 0 && !deducted) {
+    return `Bought ${qtyLabel} (${costPart}, not deducted${noteSuffix})`;
+  }
+  return `Bought ${qtyLabel} for ${costPart}${noteSuffix}`;
+};
+
 export const createItem = async (
   db: AppDatabase,
   values: ItemCreateInput,
-): Promise<Item> => {
-  const inserted = await db.insert(itemsTable).values(values).returning();
-  const item = inserted[0];
-  if (item === undefined) {
-    throw new Error("Item insert failed");
-  }
-  return item;
-};
+  tagIds?: readonly number[],
+  acquisition?: ItemAcquisition,
+): Promise<Item> =>
+  db.transaction((tx) => {
+    const created = tx.insert(itemsTable).values(values).returning().get();
+    if (tagIds !== undefined && tagIds.length > 0) {
+      setItemTagsInTransaction(tx, created.item_id, tagIds);
+    }
+
+    if (acquisition !== undefined) {
+      let deducted = false;
+      if (
+        acquisition.kind === "bought" &&
+        acquisition.deductFromPurse &&
+        acquisition.amount > 0
+      ) {
+        const character = tx
+          .select()
+          .from(charactersTable)
+          .where(
+            and(
+              eq(charactersTable.character_id, values.character_id),
+              isNull(charactersTable.deleted_at),
+            ),
+          )
+          .get();
+        if (character !== undefined) {
+          const result = deductFromPurse(
+            {
+              platinum: character.platinum,
+              gold: character.gold,
+              silver: character.silver,
+              copper: character.copper,
+            },
+            acquisition.amount,
+            acquisition.denomination,
+          );
+          if (result.status !== "insufficient") {
+            tx.update(charactersTable)
+              .set(result.nextPurse)
+              .where(eq(charactersTable.character_id, values.character_id))
+              .run();
+            deducted = true;
+          }
+        }
+      }
+
+      tx.insert(ledgerTable)
+        .values({
+          character_id: values.character_id,
+          message: formatLedgerAcquisition(
+            created.name,
+            created.quantity,
+            acquisition,
+            deducted,
+          ),
+        })
+        .run();
+    }
+
+    return created;
+  });
 
 export const loadItemById = async (
   db: AppDatabase,
@@ -104,11 +206,17 @@ export const updateItemDetails = async (
   db: AppDatabase,
   itemId: number,
   details: ItemDetails,
+  tagIds?: readonly number[],
 ): Promise<void> => {
-  await db
-    .update(itemsTable)
-    .set(details)
-    .where(eq(itemsTable.item_id, itemId));
+  db.transaction((tx) => {
+    tx.update(itemsTable)
+      .set(details)
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
+    if (tagIds !== undefined) {
+      setItemTagsInTransaction(tx, itemId, tagIds);
+    }
+  });
 };
 
 export const deleteItemRow = async (
@@ -175,7 +283,8 @@ export const splitItemStack = async (
     if (destination.storage_location_id === item.storage_location_id) {
       throw new Error("Destination container is the current container");
     }
-    tx.insert(itemsTable)
+    const splitItem = tx
+      .insert(itemsTable)
       .values({
         storage_location_id: destinationStorageId,
         character_id: item.character_id,
@@ -186,8 +295,20 @@ export const splitItemStack = async (
         rarity: item.rarity,
         properties: item.properties,
         quantity: amount,
+        value: item.value,
+        value_currency: item.value_currency,
       })
-      .run();
+      .returning()
+      .get();
+    const existingTagIds = tx
+      .select({ tag_id: itemTagsTable.tag_id })
+      .from(itemTagsTable)
+      .where(eq(itemTagsTable.item_id, itemId))
+      .all()
+      .map((row) => row.tag_id);
+    if (existingTagIds.length > 0) {
+      setItemTagsInTransaction(tx, splitItem.item_id, existingTagIds);
+    }
     tx.update(itemsTable)
       .set({ quantity: item.quantity - amount })
       .where(eq(itemsTable.item_id, itemId))
@@ -267,6 +388,7 @@ export const transferItemToCharacter = async (
       })
       .where(eq(itemsTable.item_id, itemId))
       .run();
+    remapItemTagsInTransaction(tx, itemId, targetCharacterId);
     tx.insert(ledgerTable)
       .values([
         {

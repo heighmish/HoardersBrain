@@ -1,9 +1,15 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
-import { ON_PERSON_NAME } from "@/db/repositories/containers";
+import { DEFAULT_CONTAINER_NAME } from "@/db/repositories/containers";
+import {
+  clearEnsuredTagsCache,
+  seedDefaultTagsInTransaction,
+  setItemTagsInTransaction,
+} from "@/db/repositories/tags";
 import {
   charactersTable,
   itemsTable,
   storageLocationsTable,
+  tagsTable,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -16,6 +22,7 @@ type SampleItem = {
   weight: number;
   quantity: number;
   container: "carrying" | "pouch";
+  tags: readonly string[];
 };
 
 // Placeholder weights, not rules data: enough for the weight column and
@@ -27,6 +34,7 @@ const SAMPLE_ITEMS: SampleItem[] = [
     weight: 20,
     quantity: 1,
     container: "carrying",
+    tags: ["Armor"],
   },
   {
     name: "Greatsword",
@@ -34,6 +42,7 @@ const SAMPLE_ITEMS: SampleItem[] = [
     weight: 6,
     quantity: 1,
     container: "carrying",
+    tags: ["Weapon"],
   },
   {
     name: "Potion of Cure Light Wounds",
@@ -41,6 +50,7 @@ const SAMPLE_ITEMS: SampleItem[] = [
     weight: 0.5,
     quantity: 2,
     container: "pouch",
+    tags: ["Potion", "Magic"],
   },
   {
     name: "Scroll of Flaming Hands",
@@ -48,6 +58,7 @@ const SAMPLE_ITEMS: SampleItem[] = [
     weight: 0.1,
     quantity: 1,
     container: "pouch",
+    tags: ["Scroll", "Magic"],
   },
 ];
 
@@ -86,6 +97,11 @@ export const loadSampleData = async (
         .set({ deleted_at: new Date() })
         .where(eq(storageLocationsTable.character_id, existing.character_id))
         .run();
+      tx.update(tagsTable)
+        .set({ deleted_at: new Date() })
+        .where(eq(tagsTable.character_id, existing.character_id))
+        .run();
+      clearEnsuredTagsCache(existing.character_id);
       tx.update(charactersTable)
         .set({
           deleted_at: null,
@@ -106,7 +122,7 @@ export const loadSampleData = async (
       .values([
         {
           character_id: characterId,
-          name: ON_PERSON_NAME,
+          name: DEFAULT_CONTAINER_NAME,
           description: null,
           weight: 0,
           is_fixed_weight: false,
@@ -138,20 +154,34 @@ export const loadSampleData = async (
       return found.storage_location_id;
     };
 
-    tx.insert(itemsTable)
-      .values(
-        SAMPLE_ITEMS.map((item) => ({
+    const tagIdByName = seedDefaultTagsInTransaction(tx, characterId);
+
+    for (const item of SAMPLE_ITEMS) {
+      const createdItem = tx
+        .insert(itemsTable)
+        .values({
           character_id: characterId,
           storage_location_id: containerId(
-            item.container === "carrying" ? ON_PERSON_NAME : SAMPLE_POUCH_NAME,
+            item.container === "carrying"
+              ? DEFAULT_CONTAINER_NAME
+              : SAMPLE_POUCH_NAME,
           ),
           name: item.name,
           item_type: item.item_type,
           weight: item.weight,
           quantity: item.quantity,
-        })),
-      )
-      .run();
+        })
+        .returning()
+        .get();
+
+      const tagIds = item.tags.flatMap((name) => {
+        const id = tagIdByName.get(name);
+        return id === undefined ? [] : [id];
+      });
+      if (tagIds.length > 0) {
+        setItemTagsInTransaction(tx, createdItem.item_id, tagIds);
+      }
+    }
 
     return existing === undefined ? "created" : "reloaded";
   });

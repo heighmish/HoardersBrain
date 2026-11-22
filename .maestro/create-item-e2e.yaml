@@ -39,7 +39,7 @@ name: Create an item end to end
     id: fab-add-item
 
 - extendedWaitUntil:
-    visible: "Weight?"
+    visible: "Weight"
     timeout: 30000
 - tapOn:
     text: "Bag of Holding"
@@ -49,9 +49,13 @@ name: Create an item end to end
 - tapOn:
     text: "Description"
 - inputText: "50 feet of hemp"
+- tapOn:
+    id: item-rarity-row
 - tapOn: "Uncommon"
 - tapOn:
-    id: numeric-increment
+    id: item-weight-input
+- eraseText
+- inputText: "1.5"
 - tapOn: "Create"
 
 - assertVisible: "Rope of Climbing"

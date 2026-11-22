@@ -91,6 +91,9 @@ const Settings = () => {
           "settings-encumbrance-row",
           () => router.push("/CharacterSettings"),
         )}
+        {linkRow("tag", "Tags", "settings-tags-row", () =>
+          router.push("/TagSettings"),
+        )}
       </View>
 
       <View style={{ gap: theme.spacing.xs }}>
