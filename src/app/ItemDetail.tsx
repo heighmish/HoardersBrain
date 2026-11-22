@@ -11,9 +11,9 @@ import {
 } from "@/db/repositories/items";
 import { Item } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
-import { useCharacter } from "@/hooks/useCharacter";
 import { useContainer } from "@/hooks/useContainer";
 import { useItem } from "@/hooks/useItem";
+import { useItemTags } from "@/hooks/useItemTags";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
@@ -93,13 +93,10 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
   const storage = useContainer(item.storage_location_id);
-  const character = useCharacter(item.character_id);
+  const itemTags = useItemTags(item.character_id, item.item_id);
   const removeOneAction = useAsyncAction();
   const deleteAction = useAsyncAction({ keepBusyOnSuccess: true });
   const busy = removeOneAction.submitting || deleteAction.submitting;
-  const showWeight =
-    character.status !== "ready" ||
-    character.data.weight_tracking !== false;
 
   const handleRemoveOne = () => {
     if (busy) {
@@ -131,7 +128,23 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
     >
       <View style={{ gap: theme.spacing.sm }}>
         <ThemedText variant="title">{item.name}</ThemedText>
-        <Badge text={item.rarity} color={rarityColors[item.rarity]} />
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: theme.spacing.xs,
+          }}
+        >
+          <Badge text={item.rarity} color={rarityColors[item.rarity]} />
+          {itemTags.map((tag) => (
+            <Badge
+              key={tag.tag_id}
+              text={tag.name}
+              color={theme.colors.accent}
+              filled={false}
+            />
+          ))}
+        </View>
       </View>
       <View
         style={{
@@ -149,11 +162,17 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
             {item.quantity}
           </ThemedText>
         </View>
-        {showWeight ? (
+        <View style={statRow}>
+          <ThemedText variant="subhead">Weight</ThemedText>
+          <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
+            {item.weight}
+          </ThemedText>
+        </View>
+        {item.value !== null ? (
           <View style={statRow}>
-            <ThemedText variant="subhead">Weight</ThemedText>
+            <ThemedText variant="subhead">Value</ThemedText>
             <ThemedText variant="body" style={{ fontVariant: ["tabular-nums"] }}>
-              {item.weight}
+              {item.value} {item.value_currency ?? "gp"}
             </ThemedText>
           </View>
         ) : null}

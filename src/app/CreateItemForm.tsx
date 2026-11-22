@@ -8,13 +8,26 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { RarityArray } from "@/constants/databaseTypes";
 import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { createItem, updateItemDetails } from "@/db/repositories/items";
-import { Item, storageLocationsTable } from "@/db/schema";
+import {
+  createItem,
+  createTag,
+  ItemAcquisition,
+  updateItemDetails,
+} from "@/db/repositories";
+import { Item, itemTagsTable, storageLocationsTable } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacter } from "@/hooks/useCharacter";
+import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { useItem } from "@/hooks/useItem";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
+import {
+  COIN_DENOMINATIONS,
+  CoinDenomination,
+  deductFromPurse,
+  formatPurseSummary,
+  purseToCopper,
+} from "@/utils/currency";
 import { parseIdParam } from "@/utils/params";
 import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -25,13 +38,31 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   View,
 } from "react-native";
 
 type ItemInput = Omit<
   Item,
-  "item_id" | "storage_location_id" | "weight" | "deleted_at"
+  | "item_id"
+  | "storage_location_id"
+  | "weight"
+  | "value"
+  | "value_currency"
+  | "deleted_at"
 >;
+
+type AcquisitionChoice = "none" | "looted" | "found" | "bought";
+
+const ACQUISITION_OPTIONS: readonly {
+  id: AcquisitionChoice;
+  label: string;
+}[] = [
+  { id: "none", label: "None" },
+  { id: "looted", label: "Looted" },
+  { id: "found", label: "Found" },
+  { id: "bought", label: "Bought" },
+];
 
 const goBack = () => {
   if (router.canGoBack()) {
@@ -54,7 +85,7 @@ const CreateItemForm = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <AppHeader title={editItemId !== null ? "Edit item" : "Create new item"} />
+      <AppHeader title={editItemId !== null ? "Edit item" : "New item"} />
       {editItemId !== null ? (
         <EditItemFormLoader itemId={editItemId} />
       ) : (
@@ -72,6 +103,9 @@ const CreateItemForm = () => {
           }}
           initialWeightText="1"
           initialQuantityText="1"
+          initialValueText=""
+          initialValueCurrency="gp"
+          initialTagIds={[]}
         />
       )}
     </View>
@@ -79,7 +113,14 @@ const CreateItemForm = () => {
 };
 
 const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
+  const db = useDatabase();
   const item = useItem(itemId);
+  const tagLinks = useLiveQuery(
+    db.query.itemTagsTable.findMany({
+      where: eq(itemTagsTable.item_id, itemId),
+    }),
+    [itemId],
+  );
 
   if (item.status === "error") {
     return (
@@ -92,7 +133,7 @@ const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
     );
   }
 
-  if (item.status === "loading") {
+  if (item.status === "loading" || tagLinks.updatedAt === undefined) {
     return <ScreenState kind="loading" />;
   }
 
@@ -125,6 +166,9 @@ const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
       }}
       initialWeightText={String(loaded.weight)}
       initialQuantityText={String(loaded.quantity)}
+      initialValueText={loaded.value === null ? "" : String(loaded.value)}
+      initialValueCurrency={loaded.value_currency ?? "gp"}
+      initialTagIds={tagLinks.data.map((link) => link.tag_id)}
     />
   );
 };
@@ -136,29 +180,68 @@ type ItemFormBodyProps = (
   initialInput: ItemInput;
   initialWeightText: string;
   initialQuantityText: string;
+  initialValueText: string;
+  initialValueCurrency: CoinDenomination;
+  initialTagIds: number[];
 };
 
 const ItemFormBody = (props: ItemFormBodyProps) => {
   const theme = useTheme();
   const db = useDatabase();
 
-  const { mode, initialInput, initialWeightText, initialQuantityText } =
-    props;
+  const {
+    mode,
+    initialInput,
+    initialWeightText,
+    initialQuantityText,
+    initialValueText,
+    initialValueCurrency,
+    initialTagIds,
+  } = props;
 
   const [itemInput, setItemInput] = useState<ItemInput>(initialInput);
   const [weightText, setWeightText] = useState(initialWeightText);
   const [quantityText, setQuantityText] = useState(initialQuantityText);
+  const [valueText, setValueText] = useState(initialValueText);
+  const [valueCurrency, setValueCurrency] =
+    useState<CoinDenomination>(initialValueCurrency);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>(initialTagIds);
+  const [customTagText, setCustomTagText] = useState("");
   const [selectedContainerId, setSelectedContainerId] = useState<number | null>(
     props.mode === "create" && props.storageId !== undefined
       ? props.storageId
       : null,
   );
-  const action = useAsyncAction({ keepBusyOnSuccess: true });
 
-  const character = useCharacter(initialInput.character_id);
-  const showWeight =
-    character.status !== "ready" ||
-    character.data.weight_tracking !== false;
+  // Acquisition state (create mode only)
+  const [acquisitionKind, setAcquisitionKind] =
+    useState<AcquisitionChoice>("none");
+  const [paidAmountText, setPaidAmountText] = useState("");
+  const [paidCurrency, setPaidCurrency] = useState<CoinDenomination>("gp");
+  const [shouldDeductFromPurse, setShouldDeductFromPurse] = useState(true);
+  const [acquisitionNote, setAcquisitionNote] = useState("");
+
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
+  const tagAction = useAsyncAction();
+
+  const characterQuery = useCharacter(initialInput.character_id);
+  const allTags = useCharacterTags(initialInput.character_id);
+  const activeTagIds = new Set(allTags.map((tag) => tag.tag_id));
+  const visibleSelectedTagIds = selectedTagIds.filter((id) =>
+    activeTagIds.has(id),
+  );
+
+  const topLevelTags = allTags.filter(
+    (tag) => tag.parent_tag_id === null || !activeTagIds.has(tag.parent_tag_id),
+  );
+  const childrenByParent = new Map<number, typeof allTags>();
+  for (const tag of allTags) {
+    if (tag.parent_tag_id !== null && activeTagIds.has(tag.parent_tag_id)) {
+      const existing = childrenByParent.get(tag.parent_tag_id) ?? [];
+      existing.push(tag);
+      childrenByParent.set(tag.parent_tag_id, existing);
+    }
+  }
 
   const containers = useLiveQuery(
     db.query.storageLocationsTable.findMany({
@@ -178,34 +261,124 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
       : null;
   const containerId = selectedContainerId ?? defaultContainerId;
 
+  const purse =
+    characterQuery.status === "ready"
+      ? {
+          platinum: characterQuery.data.platinum,
+          gold: characterQuery.data.gold,
+          silver: characterQuery.data.silver,
+          copper: characterQuery.data.copper,
+        }
+      : null;
+
+  const parsedPaidAmount = Math.max(0, parseFloat(paidAmountText) || 0);
+  const deductionPreview =
+    acquisitionKind === "bought" &&
+    shouldDeductFromPurse &&
+    parsedPaidAmount > 0 &&
+    purse !== null
+      ? deductFromPurse(purse, parsedPaidAmount, paidCurrency)
+      : null;
+
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
 
+  const adjustQuantity = (delta: number) => {
+    const current = Number.parseInt(quantityText, 10) || 1;
+    setQuantityText(String(Math.max(1, current + delta)));
+  };
+
+  const toggleTag = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
+    );
+  };
+
+  const handleAddCustomTag = () => {
+    const trimmed = customTagText.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+
+    void tagAction.run(async () => {
+      const created = await createTag(db, {
+        character_id: initialInput.character_id,
+        name: trimmed,
+      });
+      setSelectedTagIds((prev) =>
+        prev.includes(created.tag_id) ? prev : [...prev, created.tag_id],
+      );
+      setCustomTagText("");
+    }, "Failed to create tag.");
+  };
+
+  const parseOptionalValue = (): {
+    value: number | null;
+    value_currency: CoinDenomination | null;
+  } => {
+    const trimmed = valueText.trim();
+    if (trimmed.length === 0) {
+      return { value: null, value_currency: null };
+    }
+    const parsed = parseFloat(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return { value: null, value_currency: null };
+    }
+    return { value: parsed, value_currency: valueCurrency };
+  };
+
+  const buildAcquisition = (): ItemAcquisition | undefined => {
+    if (acquisitionKind === "none") {
+      return undefined;
+    }
+    const trimmedNote = acquisitionNote.trim();
+    const note = trimmedNote.length > 0 ? trimmedNote : undefined;
+    if (acquisitionKind === "looted" || acquisitionKind === "found") {
+      return { kind: acquisitionKind, note };
+    }
+    return {
+      kind: "bought",
+      amount: parsedPaidAmount,
+      denomination: paidCurrency,
+      deductFromPurse: shouldDeductFromPurse && parsedPaidAmount > 0,
+      note,
+    };
+  };
+
   const submit = () => {
-    if (itemInput.name === "") {
+    const trimmedName = itemInput.name.trim();
+    if (trimmedName.length === 0) {
       return;
     }
 
     const quantity = Math.max(1, Number.parseInt(quantityText, 10) || 1);
-    const weight = showWeight
-      ? Math.max(0, parseFloat(weightText) || 0)
-      : mode === "create"
-        ? 0
-        : Math.max(0, parseFloat(initialWeightText) || 0);
+    const weight = Math.max(0, parseFloat(weightText) || 0);
+    const { value, value_currency } = parseOptionalValue();
 
     if (props.mode === "create") {
       if (containerId === null) {
         return;
       }
       const targetContainerId = containerId;
+      const acquisition = buildAcquisition();
       void action.run(async () => {
-        await createItem(db, {
-          ...itemInput,
-          quantity,
-          storage_location_id: targetContainerId,
-          weight,
-        });
+        await createItem(
+          db,
+          {
+            ...itemInput,
+            name: trimmedName,
+            quantity,
+            storage_location_id: targetContainerId,
+            weight,
+            value,
+            value_currency,
+          },
+          visibleSelectedTagIds,
+          acquisition,
+        );
         router.back();
       }, "Failed to save item.");
       return;
@@ -213,18 +386,37 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
 
     const editItemId = props.itemId;
     void action.run(async () => {
-      await updateItemDetails(db, editItemId, {
-        name: itemInput.name,
-        description: itemInput.description,
-        item_type: itemInput.item_type,
-        weight,
-        rarity: itemInput.rarity,
-        quantity,
-        properties: itemInput.properties,
-      });
+      await updateItemDetails(
+        db,
+        editItemId,
+        {
+          name: trimmedName,
+          description: itemInput.description,
+          item_type: itemInput.item_type,
+          weight,
+          rarity: itemInput.rarity,
+          quantity,
+          value,
+          value_currency,
+          properties: itemInput.properties,
+        },
+        visibleSelectedTagIds,
+      );
       router.back();
     }, "Failed to save item.");
   };
+
+  const sectionLabel = (label: string) => (
+    <ThemedText
+      variant="caption"
+      style={{
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+      }}
+    >
+      {label}
+    </ThemedText>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -236,53 +428,24 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: theme.spacing.md,
-          gap: theme.spacing.sm,
+          gap: theme.spacing.md,
         }}
       >
-        <Input
-          placeholder="Name"
-          value={itemInput.name}
-          testID="item-name-input"
-          onChangeText={(text) =>
-            setItemInput((prev) => ({ ...prev, name: text }))
-          }
-        />
-        <Input
-          placeholder="Description"
-          value={itemInput.description ?? ""}
-          testID="item-description-input"
-          onChangeText={(text) =>
-            setItemInput((prev) => ({ ...prev, description: text }))
-          }
-        />
-
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.xs }}>
-          {RarityArray.map((rarity) => (
-            <Pressable
-              onPress={() =>
-                setItemInput((prev) => ({
-                  ...prev,
-                  rarity: rarity,
-                }))
-              }
-              key={`create-item-rarity-${rarity}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: itemInput.rarity === rarity }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              testID={`item-rarity-${rarity}`}
-            >
-              <Badge
-                text={rarity}
-                color={rarityColors[rarity]}
-                filled={itemInput.rarity === rarity}
-              />
-            </Pressable>
-          ))}
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Name")}
+          <Input
+            placeholder="Name"
+            value={itemInput.name}
+            testID="item-name-input"
+            onChangeText={(text) =>
+              setItemInput((prev) => ({ ...prev, name: text }))
+            }
+          />
         </View>
 
         {props.mode === "create" ? (
           <View style={{ gap: theme.spacing.xs }}>
-            <ThemedText variant="subhead">Container</ThemedText>
+            {sectionLabel("Container")}
             {containerList.length === 0 ? (
               <ThemedText variant="subhead">No containers</ThemedText>
             ) : (
@@ -295,7 +458,9 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
               >
                 {containerList.map((container) => (
                   <Pressable
-                    onPress={() => setSelectedContainerId(container.storage_location_id)}
+                    onPress={() =>
+                      setSelectedContainerId(container.storage_location_id)
+                    }
                     key={`item-container-${container.storage_location_id}`}
                     accessibilityRole="button"
                     accessibilityState={{
@@ -320,17 +485,20 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           </View>
         ) : null}
 
-        <ThemedText variant="headline">Quantity?</ThemedText>
-        <Input
-          keyboardType="number-pad"
-          value={quantityText}
-          testID="item-quantity-input"
-          onChangeText={setQuantityText}
-        />
-
-        {showWeight ? (
-          <>
-            <ThemedText variant="headline">Weight?</ThemedText>
+        <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
+          <View style={{ flex: 1, gap: theme.spacing.xs }}>
+            {sectionLabel("Quantity")}
+            <NumericInput
+              keyboardType="number-pad"
+              value={quantityText}
+              testID="item-quantity-input"
+              onChangeText={setQuantityText}
+              buttonDecrement={() => adjustQuantity(-1)}
+              buttonIncrement={() => adjustQuantity(1)}
+            />
+          </View>
+          <View style={{ flex: 1, gap: theme.spacing.xs }}>
+            {sectionLabel("Weight")}
             <NumericInput
               value={weightText}
               testID="item-weight-input"
@@ -338,7 +506,447 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
               buttonDecrement={() => adjustWeight(-0.5)}
               buttonIncrement={() => adjustWeight(0.5)}
             />
-          </>
+          </View>
+        </View>
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Value (optional)")}
+          <View
+            style={{
+              flexDirection: "row",
+              gap: theme.spacing.sm,
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Input
+                keyboardType="decimal-pad"
+                placeholder="Value"
+                value={valueText}
+                onChangeText={setValueText}
+                testID="item-value-input"
+              />
+            </View>
+            <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
+              {COIN_DENOMINATIONS.map((unit) => (
+                <Pressable
+                  key={`item-value-unit-${unit}`}
+                  onPress={() => setValueCurrency(unit)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: valueCurrency === unit }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  testID={`item-value-unit-${unit}`}
+                >
+                  <Badge
+                    text={unit}
+                    color={
+                      valueCurrency === unit
+                        ? theme.colors.accent
+                        : theme.colors.border
+                    }
+                    filled={valueCurrency === unit}
+                  />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        <View style={{ gap: theme.spacing.sm }}>
+          {sectionLabel("Tags")}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: theme.spacing.xs,
+            }}
+          >
+            {topLevelTags.map((tag) => {
+              const children = childrenByParent.get(tag.tag_id) ?? [];
+              const childSelected = children.some((child) =>
+                visibleSelectedTagIds.includes(child.tag_id),
+              );
+              const selected = visibleSelectedTagIds.includes(tag.tag_id);
+
+              return (
+                <Pressable
+                  key={`item-tag-${tag.tag_id}`}
+                  onPress={() => toggleTag(tag.tag_id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: selected || childSelected }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  testID={`item-tag-${tag.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Badge
+                    text={tag.name}
+                    color={
+                      selected || childSelected
+                        ? theme.colors.accent
+                        : theme.colors.border
+                    }
+                    filled={selected}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {topLevelTags.map((parent) => {
+            const children = childrenByParent.get(parent.tag_id);
+            if (children === undefined || children.length === 0) {
+              return null;
+            }
+            return (
+              <View
+                key={`item-subtags-${parent.tag_id}`}
+                style={{ gap: theme.spacing.xs }}
+              >
+                <ThemedText variant="caption">{parent.name} types</ThemedText>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: theme.spacing.xs,
+                  }}
+                >
+                  {children.map((child) => {
+                    const selected = visibleSelectedTagIds.includes(
+                      child.tag_id,
+                    );
+                    return (
+                      <Pressable
+                        key={`item-tag-${child.tag_id}`}
+                        onPress={() => toggleTag(child.tag_id)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                        })}
+                        testID={`item-tag-${child.name.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <Badge
+                          text={child.name}
+                          color={
+                            selected
+                              ? theme.colors.accent
+                              : theme.colors.border
+                          }
+                          filled={selected}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })}
+
+          <View
+            style={{
+              flexDirection: "row",
+              gap: theme.spacing.sm,
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Input
+                placeholder="Add custom tag"
+                value={customTagText}
+                onChangeText={setCustomTagText}
+                onSubmitEditing={handleAddCustomTag}
+                returnKeyType="done"
+                testID="item-custom-tag-input"
+              />
+            </View>
+            <Button
+              title="Add"
+              variant="secondary"
+              size="sm"
+              onPress={handleAddCustomTag}
+              loading={tagAction.submitting}
+              disabled={
+                tagAction.submitting || customTagText.trim().length === 0
+              }
+              testID="item-add-custom-tag-button"
+            />
+          </View>
+          {tagAction.error !== null ? (
+            <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+              {tagAction.error}
+            </ThemedText>
+          ) : null}
+        </View>
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Rarity")}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: theme.spacing.xs,
+            }}
+          >
+            {RarityArray.map((rarity) => (
+              <Pressable
+                onPress={() =>
+                  setItemInput((prev) => ({
+                    ...prev,
+                    rarity: rarity,
+                  }))
+                }
+                key={`create-item-rarity-${rarity}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: itemInput.rarity === rarity }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                testID={`item-rarity-${rarity}`}
+              >
+                <Badge
+                  text={rarity}
+                  color={rarityColors[rarity]}
+                  filled={itemInput.rarity === rarity}
+                />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Description")}
+          <Input
+            placeholder="Description"
+            value={itemInput.description ?? ""}
+            testID="item-description-input"
+            onChangeText={(text) =>
+              setItemInput((prev) => ({ ...prev, description: text }))
+            }
+          />
+        </View>
+
+        {props.mode === "create" ? (
+          <View style={{ gap: theme.spacing.sm }}>
+            {sectionLabel("Acquisition (optional)")}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: theme.spacing.xs,
+              }}
+            >
+              {ACQUISITION_OPTIONS.map((option) => (
+                <Pressable
+                  key={`acquisition-${option.id}`}
+                  onPress={() => {
+                    setAcquisitionKind(option.id);
+                    if (
+                      option.id === "bought" &&
+                      paidAmountText.trim().length === 0 &&
+                      valueText.trim().length > 0
+                    ) {
+                      setPaidAmountText(valueText.trim());
+                      setPaidCurrency(valueCurrency);
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: acquisitionKind === option.id,
+                  }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  testID={`item-acquisition-${option.id}`}
+                >
+                  <Badge
+                    text={option.label}
+                    color={
+                      acquisitionKind === option.id
+                        ? theme.colors.accent
+                        : theme.colors.border
+                    }
+                    filled={acquisitionKind === option.id}
+                  />
+                </Pressable>
+              ))}
+            </View>
+
+            {acquisitionKind === "bought" ? (
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                  borderRadius: theme.radius.md,
+                  borderCurve: "continuous",
+                  padding: theme.spacing.md,
+                  gap: theme.spacing.sm,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: theme.spacing.sm,
+                    alignItems: "center",
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Input
+                      keyboardType="decimal-pad"
+                      placeholder="Amount paid"
+                      value={paidAmountText}
+                      onChangeText={setPaidAmountText}
+                      testID="item-paid-amount-input"
+                    />
+                  </View>
+                  <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
+                    {COIN_DENOMINATIONS.map((unit) => (
+                      <Pressable
+                        key={`item-paid-unit-${unit}`}
+                        onPress={() => setPaidCurrency(unit)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: paidCurrency === unit }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                        })}
+                        testID={`item-paid-unit-${unit}`}
+                      >
+                        <Badge
+                          text={unit}
+                          color={
+                            paidCurrency === unit
+                              ? theme.colors.accent
+                              : theme.colors.border
+                          }
+                          filled={paidCurrency === unit}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {purse !== null ? (
+                  <ThemedText
+                    variant="caption"
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    Purse: {formatPurseSummary(purse)}
+                  </ThemedText>
+                ) : null}
+
+                {parsedPaidAmount > 0 ? (
+                  <Pressable
+                    style={({ pressed }) => ({
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: theme.spacing.md,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: shouldDeductFromPurse }}
+                    onPress={() => setShouldDeductFromPurse((prev) => !prev)}
+                  >
+                    <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                      <ThemedText variant="body">Deduct from purse</ThemedText>
+                      <ThemedText variant="caption">
+                        Turn off if another party member paid
+                      </ThemedText>
+                    </View>
+                    <Switch
+                      value={shouldDeductFromPurse}
+                      onValueChange={setShouldDeductFromPurse}
+                      trackColor={{
+                        false: theme.colors.border,
+                        true: theme.colors.accent,
+                      }}
+                      testID="item-deduct-purse-toggle"
+                    />
+                  </Pressable>
+                ) : null}
+
+                {deductionPreview?.status === "change" ? (
+                  <ThemedText
+                    variant="caption"
+                    style={{ fontVariant: ["tabular-nums"] }}
+                  >
+                    After purchase: {formatPurseSummary(deductionPreview.nextPurse)}
+                  </ThemedText>
+                ) : null}
+
+                {deductionPreview?.status === "insufficient" ? (
+                  <View style={{ gap: theme.spacing.xs }}>
+                    <ThemedText
+                      variant="caption"
+                      style={{ color: theme.colors.warning }}
+                    >
+                      Exceeds purse ({deductionPreview.availableGold.toFixed(2)}{" "}
+                      gp available) — purse will not be changed
+                    </ThemedText>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: theme.spacing.xs,
+                      }}
+                    >
+                      <Pressable
+                        onPress={() => setShouldDeductFromPurse(false)}
+                        accessibilityRole="button"
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                        })}
+                        testID="item-dont-deduct-button"
+                      >
+                        <Badge
+                          text="Don't deduct"
+                          color={theme.colors.accent}
+                          filled={false}
+                        />
+                      </Pressable>
+                      {purse !== null && purseToCopper(purse) > 0 ? (
+                        <Pressable
+                          onPress={() => {
+                            const totalGp = purseToCopper(purse) / 100;
+                            setPaidAmountText(String(totalGp));
+                            setPaidCurrency("gp");
+                          }}
+                          accessibilityRole="button"
+                          style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                          })}
+                          testID="item-use-available-button"
+                        >
+                          <Badge
+                            text="Use available"
+                            color={theme.colors.accent}
+                            filled={false}
+                          />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </View>
+                ) : null}
+
+                <Input
+                  placeholder="Note (optional)"
+                  value={acquisitionNote}
+                  onChangeText={setAcquisitionNote}
+                  testID="item-acquisition-note-input"
+                />
+              </View>
+            ) : null}
+
+            {acquisitionKind === "looted" || acquisitionKind === "found" ? (
+              <Input
+                placeholder="Source (optional)"
+                value={acquisitionNote}
+                onChangeText={setAcquisitionNote}
+                testID="item-acquisition-note-input"
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        {action.error !== null ? (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {action.error}
+          </ThemedText>
         ) : null}
 
         <Button
@@ -346,16 +954,13 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           onPress={submit}
           loading={action.submitting}
           disabled={
-            action.submitting || (mode === "create" && containerId === null)
+            action.submitting ||
+            itemInput.name.trim().length === 0 ||
+            (mode === "create" && containerId === null)
           }
           testID={mode === "edit" ? "save-item-button" : "create-item-button"}
           fullWidth
         />
-        {action.error !== null ? (
-          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
-            {action.error}
-          </ThemedText>
-        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

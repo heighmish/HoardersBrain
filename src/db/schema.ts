@@ -1,12 +1,16 @@
 import { Rarity } from "@/constants/databaseTypes";
+import type { CoinDenomination } from "@/utils/currency";
 import { sql } from "drizzle-orm/sql";
 import {
+  AnySQLiteColumn,
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   real,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 export const charactersTable = sqliteTable("characters", {
@@ -40,6 +44,8 @@ export const itemsTable = sqliteTable(
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),
     quantity: integer("quantity").default(1).notNull(),
+    value: real("value"),
+    value_currency: text("value_currency").$type<CoinDenomination>(),
     deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (table) => [
@@ -48,6 +54,10 @@ export const itemsTable = sqliteTable(
       table.storage_location_id,
     ),
     check("items_weight_nonnegative", sql`${table.weight} >= 0`),
+    check(
+      "items_value_nonnegative",
+      sql`${table.value} IS NULL OR ${table.value} >= 0`,
+    ),
     check(
       "items_rarity_valid",
       sql`${table.rarity} IN ('Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary')`,
@@ -94,14 +104,64 @@ export const ledgerTable = sqliteTable("ledger", {
   timestamp: text().default(sql`(CURRENT_TIMESTAMP)`),
 });
 
+export const tagsTable = sqliteTable(
+  "tags",
+  {
+    tag_id: integer("tag_id").primaryKey(),
+    character_id: integer("character_id")
+      .references(() => charactersTable.character_id)
+      .notNull(),
+    name: text("name").notNull(),
+    parent_tag_id: integer("parent_tag_id").references(
+      (): AnySQLiteColumn => tagsTable.tag_id,
+    ),
+    is_usable: integer("is_usable", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    sort_order: integer("sort_order").default(0).notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("idx_tags_char").on(table.character_id),
+    index("idx_tags_parent").on(table.parent_tag_id),
+    uniqueIndex("uq_tags_char_name_active")
+      .on(table.character_id, sql`lower(${table.name})`)
+      .where(sql`${table.deleted_at} IS NULL`),
+    check(
+      "tags_no_self_parent",
+      sql`${table.parent_tag_id} IS NULL OR ${table.parent_tag_id} != ${table.tag_id}`,
+    ),
+  ],
+);
+
+export const itemTagsTable = sqliteTable(
+  "item_tags",
+  {
+    item_id: integer("item_id")
+      .references(() => itemsTable.item_id)
+      .notNull(),
+    tag_id: integer("tag_id")
+      .references(() => tagsTable.tag_id)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.item_id, table.tag_id] }),
+    index("idx_item_tags_tag_item").on(table.tag_id, table.item_id),
+  ],
+);
+
 export type Character = typeof charactersTable.$inferSelect;
 export type Storage = typeof storageLocationsTable.$inferSelect;
 export type Item = typeof itemsTable.$inferSelect;
 export type Ledger = typeof ledgerTable.$inferSelect;
+export type Tag = typeof tagsTable.$inferSelect;
+export type ItemTag = typeof itemTagsTable.$inferSelect;
 
 export const schema = {
   charactersTable,
   itemsTable,
   storageLocationsTable,
   ledgerTable,
+  tagsTable,
+  itemTagsTable,
 };
