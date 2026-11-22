@@ -54,14 +54,7 @@ type ItemInput = Omit<
 
 type AcquisitionChoice = "none" | "looted" | "found" | "bought";
 
-type ExpandedSection =
-  | "container"
-  | "tags"
-  | "value"
-  | "acquisition"
-  | "rarity"
-  | "notes"
-  | null;
+type ExpandedSection = "value" | "acquisition" | "rarity" | null;
 
 const ACQUISITION_OPTIONS: readonly {
   id: AcquisitionChoice;
@@ -238,13 +231,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const visibleSelectedTagIds = selectedTagIds.filter((id) =>
     activeTagIds.has(id),
   );
-  const selectedTags = allTags.filter((tag) =>
-    visibleSelectedTagIds.includes(tag.tag_id),
-  );
-
-  const topLevelTags = allTags.filter(
-    (tag) => tag.parent_tag_id === null || !activeTagIds.has(tag.parent_tag_id),
-  );
   const childrenByParent = new Map<number, typeof allTags>();
   for (const tag of allTags) {
     if (tag.parent_tag_id !== null && activeTagIds.has(tag.parent_tag_id)) {
@@ -271,9 +257,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           ?.storage_location_id ?? null
       : null;
   const containerId = selectedContainerId ?? defaultContainerId;
-  const selectedContainer = containerList.find(
-    (entry) => entry.storage_location_id === containerId,
-  );
 
   const purse =
     characterQuery.status === "ready"
@@ -470,19 +453,11 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
     </Pressable>
   );
 
-  const tagsSummary =
-    selectedTags.length === 0
-      ? "None"
-      : selectedTags.map((tag) => tag.name).join(", ");
   const valueSummary =
     valueText.trim().length > 0 ? `${valueText.trim()} ${valueCurrency}` : "Add";
   const acquisitionSummary =
     ACQUISITION_OPTIONS.find((option) => option.id === acquisitionKind)
       ?.label ?? "None";
-  const notesSummary =
-    itemInput.description !== null && itemInput.description.trim().length > 0
-      ? itemInput.description.trim()
-      : "Add";
 
   return (
     <KeyboardAvoidingView
@@ -497,14 +472,24 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           gap: theme.spacing.md,
         }}
       >
-        <Input
-          placeholder="Name"
-          value={itemInput.name}
-          testID="item-name-input"
-          onChangeText={(text) =>
-            setItemInput((prev) => ({ ...prev, name: text }))
-          }
-        />
+        <View style={{ gap: theme.spacing.sm }}>
+          <Input
+            placeholder="Name"
+            value={itemInput.name}
+            testID="item-name-input"
+            onChangeText={(text) =>
+              setItemInput((prev) => ({ ...prev, name: text }))
+            }
+          />
+          <Input
+            placeholder="Description"
+            value={itemInput.description ?? ""}
+            testID="item-description-input"
+            onChangeText={(text) =>
+              setItemInput((prev) => ({ ...prev, description: text }))
+            }
+          />
+        </View>
 
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
           <View style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -530,90 +515,12 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           </View>
         </View>
 
-        <View
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
-            borderWidth: 1,
-            borderRadius: theme.radius.md,
-            borderCurve: "continuous",
-            overflow: "hidden",
-          }}
-        >
-          {props.mode === "create" ? (
-            <>
-              {disclosureRow(
-                "Container",
-                selectedContainer?.name ?? "None",
-                selectedContainer !== undefined,
-                expanded === "container",
-                () => toggleSection("container"),
-                "item-container-row",
-              )}
-              {expanded === "container" ? (
-                <View
-                  style={{
-                    paddingHorizontal: theme.spacing.md,
-                    paddingBottom: theme.spacing.md,
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: theme.spacing.xs,
-                  }}
-                >
-                  {containerList.length === 0 ? (
-                    <ThemedText variant="subhead">No containers</ThemedText>
-                  ) : (
-                    containerList.map((container) => (
-                      <Pressable
-                        onPress={() => {
-                          setSelectedContainerId(container.storage_location_id);
-                          setExpanded(null);
-                        }}
-                        key={`item-container-${container.storage_location_id}`}
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          selected:
-                            containerId === container.storage_location_id,
-                        }}
-                        style={({ pressed }) => ({
-                          opacity: pressed ? 0.7 : 1,
-                        })}
-                        testID={`item-container-${container.storage_location_id}`}
-                      >
-                        <Badge
-                          text={container.name}
-                          color={
-                            containerId === container.storage_location_id
-                              ? theme.colors.accent
-                              : theme.colors.border
-                          }
-                          filled={containerId === container.storage_location_id}
-                        />
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              ) : null}
-              {divider}
-            </>
-          ) : null}
-
-          {disclosureRow(
-            "Tags",
-            tagsSummary,
-            selectedTags.length > 0,
-            expanded === "tags",
-            () => toggleSection("tags"),
-            "item-tags-row",
-          )}
-          {expanded === "tags" ? (
-            <View
-              style={{
-                paddingHorizontal: theme.spacing.md,
-                paddingBottom: theme.spacing.md,
-                gap: theme.spacing.sm,
-              }}
-            >
+        {props.mode === "create" ? (
+          <View style={{ gap: theme.spacing.xs }}>
+            {sectionLabel("Container")}
+            {containerList.length === 0 ? (
+              <ThemedText variant="subhead">No containers</ThemedText>
+            ) : (
               <View
                 style={{
                   flexDirection: "row",
@@ -621,91 +528,73 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
                   gap: theme.spacing.xs,
                 }}
               >
-                {topLevelTags.map((tag) => {
-                  const children = childrenByParent.get(tag.tag_id) ?? [];
-                  const childSelected = children.some((child) =>
-                    visibleSelectedTagIds.includes(child.tag_id),
-                  );
-                  const selected = visibleSelectedTagIds.includes(tag.tag_id);
-
-                  return (
-                    <Pressable
-                      key={`item-tag-${tag.tag_id}`}
-                      onPress={() => toggleTag(tag.tag_id)}
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        selected: selected || childSelected,
-                      }}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                      testID={`item-tag-${tag.name.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <Badge
-                        text={tag.name}
-                        color={
-                          selected || childSelected
-                            ? theme.colors.accent
-                            : theme.colors.border
-                        }
-                        filled={selected}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {topLevelTags.map((parent) => {
-                const children = childrenByParent.get(parent.tag_id);
-                if (children === undefined || children.length === 0) {
-                  return null;
-                }
-                return (
-                  <View
-                    key={`item-subtags-${parent.tag_id}`}
-                    style={{ gap: theme.spacing.xs }}
+                {containerList.map((container) => (
+                  <Pressable
+                    onPress={() =>
+                      setSelectedContainerId(container.storage_location_id)
+                    }
+                    key={`item-container-${container.storage_location_id}`}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: containerId === container.storage_location_id,
+                    }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    testID={`item-container-${container.storage_location_id}`}
                   >
-                    <ThemedText variant="caption">
-                      {parent.name} types
-                    </ThemedText>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: theme.spacing.xs,
-                      }}
-                    >
-                      {children.map((child) => {
-                        const selected = visibleSelectedTagIds.includes(
-                          child.tag_id,
-                        );
-                        return (
-                          <Pressable
-                            key={`item-tag-${child.tag_id}`}
-                            onPress={() => toggleTag(child.tag_id)}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected }}
-                            style={({ pressed }) => ({
-                              opacity: pressed ? 0.7 : 1,
-                            })}
-                            testID={`item-tag-${child.name.toLowerCase().replace(/\s+/g, "-")}`}
-                          >
-                            <Badge
-                              text={child.name}
-                              color={
-                                selected
-                                  ? theme.colors.accent
-                                  : theme.colors.border
-                              }
-                              filled={selected}
-                            />
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
+                    <Badge
+                      text={container.name}
+                      color={
+                        containerId === container.storage_location_id
+                          ? theme.colors.accent
+                          : theme.colors.border
+                      }
+                      filled={containerId === container.storage_location_id}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        ) : null}
+
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Tags")}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: theme.spacing.xs,
+            }}
+          >
+            {allTags.map((tag) => {
+              const children = childrenByParent.get(tag.tag_id) ?? [];
+              const childSelected = children.some((child) =>
+                visibleSelectedTagIds.includes(child.tag_id),
+              );
+              const selected = visibleSelectedTagIds.includes(tag.tag_id);
+
+              return (
+                <Pressable
+                  key={`item-tag-${tag.tag_id}`}
+                  onPress={() => toggleTag(tag.tag_id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: selected || childSelected }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  testID={`item-tag-${tag.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Badge
+                    text={tag.name}
+                    color={
+                      selected || childSelected
+                        ? theme.colors.accent
+                        : theme.colors.border
+                    }
+                    filled={selected}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         <View style={{ gap: theme.spacing.xs }}>
@@ -1057,33 +946,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
                     />
                   </Pressable>
                 ))}
-              </View>
-            ) : null}
-
-            {divider}
-            {disclosureRow(
-              "Notes",
-              notesSummary,
-              notesSummary !== "Add",
-              expanded === "notes",
-              () => toggleSection("notes"),
-              "item-notes-row",
-            )}
-            {expanded === "notes" ? (
-              <View
-                style={{
-                  paddingHorizontal: theme.spacing.md,
-                  paddingBottom: theme.spacing.md,
-                }}
-              >
-                <Input
-                  placeholder="Description"
-                  value={itemInput.description ?? ""}
-                  testID="item-description-input"
-                  onChangeText={(text) =>
-                    setItemInput((prev) => ({ ...prev, description: text }))
-                  }
-                />
               </View>
             ) : null}
           </View>

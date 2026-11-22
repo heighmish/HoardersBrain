@@ -42,8 +42,6 @@ name: Item lifecycle end to end
     visible: "Weight"
     timeout: 30000
 - tapOn:
-    id: item-container-row
-- tapOn:
     text: "Bag of Holding"
 - tapOn:
     text: "Name"
