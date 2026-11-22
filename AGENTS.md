@@ -104,7 +104,7 @@ the code.
 ### Data & SQLite rules
 - **Repository boundary**: All writes (`insert`, `update`, soft-delete) live in `src/db/repositories/`. Screens call repository functions instead of writing inline Drizzle mutations.
 - **Single DB type**: Type all repository and helper functions with `AppDatabase` from `@/db/DatabaseProvider`. Never import `better-sqlite3` or invent parallel DB interfaces.
-- **Transactions for multi-step writes**: Any mutation touching more than one row or table (e.g., creating a character + default container, splitting a stack, transferring an item + writing ledger rows, reloading sample data) must run inside a SQLite transaction (`db.transactionSync(...)` or `db.transaction(...)`). Single-statement writes do not need a transaction.
+- **Transactions for multi-step writes**: Any mutation touching more than one row or table (e.g., creating a character + default container, splitting a stack, transferring an item + writing ledger rows, reloading sample data) must run inside `db.transaction((tx) => { ... })` using synchronous `.run()`/`.get()`/`.all()` (the `drizzle-orm/expo-sqlite` driver executes transactions synchronously and has no `transactionSync`). Single-statement writes do not need a transaction.
 - **Soft-delete invariant**: Every active query must filter `isNull(table.deleted_at)`. Reuse repository predicates/helpers so soft-deleted characters, containers, or items never leak into lists, pickers, or totals.
 - **Encumbrance rule**: Only non-deleted containers with `carrying = true` (and non-deleted items inside them when `is_fixed_weight = false`) count toward carried weight.
 
