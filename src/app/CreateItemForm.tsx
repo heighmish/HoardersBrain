@@ -3,14 +3,20 @@ import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { updateItemDetails } from "@/components/itemOperations";
-import { rarityColors } from "@/constants/rarity";
 import { RarityArray } from "@/constants/databaseTypes";
+import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { useTheme } from "@/stores/ThemeContext";
-import { Item, itemsTable, charactersTable } from "@/db/schema";
+import { createItem, updateItemDetails } from "@/db/repositories/items";
+import { Item, storageLocationsTable } from "@/db/schema";
+import { useActiveItem } from "@/hooks/useActiveItem";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
+import { useTheme } from "@/stores/ThemeContext";
+import { parseIdParam } from "@/utils/params";
+import { and, eq, isNull } from "drizzle-orm";
+import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -20,22 +26,11 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { storageLocationsTable } from "@/db/schema";
 
 type ItemInput = Omit<
   Item,
   "item_id" | "storage_location_id" | "weight" | "deleted_at"
 >;
-
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
 
 const CreateItemForm = () => {
   const character = useSelectedCharacter();
@@ -71,47 +66,18 @@ const CreateItemForm = () => {
 };
 
 const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useActiveItem(itemId);
 
   if (item.error) {
-    return (
-      <View
-        style={{
-          padding: theme.spacing.md,
-          backgroundColor: theme.colors.background,
-          flex: 1,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Failed to load item" />;
   }
 
   if (item.updatedAt === undefined) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
-    );
+    return <ScreenState kind="loading" />;
   }
 
   if (item.data === undefined) {
-    return (
-      <View
-        style={{
-          padding: theme.spacing.md,
-          backgroundColor: theme.colors.background,
-          flex: 1,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Item not found" />;
   }
 
   const loaded = item.data;
@@ -155,19 +121,14 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const [itemInput, setItemInput] = useState<ItemInput>(initialInput);
   const [weightText, setWeightText] = useState(initialWeightText);
   const [quantityText, setQuantityText] = useState(initialQuantityText);
-  const [containerId, setContainerId] = useState<number | null>(
+  const [selectedContainerId, setSelectedContainerId] = useState<number | null>(
     props.mode === "create" && props.storageId !== undefined
       ? props.storageId
       : null,
   );
+  const [submitting, setSubmitting] = useState(false);
 
-  const character = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, initialInput.character_id),
-      columns: { weight_tracking: true },
-    }),
-    [initialInput.character_id],
-  );
+  const character = useCharacterRow(initialInput.character_id);
   const showWeight = character.data?.weight_tracking !== false;
 
   const containers = useLiveQuery(
@@ -180,24 +141,20 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
     [initialInput.character_id],
   );
   const containerList = containers.data ?? [];
-  if (
-    props.mode === "create" &&
-    containerId === null &&
-    containerList.length > 0
-  ) {
-    const carrying = containerList.find((entry) => entry.carrying);
-    const fallback = carrying ?? containerList[0];
-    if (fallback !== undefined) {
-      setContainerId(fallback.storage_location_id);
-    }
-  }
+
+  const defaultContainerId =
+    mode === "create" && selectedContainerId === null
+      ? (containerList.find((entry) => entry.carrying) ?? containerList[0])
+          ?.storage_location_id ?? null
+      : null;
+  const containerId = selectedContainerId ?? defaultContainerId;
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
 
   const submit = async () => {
-    if (itemInput.name === "") {
+    if (submitting || itemInput.name === "") {
       return;
     }
 
@@ -208,28 +165,35 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         ? 0
         : Math.max(0, parseFloat(initialWeightText) || 0);
 
-    if (props.mode === "create") {
-      if (containerId === null) {
-        return;
+    setSubmitting(true);
+    try {
+      if (props.mode === "create") {
+        if (containerId === null) {
+          return;
+        }
+        await createItem(db, {
+          ...itemInput,
+          quantity,
+          storage_location_id: containerId,
+          weight,
+        });
+      } else {
+        await updateItemDetails(db, props.itemId, {
+          name: itemInput.name,
+          description: itemInput.description,
+          item_type: itemInput.item_type,
+          weight,
+          rarity: itemInput.rarity,
+          quantity,
+          properties: itemInput.properties,
+        });
       }
-      await db.insert(itemsTable).values({
-        ...itemInput,
-        quantity,
-        storage_location_id: containerId,
-        weight,
-      });
-    } else {
-      await updateItemDetails(db, props.itemId, {
-        name: itemInput.name,
-        description: itemInput.description,
-        item_type: itemInput.item_type,
-        weight,
-        rarity: itemInput.rarity,
-        quantity,
-        properties: itemInput.properties,
-      });
+      router.back();
+    } catch (error) {
+      console.error("Failed to save item", error);
+    } finally {
+      setSubmitting(false);
     }
-    router.back();
   };
 
   return (
@@ -275,6 +239,7 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
               key={`create-item-rarity-${rarity}`}
               accessibilityRole="button"
               accessibilityState={{ selected: itemInput.rarity === rarity }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               testID={`item-rarity-${rarity}`}
             >
               <Badge
@@ -301,12 +266,13 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
               >
                 {containerList.map((container) => (
                   <Pressable
-                    onPress={() => setContainerId(container.storage_location_id)}
+                    onPress={() => setSelectedContainerId(container.storage_location_id)}
                     key={`item-container-${container.storage_location_id}`}
                     accessibilityRole="button"
                     accessibilityState={{
                       selected: containerId === container.storage_location_id,
                     }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     testID={`item-container-${container.storage_location_id}`}
                   >
                     <Badge
@@ -349,7 +315,8 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         <Button
           title={mode === "edit" ? "Save" : "Create"}
           onPress={submit}
-          disabled={mode === "create" && containerId === null}
+          loading={submitting}
+          disabled={submitting || (mode === "create" && containerId === null)}
           testID={mode === "edit" ? "save-item-button" : "create-item-button"}
           fullWidth
         />

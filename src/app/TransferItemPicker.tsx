@@ -1,84 +1,42 @@
 import AppHeader from "@/components/Basic/AppHeader";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { transferItemToCharacter } from "@/components/itemOperations";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { charactersTable, Item, itemsTable } from "@/db/schema";
+import { transferItemToCharacter } from "@/db/repositories/items";
+import { charactersTable, Item } from "@/db/schema";
+import { useActiveItem } from "@/hooks/useActiveItem";
 import { useTheme } from "@/stores/ThemeContext";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { parseIdParam } from "@/utils/params";
+import { and, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
-
 const TransferItemPicker = () => {
-  const theme = useTheme();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
   if (parsedItemId === null) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Item not found" />;
   }
 
   return <TransferItemPickerContent itemId={parsedItemId} />;
 };
 
 const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useActiveItem(itemId);
 
   if (item.error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Failed to load item" />;
   }
 
   if (item.updatedAt === undefined) {
-    return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
+    return <ScreenState kind="loading" />;
   }
 
   if (item.data === undefined) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Item not found" />;
   }
 
   return <TransferItemPickerBody item={item.data} />;
@@ -87,6 +45,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
 const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const [submitting, setSubmitting] = useState(false);
   const characters = useLiveQuery(
     db.query.charactersTable.findMany({
       where: and(
@@ -96,6 +55,21 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
     }),
     [item.character_id],
   );
+
+  const transferToCharacter = async (targetCharacterId: number) => {
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await transferItemToCharacter(db, item.item_id, targetCharacterId);
+      router.dismiss(2);
+    } catch (error) {
+      console.error("Failed to transfer item", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View
@@ -122,14 +96,9 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
               key={character.character_id}
               accessibilityRole="button"
               accessibilityLabel={character.name}
-              onPress={async () => {
-                await transferItemToCharacter(
-                  db,
-                  item.item_id,
-                  character.character_id,
-                );
-                router.dismiss(2);
-              }}
+              accessibilityState={{ disabled: submitting }}
+              disabled={submitting}
+              onPress={() => transferToCharacter(character.character_id)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
                 backgroundColor: theme.colors.surface,

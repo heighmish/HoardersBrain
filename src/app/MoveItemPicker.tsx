@@ -1,86 +1,44 @@
 import AppHeader from "@/components/Basic/AppHeader";
 import Badge from "@/components/Basic/Badge";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { moveItemToContainer } from "@/components/itemOperations";
 import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
+import { moveItemToContainer } from "@/db/repositories/items";
+import { Item, storageLocationsTable } from "@/db/schema";
+import { useActiveItem } from "@/hooks/useActiveItem";
 import { useTheme } from "@/stores/ThemeContext";
+import { parseIdParam } from "@/utils/params";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
-
 const MoveItemPicker = () => {
-  const theme = useTheme();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
   if (parsedItemId === null) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Item not found" />;
   }
 
   return <MoveItemPickerContent itemId={parsedItemId} />;
 };
 
 const MoveItemPickerContent = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useActiveItem(itemId);
 
   if (item.error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Failed to load item" />;
   }
 
   if (item.updatedAt === undefined) {
-    return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
+    return <ScreenState kind="loading" />;
   }
 
   if (item.data === undefined) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Item not found" />;
   }
 
   return <MoveItemPickerBody item={item.data} />;
@@ -89,6 +47,7 @@ const MoveItemPickerContent = ({ itemId }: { itemId: number }) => {
 const MoveItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const [submitting, setSubmitting] = useState(false);
   const containers = useLiveQuery(
     db.query.storageLocationsTable.findMany({
       where: and(
@@ -99,6 +58,21 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
     }),
     [item.character_id, item.storage_location_id],
   );
+
+  const moveToContainer = async (destinationStorageId: number) => {
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await moveItemToContainer(db, item.item_id, destinationStorageId);
+      router.back();
+    } catch (error) {
+      console.error("Failed to move item", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View
@@ -125,14 +99,9 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
               key={container.storage_location_id}
               accessibilityRole="button"
               accessibilityLabel={container.name}
-              onPress={async () => {
-                await moveItemToContainer(
-                  db,
-                  item.item_id,
-                  container.storage_location_id,
-                );
-                router.back();
-              }}
+              accessibilityState={{ disabled: submitting }}
+              disabled={submitting}
+              onPress={() => moveToContainer(container.storage_location_id)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
                 backgroundColor: theme.colors.surface,

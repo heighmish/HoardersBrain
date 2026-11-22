@@ -1,44 +1,37 @@
 import AppHeader from "@/components/Basic/AppHeader";
 import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
+import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
+import { rarityColors } from "@/constants/rarity";
+import { useDatabase } from "@/db/DatabaseProvider";
 import {
   deleteItemRow,
   removeOneFromStack,
-} from "@/components/itemOperations";
-import { rarityColors } from "@/constants/rarity";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { Item, itemsTable, storageLocationsTable, charactersTable } from "@/db/schema";
+} from "@/db/repositories/items";
+import { Item } from "@/db/schema";
+import { useActiveItem } from "@/hooks/useActiveItem";
+import { useActiveStorage } from "@/hooks/useActiveStorage";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
 import { useTheme } from "@/stores/ThemeContext";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
-const parseIdParam = (raw: string | undefined): number | null => {
-  if (raw === undefined) {
-    return null;
-  }
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
-};
-
 const ItemDetail = () => {
-  const theme = useTheme();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
   if (parsedItemId === null) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-      </View>
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={() => router.back()}
+        actionTestID="item-not-found-back"
+      />
     );
   }
 
@@ -46,55 +39,25 @@ const ItemDetail = () => {
 };
 
 const ItemDetailContent = ({ itemId }: { itemId: number }) => {
-  const theme = useTheme();
-  const db = useDatabase();
-  const item = useLiveQuery(
-    db.query.itemsTable.findFirst({
-      where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-    }),
-    [itemId],
-  );
+  const item = useActiveItem(itemId);
 
   if (item.error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Failed to load item</ThemedText>
-      </View>
-    );
+    return <ScreenState kind="message" message="Failed to load item" />;
   }
 
   if (item.updatedAt === undefined) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }} />
-    );
+    return <ScreenState kind="loading" />;
   }
 
   if (item.data === undefined) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          padding: theme.spacing.md,
-          gap: theme.spacing.md,
-        }}
-      >
-        <ThemedText variant="body">Item not found</ThemedText>
-        <Button
-          title="Back"
-          variant="secondary"
-          onPress={() => {
-            router.back();
-          }}
-          testID="item-not-found-back"
-        />
-      </View>
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={() => router.back()}
+        actionTestID="item-not-found-back"
+      />
     );
   }
 
@@ -110,34 +73,38 @@ const statRow = {
 const ItemDetailBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const storage = useLiveQuery(
-    db.query.storageLocationsTable.findFirst({
-      where: and(
-        eq(
-          storageLocationsTable.storage_location_id,
-          item.storage_location_id,
-        ),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [item.storage_location_id],
-  );
-  const character = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, item.character_id),
-      columns: { weight_tracking: true },
-    }),
-    [item.character_id],
-  );
+  const storage = useActiveStorage(item.storage_location_id);
+  const character = useCharacterRow(item.character_id);
+  const [submitting, setSubmitting] = useState(false);
   const showWeight = character.data?.weight_tracking !== false;
 
   const handleRemoveOne = async () => {
-    await removeOneFromStack(db, item.item_id);
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await removeOneFromStack(db, item.item_id);
+    } catch (error) {
+      console.error("Failed to remove item", error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleRemoveAll = async () => {
-    await deleteItemRow(db, item.item_id);
-    router.back();
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await deleteItemRow(db, item.item_id);
+      router.back();
+    } catch (error) {
+      console.error("Failed to delete item", error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -254,6 +221,8 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
               testID="remove-one-button"
               variant="secondary"
               onPress={handleRemoveOne}
+              loading={submitting}
+              disabled={submitting}
               fullWidth
             />
             <Button
@@ -261,6 +230,8 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
               testID="remove-all-button"
               variant="secondary"
               onPress={handleRemoveAll}
+              loading={submitting}
+              disabled={submitting}
               fullWidth
             />
           </View>
@@ -270,6 +241,8 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
             testID="delete-item-button"
             variant="secondary"
             onPress={handleRemoveAll}
+            loading={submitting}
+            disabled={submitting}
             fullWidth
           />
         )}
