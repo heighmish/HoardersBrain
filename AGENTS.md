@@ -2,7 +2,7 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 ## Expo has changed — do not trust your training data
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo or React Native API:
 
 1. Read the major version of the `expo` package in `package.json`.
 2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
@@ -72,21 +72,11 @@ Before pushing or opening a PR, read back `git log <base>..HEAD --oneline`: ever
 
 ## Pre-commit review
 
-Before committing a body of work, run a cheap-model review pass on the diff of that body of work — `git diff main...HEAD`, whether or not the pieces are already committed — and judge its findings yourself:
+Before committing a body of work, run a read-only review pass on `git diff main...HEAD` (whether or not the pieces are already committed) and judge its findings yourself:
 
-- Model: `opencode/deepseek-v4.1-flash-free` (free), spawned read-only via the subagent tool with a strict brief — only overtly wrong things (bugs, crashes, broken testIDs, regressions); style nits and false alarms are worse than silence.
+- Focus strictly on overtly wrong things (bugs, crashes, broken testIDs, regressions); ignore style nits.
 - Verify each finding against the code before acting on it. The reviewer is a smoke alarm, not an authority.
 - Address the accurate findings, then commit. A clean pass commits as-is.
-
-## Official sources win
-
-These rules are adapted from official Expo guidance. When a rule here seems to
-conflict with the sources below, the official source wins — fix the rule, not
-the code.
-
-- Expo's canonical app `AGENTS.md`: https://github.com/expo/expo/blob/main/packages/create-expo/template/agent-files/AGENTS.md
-- Expo's own repo rules for agents: https://github.com/expo/expo/blob/main/AGENTS.md
-- Expo design-system skill: https://github.com/expo/skills/blob/main/plugins/expo/skills/expo-design-system/SKILL.md
 
 ## Architecture
 
@@ -100,15 +90,10 @@ the code.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
 
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `npx eas-cli@latest <command>`; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
 ## Rules
 
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
+- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
 - Read `TOKENS.md` before building or restyling UI — it is the design guide: the `useTheme` API, primitives, the copy ban, footguns, layout regression checks, and the verification rules.
 - Do not write user-facing copy. Functional labels and neutral placeholders only; taglines, flavor, and empty-state prose are owner-written or approved — use placeholder text and flag it in your report when unsure.
