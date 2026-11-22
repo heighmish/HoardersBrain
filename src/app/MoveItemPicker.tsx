@@ -29,10 +29,7 @@ const MoveItemPicker = () => {
   const parsedItemId = parseIdParam(itemId);
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      testID="move-picker-screen"
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AppHeader title="Move item" />
       {parsedItemId === null ? (
         <ScreenState
@@ -104,6 +101,7 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
 
   return (
     <View
+      testID="move-picker-screen"
       style={{
         padding: theme.spacing.md,
         gap: theme.spacing.md,

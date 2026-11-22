@@ -27,10 +27,7 @@ const TransferItemPicker = () => {
   const parsedItemId = parseIdParam(itemId);
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      testID="transfer-picker-screen"
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AppHeader title="Transfer item" />
       {parsedItemId === null ? (
         <ScreenState
@@ -101,6 +98,7 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
 
   return (
     <View
+      testID="transfer-picker-screen"
       style={{
         padding: theme.spacing.md,
         gap: theme.spacing.md,

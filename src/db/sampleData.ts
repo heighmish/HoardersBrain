@@ -60,12 +60,14 @@ export type SampleDataResult = "created" | "reloaded";
  */
 export const loadSampleData = async (
   db: AppDatabase,
-): Promise<SampleDataResult> => {
-  const existing = await db.query.charactersTable.findFirst({
-    where: eq(charactersTable.name, SAMPLE_CHARACTER_NAME),
-  });
+): Promise<SampleDataResult> =>
+  db.transaction((tx) => {
+    const existing = tx
+      .select()
+      .from(charactersTable)
+      .where(eq(charactersTable.name, SAMPLE_CHARACTER_NAME))
+      .get();
 
-  return db.transaction((tx) => {
     const characterId = (() => {
       if (existing === undefined) {
         const created = tx
@@ -153,4 +155,3 @@ export const loadSampleData = async (
 
     return existing === undefined ? "created" : "reloaded";
   });
-};

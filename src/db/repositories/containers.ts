@@ -55,29 +55,3 @@ export const softDeleteStorageContainer = async (
     .set({ deleted_at: new Date() })
     .where(eq(storageLocationsTable.storage_location_id, storageId));
 };
-
-export const findOrCreateCarryingStorage = async (
-  db: AppDatabase,
-  characterId: number,
-): Promise<Storage> => {
-  const existing = await db.query.storageLocationsTable.findFirst({
-    where: and(
-      eq(storageLocationsTable.character_id, characterId),
-      eq(storageLocationsTable.carrying, true),
-      isNull(storageLocationsTable.deleted_at),
-    ),
-  });
-  if (existing !== undefined) {
-    return existing;
-  }
-  return createStorageContainer(db, {
-    character_id: characterId,
-    name: ON_PERSON_NAME,
-    description: null,
-    weight: 0,
-    is_fixed_weight: false,
-    carrying: true,
-    rarity: "Common",
-    properties: null,
-  });
-};

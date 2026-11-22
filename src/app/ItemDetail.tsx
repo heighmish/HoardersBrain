@@ -33,10 +33,7 @@ const ItemDetail = () => {
   const parsedItemId = parseIdParam(itemId);
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      testID="item-detail-screen"
-    >
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AppHeader title="Item detail" />
       {parsedItemId === null ? (
         <ScreenState
@@ -99,17 +96,24 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
   const character = useCharacter(item.character_id);
   const removeOneAction = useAsyncAction();
   const deleteAction = useAsyncAction({ keepBusyOnSuccess: true });
+  const busy = removeOneAction.submitting || deleteAction.submitting;
   const showWeight =
     character.status !== "ready" ||
     character.data.weight_tracking !== false;
 
   const handleRemoveOne = () => {
+    if (busy) {
+      return;
+    }
     void removeOneAction.run(async () => {
       await removeOneFromStack(db, item.item_id);
     }, "Failed to delete item.");
   };
 
   const handleRemoveAll = () => {
+    if (busy) {
+      return;
+    }
     void deleteAction.run(async () => {
       await deleteItemRow(db, item.item_id);
       router.back();
@@ -118,6 +122,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
 
   return (
     <ScrollView
+      testID="item-detail-screen"
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: theme.spacing.md,
@@ -226,7 +231,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
             variant="secondary"
             onPress={handleRemoveOne}
             loading={removeOneAction.submitting}
-            disabled={removeOneAction.submitting}
+            disabled={busy}
             fullWidth
           />
           <Button
@@ -235,7 +240,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
             variant="secondary"
             onPress={handleRemoveAll}
             loading={deleteAction.submitting}
-            disabled={deleteAction.submitting}
+            disabled={busy}
             fullWidth
           />
         </View>

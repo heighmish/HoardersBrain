@@ -124,6 +124,7 @@ const ManageCharacters = () => {
                 variant="secondary"
                 testID="character-rename-cancel"
                 onPress={() => {
+                  renameAction.clearError();
                   setAction("none");
                 }}
                 disabled={submitting}
@@ -154,6 +155,7 @@ const ManageCharacters = () => {
               variant="secondary"
               testID="character-delete-cancel"
               onPress={() => {
+                deleteAction.clearError();
                 setAction("none");
               }}
               disabled={submitting}

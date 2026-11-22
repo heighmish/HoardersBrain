@@ -2,8 +2,8 @@ import Badge from "@/components/Basic/Badge";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
-import { itemsTable, storageLocationsTable } from "@/db/schema";
-import { and, eq, isNull, sum } from "drizzle-orm";
+import { itemsTable, Storage, storageLocationsTable } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
@@ -23,73 +23,60 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const db = useDatabase();
   const character = useCharacter(characterId);
 
+  // Separate single-table live queries: drizzle-orm/expo-sqlite only listens
+  // for changes on the primary table, so a joined query misses container edits.
   const items = useLiveQuery(
-    db
-      .select()
-      .from(itemsTable)
-      .leftJoin(
-        storageLocationsTable,
-        and(
-          eq(
-            itemsTable.storage_location_id,
-            storageLocationsTable.storage_location_id,
-          ),
-          isNull(storageLocationsTable.deleted_at),
-        ),
-      )
-      .where(
-        and(
-          eq(itemsTable.character_id, characterId),
-          isNull(itemsTable.deleted_at),
-        ),
+    db.query.itemsTable.findMany({
+      where: and(
+        eq(itemsTable.character_id, characterId),
+        isNull(itemsTable.deleted_at),
       ),
+    }),
     [characterId],
   );
 
-  const containerWeightQuery = useLiveQuery(
-    db
-      .select({
-        totalWeight: sum(storageLocationsTable.weight),
-      })
-      .from(storageLocationsTable)
-      .where(
-        and(
-          eq(storageLocationsTable.character_id, characterId),
-          eq(storageLocationsTable.carrying, true),
-          isNull(storageLocationsTable.deleted_at),
-        ),
+  const containers = useLiveQuery(
+    db.query.storageLocationsTable.findMany({
+      where: and(
+        eq(storageLocationsTable.character_id, characterId),
+        isNull(storageLocationsTable.deleted_at),
       ),
+    }),
     [characterId],
   );
 
-  const carriedRows: CarriedItemRow[] = items.data.flatMap((row) => {
-    const storage = row.storage_locations;
+  const containerById = new Map<number, Storage>(
+    containers.data.map((container) => [
+      container.storage_location_id,
+      container,
+    ]),
+  );
 
-    if (storage === null) {
+  const carriedRows: CarriedItemRow[] = items.data.flatMap((item) => {
+    const storage = containerById.get(item.storage_location_id);
+
+    if (storage === undefined) {
       return [];
     }
 
     return [
       {
-        itemWeight: row.items.weight,
-        itemQuantity: row.items.quantity,
+        itemWeight: item.weight,
+        itemQuantity: item.quantity,
         isFixedWeight: storage.is_fixed_weight,
         isCarrying: storage.carrying,
       },
     ];
   });
 
-  const containerWeight = Number(
-    containerWeightQuery.data[0]?.totalWeight ?? 0,
+  const containerWeight = containers.data.reduce(
+    (total, container) => (container.carrying ? total + container.weight : total),
+    0,
   );
   const totalCarriedWeight =
     calculateCarriedItemsWeight(carriedRows) + containerWeight;
 
-  if (
-    character.status === "error" ||
-    items.error ||
-    containerWeightQuery.error
-  ) {
+  if (character.status === "error" || items.error || containers.error) {
     return (
       <View>
         <ThemedText variant="body">
@@ -102,7 +89,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   if (
     character.status !== "ready" ||
     items.updatedAt === undefined ||
-    containerWeightQuery.updatedAt === undefined
+    containers.updatedAt === undefined
   ) {
     return null;
   }

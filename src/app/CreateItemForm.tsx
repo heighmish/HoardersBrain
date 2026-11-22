@@ -187,10 +187,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
       return;
     }
 
-    if (props.mode === "create" && containerId === null) {
-      return;
-    }
-
     const quantity = Math.max(1, Number.parseInt(quantityText, 10) || 1);
     const weight = showWeight
       ? Math.max(0, parseFloat(weightText) || 0)
@@ -198,28 +194,34 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         ? 0
         : Math.max(0, parseFloat(initialWeightText) || 0);
 
-    void action.run(async () => {
-      if (props.mode === "create") {
-        if (containerId === null) {
-          return;
-        }
+    if (props.mode === "create") {
+      if (containerId === null) {
+        return;
+      }
+      const targetContainerId = containerId;
+      void action.run(async () => {
         await createItem(db, {
           ...itemInput,
           quantity,
-          storage_location_id: containerId,
+          storage_location_id: targetContainerId,
           weight,
         });
-      } else {
-        await updateItemDetails(db, props.itemId, {
-          name: itemInput.name,
-          description: itemInput.description,
-          item_type: itemInput.item_type,
-          weight,
-          rarity: itemInput.rarity,
-          quantity,
-          properties: itemInput.properties,
-        });
-      }
+        router.back();
+      }, "Failed to save item.");
+      return;
+    }
+
+    const editItemId = props.itemId;
+    void action.run(async () => {
+      await updateItemDetails(db, editItemId, {
+        name: itemInput.name,
+        description: itemInput.description,
+        item_type: itemInput.item_type,
+        weight,
+        rarity: itemInput.rarity,
+        quantity,
+        properties: itemInput.properties,
+      });
       router.back();
     }, "Failed to save item.");
   };

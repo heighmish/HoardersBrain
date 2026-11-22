@@ -14,14 +14,6 @@ export const findActiveCharacterById = async (
     ),
   });
 
-export const findActiveCharacters = async (
-  db: AppDatabase,
-): Promise<Character[]> =>
-  db.query.charactersTable.findMany({
-    where: isNull(charactersTable.deleted_at),
-    orderBy: asc(charactersTable.character_id),
-  });
-
 export const createCharacterWithDefaultContainer = async (
   db: AppDatabase,
   name: string,

@@ -29,7 +29,7 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
   const insets = useSafeAreaInsets();
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
-  const { submitting, error, run } = useAsyncAction({
+  const { submitting, error, run, clearError } = useAsyncAction({
     keepBusyOnSuccess: true,
   });
 
@@ -135,7 +135,10 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
           <Button
             title="Cancel"
             variant="secondary"
-            onPress={() => setConfirming(false)}
+            onPress={() => {
+              clearError();
+              setConfirming(false);
+            }}
             testID="delete-cancel-button"
             disabled={submitting}
           />
