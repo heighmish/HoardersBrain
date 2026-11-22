@@ -10,8 +10,9 @@ import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { createItem, updateItemDetails } from "@/db/repositories/items";
 import { Item, storageLocationsTable } from "@/db/schema";
-import { useActiveItem } from "@/hooks/useActiveItem";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacter } from "@/hooks/useCharacter";
+import { useItem } from "@/hooks/useItem";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
@@ -32,7 +33,16 @@ type ItemInput = Omit<
   "item_id" | "storage_location_id" | "weight" | "deleted_at"
 >;
 
+const goBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+  router.replace("/(tabs)");
+};
+
 const CreateItemForm = () => {
+  const theme = useTheme();
   const character = useSelectedCharacter();
   const { storageId, itemId } = useLocalSearchParams<{
     storageId?: string;
@@ -42,42 +52,59 @@ const CreateItemForm = () => {
   const editItemId = parseIdParam(itemId);
   const createStorageId = parseIdParam(storageId);
 
-  if (editItemId !== null) {
-    return <EditItemFormLoader itemId={editItemId} />;
-  }
-
   return (
-    <ItemFormBody
-      mode="create"
-      storageId={createStorageId ?? undefined}
-      initialInput={{
-        name: "",
-        description: null,
-        rarity: "Common",
-        character_id: character.id,
-        properties: null,
-        quantity: 1,
-        item_type: "consumable",
-      }}
-      initialWeightText="1"
-      initialQuantityText="1"
-    />
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title={editItemId !== null ? "Edit item" : "Create new item"} />
+      {editItemId !== null ? (
+        <EditItemFormLoader itemId={editItemId} />
+      ) : (
+        <ItemFormBody
+          mode="create"
+          storageId={createStorageId ?? undefined}
+          initialInput={{
+            name: "",
+            description: null,
+            rarity: "Common",
+            character_id: character.id,
+            properties: null,
+            quantity: 1,
+            item_type: "consumable",
+          }}
+          initialWeightText="1"
+          initialQuantityText="1"
+        />
+      )}
+    </View>
   );
 };
 
 const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
-  const item = useActiveItem(itemId);
+  const item = useItem(itemId);
 
-  if (item.error) {
-    return <ScreenState kind="message" message="Failed to load item" />;
+  if (item.status === "error") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Failed to load item"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
-  if (item.updatedAt === undefined) {
+  if (item.status === "loading") {
     return <ScreenState kind="loading" />;
   }
 
-  if (item.data === undefined) {
-    return <ScreenState kind="message" message="Item not found" />;
+  if (item.status === "missing") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
   const loaded = item.data;
@@ -126,10 +153,12 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
       ? props.storageId
       : null,
   );
-  const [submitting, setSubmitting] = useState(false);
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
 
-  const character = useCharacterRow(initialInput.character_id);
-  const showWeight = character.data?.weight_tracking !== false;
+  const character = useCharacter(initialInput.character_id);
+  const showWeight =
+    character.status !== "ready" ||
+    character.data.weight_tracking !== false;
 
   const containers = useLiveQuery(
     db.query.storageLocationsTable.findMany({
@@ -153,8 +182,12 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
 
-  const submit = async () => {
-    if (submitting || itemInput.name === "") {
+  const submit = () => {
+    if (itemInput.name === "") {
+      return;
+    }
+
+    if (props.mode === "create" && containerId === null) {
       return;
     }
 
@@ -165,8 +198,7 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         ? 0
         : Math.max(0, parseFloat(initialWeightText) || 0);
 
-    setSubmitting(true);
-    try {
+    void action.run(async () => {
       if (props.mode === "create") {
         if (containerId === null) {
           return;
@@ -189,19 +221,14 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         });
       }
       router.back();
-    } catch (error) {
-      console.error("Failed to save item", error);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to save item.");
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1 }}
     >
-      <AppHeader title={mode === "edit" ? "Edit item" : "Create new item"} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -315,11 +342,18 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         <Button
           title={mode === "edit" ? "Save" : "Create"}
           onPress={submit}
-          loading={submitting}
-          disabled={submitting || (mode === "create" && containerId === null)}
+          loading={action.submitting}
+          disabled={
+            action.submitting || (mode === "create" && containerId === null)
+          }
           testID={mode === "edit" ? "save-item-button" : "create-item-button"}
           fullWidth
         />
+        {action.error !== null ? (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {action.error}
+          </ThemedText>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

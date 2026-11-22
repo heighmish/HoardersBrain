@@ -4,39 +4,75 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { transferItemToCharacter } from "@/db/repositories/items";
 import { charactersTable, Item } from "@/db/schema";
-import { useActiveItem } from "@/hooks/useActiveItem";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { and, isNull, ne } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
+const goBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+  router.replace("/(tabs)");
+};
+
 const TransferItemPicker = () => {
+  const theme = useTheme();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
-  if (parsedItemId === null) {
-    return <ScreenState kind="message" message="Item not found" />;
-  }
-
-  return <TransferItemPickerContent itemId={parsedItemId} />;
+  return (
+    <View
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      testID="transfer-picker-screen"
+    >
+      <AppHeader title="Transfer item" />
+      {parsedItemId === null ? (
+        <ScreenState
+          kind="message"
+          message="Item not found"
+          actionLabel="Back"
+          onAction={goBack}
+        />
+      ) : (
+        <TransferItemPickerContent itemId={parsedItemId} />
+      )}
+    </View>
+  );
 };
 
 const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
-  const item = useActiveItem(itemId);
+  const item = useItem(itemId);
 
-  if (item.error) {
-    return <ScreenState kind="message" message="Failed to load item" />;
+  if (item.status === "error") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Failed to load item"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
-  if (item.updatedAt === undefined) {
+  if (item.status === "loading") {
     return <ScreenState kind="loading" />;
   }
 
-  if (item.data === undefined) {
-    return <ScreenState kind="message" message="Item not found" />;
+  if (item.status === "missing") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
   return <TransferItemPickerBody item={item.data} />;
@@ -45,7 +81,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
 const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const [submitting, setSubmitting] = useState(false);
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
   const characters = useLiveQuery(
     db.query.charactersTable.findMany({
       where: and(
@@ -56,33 +92,20 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
     [item.character_id],
   );
 
-  const transferToCharacter = async (targetCharacterId: number) => {
-    if (submitting) {
-      return;
-    }
-    setSubmitting(true);
-    try {
+  const transferToCharacter = (targetCharacterId: number) => {
+    void action.run(async () => {
       await transferItemToCharacter(db, item.item_id, targetCharacterId);
       router.dismiss(2);
-    } catch (error) {
-      console.error("Failed to transfer item", error);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to transfer item.");
   };
 
   return (
     <View
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      testID="transfer-picker-screen"
+      style={{
+        padding: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
     >
-      <AppHeader title="Transfer item" />
-      <View
-        style={{
-          padding: theme.spacing.md,
-          gap: theme.spacing.md,
-        }}
-      >
       <ThemedText variant="headline">{item.name}</ThemedText>
       {characters.data.length === 0 ? (
         <ThemedText variant="body">No other characters</ThemedText>
@@ -96,8 +119,8 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
               key={character.character_id}
               accessibilityRole="button"
               accessibilityLabel={character.name}
-              accessibilityState={{ disabled: submitting }}
-              disabled={submitting}
+              accessibilityState={{ disabled: action.submitting }}
+              disabled={action.submitting}
               onPress={() => transferToCharacter(character.character_id)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
@@ -117,7 +140,11 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
           ))}
         </ScrollView>
       )}
-      </View>
+      {action.error !== null ? (
+        <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+          {action.error}
+        </ThemedText>
+      ) : null}
     </View>
   );
 };

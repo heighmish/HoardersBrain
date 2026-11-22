@@ -6,7 +6,8 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { splitItemStack } from "@/db/repositories/items";
 import { Item, storageLocationsTable } from "@/db/schema";
-import { useActiveItem } from "@/hooks/useActiveItem";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { and, eq, isNull, ne } from "drizzle-orm";
@@ -21,30 +22,63 @@ import {
   View,
 } from "react-native";
 
+const goBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+  router.replace("/(tabs)");
+};
+
 const SplitItemForm = () => {
+  const theme = useTheme();
   const { itemId } = useLocalSearchParams<{ itemId?: string }>();
   const parsedItemId = parseIdParam(itemId);
 
-  if (parsedItemId === null) {
-    return <ScreenState kind="message" message="Item not found" />;
-  }
-
-  return <SplitItemFormContent itemId={parsedItemId} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader title="Split stack" />
+      {parsedItemId === null ? (
+        <ScreenState
+          kind="message"
+          message="Item not found"
+          actionLabel="Back"
+          onAction={goBack}
+        />
+      ) : (
+        <SplitItemFormContent itemId={parsedItemId} />
+      )}
+    </View>
+  );
 };
 
 const SplitItemFormContent = ({ itemId }: { itemId: number }) => {
-  const item = useActiveItem(itemId);
+  const item = useItem(itemId);
 
-  if (item.error) {
-    return <ScreenState kind="message" message="Failed to load item" />;
+  if (item.status === "error") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Failed to load item"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
-  if (item.updatedAt === undefined) {
+  if (item.status === "loading") {
     return <ScreenState kind="loading" />;
   }
 
-  if (item.data === undefined) {
-    return <ScreenState kind="message" message="Item not found" />;
+  if (item.status === "missing") {
+    return (
+      <ScreenState
+        kind="message"
+        message="Item not found"
+        actionLabel="Back"
+        onAction={goBack}
+      />
+    );
   }
 
   return <SplitItemFormBody item={item.data} />;
@@ -55,7 +89,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
   const db = useDatabase();
   const [amountText, setAmountText] = useState("1");
   const [destinationId, setDestinationId] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const action = useAsyncAction({ keepBusyOnSuccess: true });
 
   const containers = useLiveQuery(
     db.query.storageLocationsTable.findMany({
@@ -73,27 +107,22 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
   const amountValid =
     Number.isInteger(amount) && amount >= 1 && amount <= maxAmount;
 
-  const split = async () => {
-    if (submitting || !amountValid || destinationId === null) {
+  const split = () => {
+    if (!amountValid || destinationId === null) {
       return;
     }
-    setSubmitting(true);
-    try {
+
+    void action.run(async () => {
       await splitItemStack(db, item.item_id, amount, destinationId);
       router.back();
-    } catch (error) {
-      console.error("Failed to split item", error);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to split stack.");
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1 }}
     >
-      <AppHeader title="Split stack" />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -130,9 +159,9 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
                   accessibilityRole="button"
                   accessibilityState={{
                     selected: destinationId === container.storage_location_id,
-                    disabled: submitting,
+                    disabled: action.submitting,
                   }}
-                  disabled={submitting}
+                  disabled={action.submitting}
                   onPress={() => {
                     setDestinationId(container.storage_location_id);
                   }}
@@ -157,10 +186,20 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
               title="Split"
               testID="confirm-split-button"
               onPress={split}
-              loading={submitting}
-              disabled={submitting || !amountValid || destinationId === null}
+              loading={action.submitting}
+              disabled={
+                action.submitting || !amountValid || destinationId === null
+              }
               fullWidth
             />
+            {action.error !== null ? (
+              <ThemedText
+                variant="caption"
+                style={{ color: theme.colors.error }}
+              >
+                {action.error}
+              </ThemedText>
+            ) : null}
           </>
         )}
       </ScrollView>
