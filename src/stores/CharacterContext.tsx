@@ -2,12 +2,14 @@ import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -69,6 +71,26 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
           }
         }
 
+        const fallbackCharacter = await db.query.charactersTable.findFirst({
+          where: isNull(charactersTable.deleted_at),
+          orderBy: asc(charactersTable.character_id),
+        });
+
+        if (fallbackCharacter !== undefined) {
+          await AsyncStorage.setItem(
+            LAST_CHARACTER_ID,
+            String(fallbackCharacter.character_id),
+          );
+          setState({
+            status: "characterSelected",
+            character: {
+              id: fallbackCharacter.character_id,
+              name: fallbackCharacter.name,
+            },
+          });
+          return;
+        }
+
         if (storedId !== null) {
           await AsyncStorage.removeItem(LAST_CHARACTER_ID);
         }
@@ -84,18 +106,25 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
     loadLastCharacter();
   }, [db]);
 
-  const selectCharacter = (character: SelectedCharacter) => {
+  const selectCharacter = useCallback((character: SelectedCharacter) => {
     setState({ status: "characterSelected", character });
-  };
+    AsyncStorage.setItem(LAST_CHARACTER_ID, String(character.id)).catch(
+      console.error,
+    );
+  }, []);
 
-  const clearCharacter = () => {
+  const clearCharacter = useCallback(() => {
     setState({ status: "noCharacter" });
-  };
+    AsyncStorage.removeItem(LAST_CHARACTER_ID).catch(console.error);
+  }, []);
+
+  const value = useMemo(
+    () => ({ state, selectCharacter, clearCharacter }),
+    [state, selectCharacter, clearCharacter],
+  );
 
   return (
-    <CharacterContext.Provider
-      value={{ state, selectCharacter, clearCharacter }}
-    >
+    <CharacterContext.Provider value={value}>
       {children}
     </CharacterContext.Provider>
   );
