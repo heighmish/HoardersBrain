@@ -8,8 +8,10 @@
     "correctness": "error"
   },
   "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
     "oxc/no-accumulating-spread": "warn",
-    "react/set-state-in-effect": "error"
+    "react/set-state-in-effect": "error",
+    "typescript/no-explicit-any": "error"
   },
   "ignorePatterns": ["android/", "ios/", "**/drizzle/", ".expo/"]
 }

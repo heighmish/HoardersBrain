@@ -46,11 +46,13 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "lint:design": "bash scripts/lint-design-tokens.sh",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "check": "npm run lint && npm run typecheck && npm run lint:design",
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "oxlint"
+    "*.{ts,tsx}": "oxlint",
+    "src/{app,components}/**/*.{ts,tsx}": "npm run lint:design"
   },
   "private": true,
   "allowScripts": {
