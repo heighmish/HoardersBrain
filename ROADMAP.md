@@ -8,9 +8,9 @@ Customizable things (currencies, rarities, item types, tags, custom attributes, 
 
 ## Current state (Nov 2026)
 
-**Working end-to-end:** character create/switch/remember, containers (weight, rarity, carrying, fixed-weight flags), items (name, description, weight, quantity, rarity), currency display + edit, encumbrance card (yellow ≥ max, red ≥ 1.5× max), migrations, Maestro E2E coverage of the create-container, create-item, and character-switch journeys.
+**Working end-to-end:** Phase 0, 0.5, and 1 are implemented — character create/rename/delete/switch/remember, auto-created "On Person" container, containers (create/edit/soft-delete, weight, rarity, carrying, fixed-weight flags, expandable item lists), items (create/edit/soft-delete, detail screen, stack split/move/transfer), currency display + edit, encumbrance card with configurable `max_encumbrance` and `weight_tracking` toggle, theme presets + light/dark/system mode, sample data fixture, migrations, and Maestro E2E coverage.
 
-**Stubbed or missing:** `ledger` table defined but excluded from the schema export, no UI, no queries. No edit/delete for anything. `item_type` hardcoded to `"consumable"`. Container cards cap at 5 items with no expand. `max_encumbrance` default 100, not editable in UI, weight tracking not optional. Currencies are hardcoded columns (`pp/gp/sp/cp`), rarities a hardcoded TS union. No seed/default data beyond column defaults. Migrations were squashed into a single baseline (`0000_unusual_paladin`) with the `container_id` naming mismatch fixed and CHECK constraints added on weight and rarity.
+**Stubbed or missing:** Phase 1.5 UX polish (item/container detail ergonomics, instant soft-delete without confirmation friction). `ledger` table is in the schema and receives transfer entries, but has no UI and doesn't record other mutations yet. `item_type` is still hardcoded to `"consumable"`. Currencies are hardcoded columns (`pp/gp/sp/cp`), rarities a hardcoded TS union. No creation presets or seed data beyond the testing fixture.
 
 ---
 
@@ -205,3 +205,4 @@ History of item and currency changes per character.
 - **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach. The inventory summary arrangement stays the owner's original compact side-by-side cards until a proper design pass; encumbrance stays optional-tier (Phase 1's weight-tracking toggle hides the Carrying card).
 - **Custom palettes deferred** (Nov 2026) — editor UI dropped to keep the theme sheet simple; presets + mode switching are the focus for now. The palette data layer and ThemeContext API remain, so custom themes can return without schema work.
 - **Agent-written copy banned** (Nov 2026) — agents write functional labels and placeholders only; taglines, flavor, and empty-state prose are owner-written or approved. The Phase 0.5 flavor strings were removed.
+- **Encumbrance scope** (Nov 2026) — only containers with `carrying = true` (and items inside them unless `is_fixed_weight = true`) contribute to a character's carried weight. Uncarried containers (e.g., camp chests or stowed bags) do not encumber the character.

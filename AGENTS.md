@@ -90,6 +90,32 @@ the code.
 - Expo's own repo rules for agents: https://github.com/expo/expo/blob/main/AGENTS.md
 - Expo design-system skill: https://github.com/expo/skills/blob/main/plugins/expo/skills/expo-design-system/SKILL.md
 
+## Architecture & Patterns
+
+### Directory layout
+- `src/app/` — Expo Router screens and `_layout.tsx` navigators only. Screens own navigation, local UI/form state, and layout; keep business logic and raw DB writes out of screens.
+- `src/db/` — Drizzle schema (`schema.ts`), `DatabaseProvider.tsx`, `sampleData.ts`, and `src/db/repositories/` (`characters.ts`, `containers.ts`, `items.ts`, etc.) for all database mutations and shared query helpers.
+- `src/hooks/` — Reusable React hooks (live-query wrappers for active character, item by id, container by id, etc.).
+- `src/utils/` — Pure, stateless helpers (`parseIdParam`, encumbrance math, currency math). No React or DB imports.
+- `src/components/` — Feature components; `src/components/Basic/` holds design-system primitives (`AppHeader`, `Badge`, `Button`, `Input`, `NumericInput`, `ThemedText`, `ScreenState`).
+- `src/stores/` — App-wide React contexts (`ThemeContext`, `CharacterContext`).
+- `src/constants/` — Theme tokens, presets, rarity palette, cache keys, shared domain types.
+
+### Data & SQLite rules
+- **Repository boundary**: All writes (`insert`, `update`, soft-delete) live in `src/db/repositories/`. Screens call repository functions instead of writing inline Drizzle mutations.
+- **Single DB type**: Type all repository and helper functions with `AppDatabase` from `@/db/DatabaseProvider`. Never import `better-sqlite3` or invent parallel DB interfaces.
+- **Transactions for multi-step writes**: Any mutation touching more than one row or table (e.g., creating a character + default container, splitting a stack, transferring an item + writing ledger rows, reloading sample data) must run inside a SQLite transaction (`db.transactionSync(...)` or `db.transaction(...)`). Single-statement writes do not need a transaction.
+- **Soft-delete invariant**: Every active query must filter `isNull(table.deleted_at)`. Reuse repository predicates/helpers so soft-deleted characters, containers, or items never leak into lists, pickers, or totals.
+- **Encumbrance rule**: Only non-deleted containers with `carrying = true` (and non-deleted items inside them when `is_fixed_weight = false`) count toward carried weight.
+
+### React Native & Expo patterns
+- **No nested same-orientation `FlatList`**: Inside a `FlatList` item (such as a container card), render child rows with `.map()` inside a `<View>` rather than nesting another vertical `FlatList`.
+- **No `setState` during render**: Derive default/fallback values during render (e.g., `const activeId = selectedId ?? defaultId`) instead of calling `setState` in the render body.
+- **Avoid N+1 `useLiveQuery` subscriptions**: Query shared character flags (such as `weight_tracking`) once at the screen level and pass them as props to list children.
+- **Async form safety**: Guard submit handlers against double-taps (`submitting` state passed to `Button`'s `loading`/`disabled`) and wrap async DB writes in `try/catch` so errors surface cleanly.
+- **Route params & screen states**: Parse numeric route params with `parseIdParam` from `@/utils/params` and render loading/error/not-found states via `ScreenState` from `@/components/Basic/ScreenState` instead of duplicating boilerplate per screen.
+- **Error boundaries**: Keep a root `ErrorBoundary` in `src/app/_layout.tsx` so migration or render failures recover cleanly.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, db, stores, constants) in `src/` but outside `src/app/`. The `@/*` path alias maps to `src/*`.
@@ -120,9 +146,10 @@ Docs: https://docs.expo.dev/eas/index.md
 
 This repo is often worked on by several agents in parallel. When a task arrives with an explicit scope:
 
-- Touch only the files your task owns. Shared files (`src/app/_layout.tsx`, `ROADMAP.md`) are merged centrally — keep edits there minimal.
+- Touch only the files your task owns. Shared files (`src/app/_layout.tsx`, `package.json`) are merged centrally — keep edits there minimal.
+- **Never edit source-of-truth markdown docs** (`AGENTS.md`, `TOKENS.md`, `ROADMAP.md`, `README.md`) as a delegated worker unless explicitly instructed; they are maintained by the coordinator/owner. Report any doc drift in your handoff.
 - Exactly one agent owns schema changes at a time. Never run `drizzle-kit generate` unless your task explicitly grants migration ownership; concurrent generations corrupt the drizzle journal.
 - A solo agent works directly on a feature branch in the main tree (Metro serves it for E2E). Parallel agents work in separate worktrees and leave device flows to the coordinator, who runs E2E serially after each merge.
-- Commit small conventional commits on your branch. Tick the `ROADMAP.md` checkboxes for items you completed.
+- Commit small conventional commits on your branch.
 - Report done only when `npm run check` passes and your final diff has passed a pre-commit review pass (see above). Behavior changes are verified on the device (see No tests).
 - Reports state what you ran and the result. A change a person can see gets before/after screenshots at the merge gate, from the platforms actually run; name any platform you could not run. If nothing visible changes, say `No UI change.`

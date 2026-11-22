@@ -30,7 +30,7 @@ npm run ios      # or: npm run android
 
 ```bash
 npx expo start   # Metro dev server
-npm run check    # oxlint + tsc, run before committing
+npm run check    # oxlint + tsc + design-token guardrail, run before committing
 ```
 
 ## Database
@@ -43,26 +43,27 @@ Generate migrations with Drizzle Kit:
 npx drizzle-kit generate
 ```
 
-Generated SQL lands in `drizzle/` and is barrel-exported through `drizzle/migrations.js`, which the migrator loads — new migration files are picked up automatically on the next launch.
+Generated SQL lands in `src/drizzle/` and is barrel-exported through `src/drizzle/migrations.js`, which the migrator loads — new migration files are picked up automatically on the next launch.
 
 During development, the database can be inspected with Drizzle Studio via the `expo-drizzle-studio-plugin` hook in `DatabaseProvider`.
 
 ## Project layout
 
-- `app/` — Expo Router screens
-- `components/` — shared UI components
-- `db/` — Drizzle schema and database provider
-- `stores/` — React context stores
-- `constants/` — styling constants and shared types
-- `drizzle/` — generated migrations
+- `src/app/` — Expo Router screens and layouts
+- `src/components/` — feature components and `Basic/` design-system primitives
+- `src/db/` — Drizzle schema, `DatabaseProvider`, and `repositories/`
+- `src/hooks/` — reusable React / live-query hooks
+- `src/utils/` — pure domain and parsing helpers
+- `src/stores/` — React context stores (`ThemeContext`, `CharacterContext`)
+- `src/constants/` — theme tokens, presets, rarity palette, shared types
+- `src/drizzle/` — generated SQLite migrations
 - `.maestro/` — E2E flows
 
-## Testing
+## Verification
 
-Two layers:
-
-- Unit tests, fast and device-free: `npm run test`
-- E2E flows with Maestro (requires macOS + Xcode and a booted simulator; install Maestro per https://docs.maestro.dev — the CLI lands in `~/.maestro/bin` and is not on PATH):
+- Static checks (`npm run check`): oxlint, TypeScript (`tsc --noEmit`), and the design-token guardrail (`scripts/lint-design-tokens.sh`).
+- On-device verification: run against the development build via `npx expo start`.
+- E2E flows with Maestro (merge gates only; requires macOS + Xcode and a booted simulator; install Maestro per https://docs.maestro.dev — the CLI lands in `~/.maestro/bin` and is not on PATH):
 
 ```bash
 ~/.maestro/bin/maestro test .maestro/create-storage-e2e.yaml --platform ios
