@@ -15,6 +15,7 @@ import {
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 import ThemedText from "@/components/Basic/ThemedText";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
 
 const Inventory = () => {
   const { state } = useCharacterContext();
@@ -29,6 +30,8 @@ const Inventory = () => {
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
   const db = useDatabase();
+  const characterRow = useCharacterRow(character.id);
+  const showWeight = characterRow.data?.weight_tracking !== false;
 
   const storageLocations = useLiveQuery(
     db.query.storageLocationsTable.findMany({
@@ -43,9 +46,8 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   return (
     <View
       style={{
-        display: "flex",
-        flexDirection: "column",
         flex: 1,
+        flexDirection: "column",
         gap: theme.spacing.md,
         marginHorizontal: theme.spacing.sm,
         backgroundColor: theme.colors.background,
@@ -95,7 +97,6 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         style={{
           paddingTop: theme.spacing.sm,
           flex: 1,
-          display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
         }}
@@ -106,7 +107,9 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       <View style={{ flex: 10 }}>
         <FlatList
           data={storageLocations.data}
-          renderItem={({ item }) => <StorageContainer storage={item} />}
+          renderItem={({ item }) => (
+            <StorageContainer storage={item} showWeight={showWeight} />
+          )}
           contentContainerStyle={{
             gap: theme.spacing.sm,
             paddingBottom: theme.spacing.xxl,
@@ -124,7 +127,10 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               })}
               testID="add-container-button"
             >
-              <ThemedText variant="subhead" style={{ color: theme.colors.textMuted }}>
+              <ThemedText
+                variant="subhead"
+                style={{ color: theme.colors.textMuted }}
+              >
                 Add Container
               </ThemedText>
             </Pressable>

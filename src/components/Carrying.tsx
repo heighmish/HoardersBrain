@@ -1,44 +1,27 @@
-import Badge, { BadgeTone } from "@/components/Basic/Badge";
+import Badge from "@/components/Basic/Badge";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 import { useDatabase } from "@/db/DatabaseProvider";
-import {
-  charactersTable,
-  itemsTable,
-  storageLocationsTable,
-} from "@/db/schema";
+import { itemsTable, storageLocationsTable } from "@/db/schema";
 import { and, eq, isNull, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
+import {
+  CarriedItemRow,
+  calculateCarriedItemsWeight,
+  determineEncumbranceTone,
+} from "@/utils/encumbrance";
 
 interface CarryingProps {
   characterId: number;
 }
 
-const determineEncumbranceTone = (
-  carrying: number,
-  maxEncumbrance: number,
-): BadgeTone => {
-  if (carrying >= maxEncumbrance * 1.5) {
-    return "error";
-  }
-  if (carrying >= maxEncumbrance) {
-    return "warning";
-  }
-  return "success";
-};
-
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const maxEncumbrance = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, characterId),
-      columns: { max_encumbrance: true, weight_tracking: true },
-    }),
-    [characterId],
-  );
+  const character = useCharacterRow(characterId);
 
   const items = useLiveQuery(
     db
@@ -72,46 +55,55 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
       .where(
         and(
           eq(storageLocationsTable.character_id, characterId),
+          eq(storageLocationsTable.carrying, true),
           isNull(storageLocationsTable.deleted_at),
         ),
       ),
     [characterId],
   );
 
+  const carriedRows: CarriedItemRow[] = items.data.flatMap((row) => {
+    const storage = row.storage_locations;
+
+    if (storage === null) {
+      return [];
+    }
+
+    return [
+      {
+        itemWeight: row.items.weight,
+        itemQuantity: row.items.quantity,
+        isFixedWeight: storage.is_fixed_weight,
+        isCarrying: storage.carrying,
+      },
+    ];
+  });
+
   const containerWeight = Number(
     containerWeightQuery.data[0]?.totalWeight ?? 0,
   );
+  const totalCarriedWeight =
+    calculateCarriedItemsWeight(carriedRows) + containerWeight;
 
-  const itemsWeight = items.data.reduce((total, data) => {
-    if (
-      data.storage_locations === null ||
-      data.storage_locations.is_fixed_weight === true
-    ) {
-      return total;
-    }
-
-    return total + data.items.weight * data.items.quantity;
-  }, 0);
-
-  const totalCarriedWeight = itemsWeight + containerWeight;
-
-  if (maxEncumbrance.error || items.error || containerWeightQuery.error) {
+  if (character.error || items.error || containerWeightQuery.error) {
     return (
       <View>
-        <ThemedText variant="body">Failed to load character information</ThemedText>
+        <ThemedText variant="body">
+          Failed to load character information
+        </ThemedText>
       </View>
     );
   }
 
   if (
-    maxEncumbrance.data === undefined ||
+    character.data === undefined ||
     items.updatedAt === undefined ||
     containerWeightQuery.updatedAt === undefined
   ) {
     return null;
   }
 
-  if (maxEncumbrance.data.weight_tracking === false) {
+  if (character.data.weight_tracking === false) {
     return null;
   }
 
@@ -133,7 +125,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
         <Badge
           tone={determineEncumbranceTone(
             totalCarriedWeight,
-            maxEncumbrance.data.max_encumbrance,
+            character.data.max_encumbrance,
           )}
           text="Encumbrance"
         />
@@ -141,8 +133,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
           variant="caption"
           style={{ color: theme.colors.text, fontVariant: ["tabular-nums"] }}
         >
-          Carrying: {totalCarriedWeight}/{maxEncumbrance.data.max_encumbrance}{" "}
-          lb
+          Carrying: {totalCarriedWeight}/{character.data.max_encumbrance} lb
         </ThemedText>
       </View>
       <AntDesign name="right" color={theme.colors.textMuted} />

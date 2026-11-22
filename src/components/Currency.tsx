@@ -1,13 +1,11 @@
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { charactersTable } from "@/db/schema";
 import { AntDesign } from "@expo/vector-icons";
-import { eq } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { Link } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { calculateTotalGoldValue } from "@/utils/currency";
 
 interface CurrencyProps {
   characterId: number;
@@ -15,19 +13,14 @@ interface CurrencyProps {
 
 const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
   const theme = useTheme();
-  const db = useDatabase();
-  const character = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      where: eq(charactersTable.character_id, characterId),
-      columns: { copper: true, silver: true, gold: true, platinum: true },
-    }),
-    [characterId],
-  );
+  const character = useCharacterRow(characterId);
 
   if (character.error) {
     return (
       <View>
-        <ThemedText variant="body">Failed to load character information</ThemedText>
+        <ThemedText variant="body">
+          Failed to load character information
+        </ThemedText>
       </View>
     );
   }
@@ -36,30 +29,27 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     return null;
   }
 
-  const GoldValue =
-    character.data.platinum * 10 +
-    character.data.gold +
-    character.data.silver / 10 +
-    character.data.copper / 100;
+  const goldValue = calculateTotalGoldValue(character.data);
 
   return (
     <Link href="/UpdateCurrencySheet" asChild>
-      <Pressable testID="currency-card" style={{ paddingLeft: theme.spacing.sm }}>
+      <Pressable
+        testID="currency-card"
+        style={{ paddingLeft: theme.spacing.sm }}
+      >
         {({ pressed }) => (
           <View
-            style={[
-              {
-                backgroundColor: theme.colors.surface,
-                boxShadow: theme.shadows.card,
-                borderRadius: theme.radius.lg,
-                borderCurve: "continuous",
-                padding: theme.spacing.sm,
-                flexDirection: "row",
-                gap: theme.spacing.xs,
-                alignItems: "center",
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
+            style={{
+              backgroundColor: theme.colors.surface,
+              boxShadow: theme.shadows.card,
+              borderRadius: theme.radius.lg,
+              borderCurve: "continuous",
+              padding: theme.spacing.sm,
+              flexDirection: "row",
+              gap: theme.spacing.xs,
+              alignItems: "center",
+              opacity: pressed ? 0.8 : 1,
+            }}
           >
             <View>
               <ThemedText variant="caption">Currency</ThemedText>
@@ -67,7 +57,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
                 variant="subhead"
                 style={{ fontVariant: ["tabular-nums"] }}
               >
-                {GoldValue.toFixed(2)}g
+                {goldValue.toFixed(2)}g
               </ThemedText>
             </View>
             <AntDesign name="right" color={theme.colors.textMuted} />
