@@ -1,22 +1,22 @@
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
-import { ON_PERSON_NAME } from "@/components/itemOperations";
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useState } from "react";
-import { View } from "react-native";
-import { charactersTable, storageLocationsTable } from "@/db/schema";
-import { Redirect } from "expo-router";
+import { createCharacterWithDefaultContainer } from "@/db/repositories";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Redirect } from "expo-router";
+import React, { useState } from "react";
+import { View } from "react-native";
 
 export default function Index() {
   const theme = useTheme();
   const db = useDatabase();
   const { state, selectCharacter } = useCharacterContext();
   const [charNameInput, setCharNameInput] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (state.status === "loading") {
     return null;
@@ -28,35 +28,22 @@ export default function Index() {
 
   const createCharacter = async () => {
     const trimmedName = charNameInput.trim();
-    if (trimmedName.length === 0) {
+    if (trimmedName.length === 0 || submitting) {
       return;
     }
 
-    const createdCharacters = await db
-      .insert(charactersTable)
-      .values({
-        name: trimmedName,
-      })
-      .returning({
-        id: charactersTable.character_id,
-        name: charactersTable.name,
-      });
-
-    const created = createdCharacters[0];
-    if (created === undefined) {
-      return;
+    setSubmitting(true);
+    try {
+      const created = await createCharacterWithDefaultContainer(
+        db,
+        trimmedName,
+      );
+      await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
+      selectCharacter({ id: created.id, name: created.name });
+    } catch (error) {
+      console.error("[Index]: Failed to create character", error);
+      setSubmitting(false);
     }
-
-    await db.insert(storageLocationsTable).values({
-      character_id: created.id,
-      name: ON_PERSON_NAME,
-      weight: 0,
-      carrying: true,
-      is_fixed_weight: false,
-    });
-
-    await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
-    selectCharacter({ id: created.id, name: created.name });
   };
 
   return (
@@ -81,6 +68,8 @@ export default function Index() {
         onPress={createCharacter}
         testID="create-character-button"
         fullWidth
+        loading={submitting}
+        disabled={submitting || charNameInput.trim().length === 0}
         style={{ height: 60 }}
       />
     </View>

@@ -2,11 +2,10 @@ import Button from "@/components/Basic/Button";
 import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
+import { updateCharacterCurrency } from "@/db/repositories";
+import { useCharacterRow } from "@/hooks/useCharacterRow";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
-import { charactersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
@@ -26,31 +25,31 @@ const CURRENCY_KEYS = [
 ] as const satisfies readonly (keyof CurrencyValues)[];
 
 const UpdateCurrencySheet = () => {
-  const db = useDatabase();
+  const theme = useTheme();
   const character = useSelectedCharacter();
+  const characterRow = useCharacterRow(character.id);
 
-  const characterQuery = useLiveQuery(
-    db.query.charactersTable.findFirst({
-      columns: { platinum: true, gold: true, silver: true, copper: true },
-      where: eq(charactersTable.character_id, character.id),
-    }),
-    [character.id],
-  );
-
-  if (characterQuery.error) {
+  if (characterRow.error) {
     return (
-      <View>
-        <ThemedText variant="body">Failed to load currency information</ThemedText>
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          padding: theme.spacing.md,
+        }}
+      >
+        <ThemedText variant="body">
+          Failed to load currency information
+        </ThemedText>
       </View>
     );
   }
 
-  if (!characterQuery.data) {
+  if (characterRow.updatedAt === undefined || characterRow.data === undefined) {
     return null;
   }
 
   return (
-    <CurrencyForm initial={characterQuery.data} characterId={character.id} />
+    <CurrencyForm initial={characterRow.data} characterId={character.id} />
   );
 };
 
@@ -59,7 +58,10 @@ interface CurrencyFormProps {
   characterId: number;
 }
 
-const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => {
+const CurrencyForm: React.FC<CurrencyFormProps> = ({
+  initial,
+  characterId,
+}) => {
   const theme = useTheme();
   const db = useDatabase();
   const [currencies, setCurrencies] = useState<CurrencyValues>({
@@ -68,6 +70,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
     silver: initial.silver,
     copper: initial.copper,
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (currency: keyof CurrencyValues, value: string) => {
     const newValue = value === "" ? 0 : Math.max(0, parseInt(value) || 0);
@@ -78,17 +81,18 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
   };
 
   const saveUpdate = async () => {
-    await db
-      .update(charactersTable)
-      .set({
-        copper: currencies.copper,
-        silver: currencies.silver,
-        gold: currencies.gold,
-        platinum: currencies.platinum,
-      })
-      .where(eq(charactersTable.character_id, characterId));
+    if (submitting) {
+      return;
+    }
 
-    router.back();
+    setSubmitting(true);
+    try {
+      await updateCharacterCurrency(db, characterId, currencies);
+      router.back();
+    } catch (error) {
+      console.error("[UpdateCurrencySheet]: Failed to update currency", error);
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -100,13 +104,12 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
         gap: theme.spacing.md,
       }}
     >
-      <View style={{ display: "flex", gap: theme.spacing.md }}>
+      <View style={{ gap: theme.spacing.md }}>
         {CURRENCY_KEYS.map((currency) => (
           <View key={`${currency}-update-view`}>
             <ThemedText
               variant="headline"
               style={{ marginBottom: theme.spacing.xs }}
-              key={`${currency}-update-label`}
             >
               {currency}
             </ThemedText>
@@ -122,7 +125,6 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
                 onChangeText={(text) => handleChange(currency, text)}
                 value={currencies[currency].toFixed(0)}
                 testID={`${currency}-input`}
-                key={`${currency}-update`}
               />
             </View>
           </View>
@@ -130,7 +132,6 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
       </View>
       <View
         style={{
-          display: "flex",
           flexDirection: "row",
           justifyContent: "flex-end",
         }}
@@ -140,6 +141,8 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({ initial, characterId }) => 
           onPress={saveUpdate}
           testID="update-currency-button"
           size="sm"
+          loading={submitting}
+          disabled={submitting}
         />
       </View>
     </View>
