@@ -12,9 +12,9 @@ import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
 import { schema } from "@/db/schema";
 
-const DatabaseContext = createContext<
-  ExpoSQLiteDatabase<typeof schema> | undefined
->(undefined);
+export type AppDatabase = ExpoSQLiteDatabase<typeof schema>;
+
+const DatabaseContext = createContext<AppDatabase | undefined>(undefined);
 
 interface DatabaseProviderProps {
   children: ReactNode;
@@ -63,7 +63,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   );
 };
 
-export const useDatabase = (): ExpoSQLiteDatabase<typeof schema> => {
+export const useDatabase = (): AppDatabase => {
   const context = useContext(DatabaseContext);
 
   if (context === undefined) {
