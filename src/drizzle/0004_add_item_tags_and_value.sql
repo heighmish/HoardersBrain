@@ -1,6 +1,6 @@
 CREATE TABLE `tags` (
 	`tag_id` integer PRIMARY KEY NOT NULL,
-	`character_id` integer NOT NULL,
+	`character_id` integer,
 	`name` text NOT NULL,
 	`parent_tag_id` integer,
 	`is_usable` integer DEFAULT false NOT NULL,
@@ -13,7 +13,8 @@ CREATE TABLE `tags` (
 --> statement-breakpoint
 CREATE INDEX `idx_tags_char` ON `tags` (`character_id`);--> statement-breakpoint
 CREATE INDEX `idx_tags_parent` ON `tags` (`parent_tag_id`);--> statement-breakpoint
-CREATE UNIQUE INDEX `uq_tags_char_name_active` ON `tags` (`character_id`,lower("name")) WHERE "tags"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_tags_char_name_active` ON `tags` (`character_id`,lower("name")) WHERE "tags"."character_id" IS NOT NULL AND "tags"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `uq_tags_global_name_active` ON `tags` (lower("name")) WHERE "tags"."character_id" IS NULL AND "tags"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE TABLE `item_tags` (
 	`item_id` integer NOT NULL,
 	`tag_id` integer NOT NULL,

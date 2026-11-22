@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a9bb72aa-6d2e-4f4a-8d96-fbfead2d8fc4",
+  "id": "c9c2d81d-2117-4dae-8959-72da36bb4eda",
   "prevId": "d0f93aa0-2787-405b-abfd-ff5ac30d5257",
   "tables": {
     "characters": {
@@ -484,7 +484,7 @@
           "name": "character_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "name": {
@@ -547,7 +547,15 @@
             "lower(\"name\")"
           ],
           "isUnique": true,
-          "where": "\"tags\".\"deleted_at\" IS NULL"
+          "where": "\"tags\".\"character_id\" IS NOT NULL AND \"tags\".\"deleted_at\" IS NULL"
+        },
+        "uq_tags_global_name_active": {
+          "name": "uq_tags_global_name_active",
+          "columns": [
+            "lower(\"name\")"
+          ],
+          "isUnique": true,
+          "where": "\"tags\".\"character_id\" IS NULL AND \"tags\".\"deleted_at\" IS NULL"
         }
       },
       "foreignKeys": {
@@ -598,6 +606,13 @@
   "internal": {
     "indexes": {
       "uq_tags_char_name_active": {
+        "columns": {
+          "lower(\"name\")": {
+            "isExpression": true
+          }
+        }
+      },
+      "uq_tags_global_name_active": {
         "columns": {
           "lower(\"name\")": {
             "isExpression": true

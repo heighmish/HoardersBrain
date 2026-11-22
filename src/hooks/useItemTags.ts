@@ -1,6 +1,6 @@
 import { useDatabase } from "@/db/DatabaseProvider";
 import { itemTagsTable, Tag, tagsTable } from "@/db/schema";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 // Separate single-table live queries: drizzle-orm/expo-sqlite only subscribes
@@ -18,7 +18,7 @@ export const useItemTags = (characterId: number, itemId: number): Tag[] => {
   const tags = useLiveQuery(
     db.query.tagsTable.findMany({
       where: and(
-        eq(tagsTable.character_id, characterId),
+        or(eq(tagsTable.character_id, characterId), isNull(tagsTable.character_id)),
         isNull(tagsTable.deleted_at),
       ),
       orderBy: [asc(tagsTable.sort_order), asc(tagsTable.tag_id)],

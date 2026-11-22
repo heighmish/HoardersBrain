@@ -108,9 +108,10 @@ export const tagsTable = sqliteTable(
   "tags",
   {
     tag_id: integer("tag_id").primaryKey(),
-    character_id: integer("character_id")
-      .references(() => charactersTable.character_id)
-      .notNull(),
+    // Null character_id denotes a global tag shared across all characters.
+    character_id: integer("character_id").references(
+      () => charactersTable.character_id,
+    ),
     name: text("name").notNull(),
     parent_tag_id: integer("parent_tag_id").references(
       (): AnySQLiteColumn => tagsTable.tag_id,
@@ -126,7 +127,10 @@ export const tagsTable = sqliteTable(
     index("idx_tags_parent").on(table.parent_tag_id),
     uniqueIndex("uq_tags_char_name_active")
       .on(table.character_id, sql`lower(${table.name})`)
-      .where(sql`${table.deleted_at} IS NULL`),
+      .where(sql`${table.character_id} IS NOT NULL AND ${table.deleted_at} IS NULL`),
+    uniqueIndex("uq_tags_global_name_active")
+      .on(sql`lower(${table.name})`)
+      .where(sql`${table.character_id} IS NULL AND ${table.deleted_at} IS NULL`),
     check(
       "tags_no_self_parent",
       sql`${table.parent_tag_id} IS NULL OR ${table.parent_tag_id} != ${table.tag_id}`,

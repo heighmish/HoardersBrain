@@ -10,7 +10,6 @@ import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
 import {
   createItem,
-  createTag,
   ItemAcquisition,
   updateItemDetails,
 } from "@/db/repositories";
@@ -29,6 +28,7 @@ import {
   purseToCopper,
 } from "@/utils/currency";
 import { parseIdParam } from "@/utils/params";
+import { AntDesign } from "@expo/vector-icons";
 import { and, eq, isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
@@ -53,6 +53,15 @@ type ItemInput = Omit<
 >;
 
 type AcquisitionChoice = "none" | "looted" | "found" | "bought";
+
+type ExpandedSection =
+  | "container"
+  | "tags"
+  | "value"
+  | "acquisition"
+  | "rarity"
+  | "notes"
+  | null;
 
 const ACQUISITION_OPTIONS: readonly {
   id: AcquisitionChoice;
@@ -206,12 +215,12 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const [valueCurrency, setValueCurrency] =
     useState<CoinDenomination>(initialValueCurrency);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(initialTagIds);
-  const [customTagText, setCustomTagText] = useState("");
   const [selectedContainerId, setSelectedContainerId] = useState<number | null>(
     props.mode === "create" && props.storageId !== undefined
       ? props.storageId
       : null,
   );
+  const [expanded, setExpanded] = useState<ExpandedSection>(null);
 
   // Acquisition state (create mode only)
   const [acquisitionKind, setAcquisitionKind] =
@@ -222,13 +231,15 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const [acquisitionNote, setAcquisitionNote] = useState("");
 
   const action = useAsyncAction({ keepBusyOnSuccess: true });
-  const tagAction = useAsyncAction();
 
   const characterQuery = useCharacter(initialInput.character_id);
   const allTags = useCharacterTags(initialInput.character_id);
   const activeTagIds = new Set(allTags.map((tag) => tag.tag_id));
   const visibleSelectedTagIds = selectedTagIds.filter((id) =>
     activeTagIds.has(id),
+  );
+  const selectedTags = allTags.filter((tag) =>
+    visibleSelectedTagIds.includes(tag.tag_id),
   );
 
   const topLevelTags = allTags.filter(
@@ -260,6 +271,9 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           ?.storage_location_id ?? null
       : null;
   const containerId = selectedContainerId ?? defaultContainerId;
+  const selectedContainer = containerList.find(
+    (entry) => entry.storage_location_id === containerId,
+  );
 
   const purse =
     characterQuery.status === "ready"
@@ -280,6 +294,10 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
       ? deductFromPurse(purse, parsedPaidAmount, paidCurrency)
       : null;
 
+  const toggleSection = (section: Exclude<ExpandedSection, null>) => {
+    setExpanded((prev) => (prev === section ? null : section));
+  };
+
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
@@ -295,24 +313,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
         ? prev.filter((id) => id !== tagId)
         : [...prev, tagId],
     );
-  };
-
-  const handleAddCustomTag = () => {
-    const trimmed = customTagText.trim();
-    if (trimmed.length === 0) {
-      return;
-    }
-
-    void tagAction.run(async () => {
-      const created = await createTag(db, {
-        character_id: initialInput.character_id,
-        name: trimmed,
-      });
-      setSelectedTagIds((prev) =>
-        prev.includes(created.tag_id) ? prev : [...prev, created.tag_id],
-      );
-      setCustomTagText("");
-    }, "Failed to create tag.");
   };
 
   const parseOptionalValue = (): {
@@ -409,14 +409,80 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
   const sectionLabel = (label: string) => (
     <ThemedText
       variant="caption"
-      style={{
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-      }}
+      style={{ textTransform: "uppercase", letterSpacing: 0.5 }}
     >
       {label}
     </ThemedText>
   );
+
+  const divider = (
+    <View style={{ height: 1, backgroundColor: theme.colors.border }} />
+  );
+
+  const disclosureRow = (
+    label: string,
+    summary: string,
+    highlighted: boolean,
+    isOpen: boolean,
+    onPress: () => void,
+    testID: string,
+  ) => (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: isOpen }}
+      testID={testID}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        minHeight: 44,
+        gap: theme.spacing.sm,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <ThemedText variant="body">{label}</ThemedText>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.xs,
+          flexShrink: 1,
+        }}
+      >
+        <ThemedText
+          variant="subhead"
+          numberOfLines={1}
+          style={{
+            color: highlighted ? theme.colors.accent : theme.colors.textMuted,
+          }}
+        >
+          {summary}
+        </ThemedText>
+        <AntDesign
+          name={isOpen ? "up" : "down"}
+          size={12}
+          color={theme.colors.textMuted}
+        />
+      </View>
+    </Pressable>
+  );
+
+  const tagsSummary =
+    selectedTags.length === 0
+      ? "None"
+      : selectedTags.map((tag) => tag.name).join(", ");
+  const valueSummary =
+    valueText.trim().length > 0 ? `${valueText.trim()} ${valueCurrency}` : "Add";
+  const acquisitionSummary =
+    ACQUISITION_OPTIONS.find((option) => option.id === acquisitionKind)
+      ?.label ?? "None";
+  const notesSummary =
+    itemInput.description !== null && itemInput.description.trim().length > 0
+      ? itemInput.description.trim()
+      : "Add";
 
   return (
     <KeyboardAvoidingView
@@ -431,59 +497,14 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           gap: theme.spacing.md,
         }}
       >
-        <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Name")}
-          <Input
-            placeholder="Name"
-            value={itemInput.name}
-            testID="item-name-input"
-            onChangeText={(text) =>
-              setItemInput((prev) => ({ ...prev, name: text }))
-            }
-          />
-        </View>
-
-        {props.mode === "create" ? (
-          <View style={{ gap: theme.spacing.xs }}>
-            {sectionLabel("Container")}
-            {containerList.length === 0 ? (
-              <ThemedText variant="subhead">No containers</ThemedText>
-            ) : (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: theme.spacing.xs,
-                }}
-              >
-                {containerList.map((container) => (
-                  <Pressable
-                    onPress={() =>
-                      setSelectedContainerId(container.storage_location_id)
-                    }
-                    key={`item-container-${container.storage_location_id}`}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      selected: containerId === container.storage_location_id,
-                    }}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                    testID={`item-container-${container.storage_location_id}`}
-                  >
-                    <Badge
-                      text={container.name}
-                      color={
-                        containerId === container.storage_location_id
-                          ? theme.colors.accent
-                          : theme.colors.border
-                      }
-                      filled={containerId === container.storage_location_id}
-                    />
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        ) : null}
+        <Input
+          placeholder="Name"
+          value={itemInput.name}
+          testID="item-name-input"
+          onChangeText={(text) =>
+            setItemInput((prev) => ({ ...prev, name: text }))
+          }
+        />
 
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
           <View style={{ flex: 1, gap: theme.spacing.xs }}>
@@ -509,374 +530,141 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
           </View>
         </View>
 
-        <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Value (optional)")}
-          <View
-            style={{
-              flexDirection: "row",
-              gap: theme.spacing.sm,
-              alignItems: "center",
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Input
-                keyboardType="decimal-pad"
-                placeholder="Value"
-                value={valueText}
-                onChangeText={setValueText}
-                testID="item-value-input"
-              />
-            </View>
-            <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
-              {COIN_DENOMINATIONS.map((unit) => (
-                <Pressable
-                  key={`item-value-unit-${unit}`}
-                  onPress={() => setValueCurrency(unit)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: valueCurrency === unit }}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                  testID={`item-value-unit-${unit}`}
-                >
-                  <Badge
-                    text={unit}
-                    color={
-                      valueCurrency === unit
-                        ? theme.colors.accent
-                        : theme.colors.border
-                    }
-                    filled={valueCurrency === unit}
-                  />
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        <View style={{ gap: theme.spacing.sm }}>
-          {sectionLabel("Tags")}
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: theme.spacing.xs,
-            }}
-          >
-            {topLevelTags.map((tag) => {
-              const children = childrenByParent.get(tag.tag_id) ?? [];
-              const childSelected = children.some((child) =>
-                visibleSelectedTagIds.includes(child.tag_id),
-              );
-              const selected = visibleSelectedTagIds.includes(tag.tag_id);
-
-              return (
-                <Pressable
-                  key={`item-tag-${tag.tag_id}`}
-                  onPress={() => toggleTag(tag.tag_id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: selected || childSelected }}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                  testID={`item-tag-${tag.name.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <Badge
-                    text={tag.name}
-                    color={
-                      selected || childSelected
-                        ? theme.colors.accent
-                        : theme.colors.border
-                    }
-                    filled={selected}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {topLevelTags.map((parent) => {
-            const children = childrenByParent.get(parent.tag_id);
-            if (children === undefined || children.length === 0) {
-              return null;
-            }
-            return (
-              <View
-                key={`item-subtags-${parent.tag_id}`}
-                style={{ gap: theme.spacing.xs }}
-              >
-                <ThemedText variant="caption">{parent.name} types</ThemedText>
+        <View
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+            borderWidth: 1,
+            borderRadius: theme.radius.md,
+            borderCurve: "continuous",
+            overflow: "hidden",
+          }}
+        >
+          {props.mode === "create" ? (
+            <>
+              {disclosureRow(
+                "Container",
+                selectedContainer?.name ?? "None",
+                selectedContainer !== undefined,
+                expanded === "container",
+                () => toggleSection("container"),
+                "item-container-row",
+              )}
+              {expanded === "container" ? (
                 <View
                   style={{
+                    paddingHorizontal: theme.spacing.md,
+                    paddingBottom: theme.spacing.md,
                     flexDirection: "row",
                     flexWrap: "wrap",
                     gap: theme.spacing.xs,
                   }}
                 >
-                  {children.map((child) => {
-                    const selected = visibleSelectedTagIds.includes(
-                      child.tag_id,
-                    );
-                    return (
+                  {containerList.length === 0 ? (
+                    <ThemedText variant="subhead">No containers</ThemedText>
+                  ) : (
+                    containerList.map((container) => (
                       <Pressable
-                        key={`item-tag-${child.tag_id}`}
-                        onPress={() => toggleTag(child.tag_id)}
+                        onPress={() => {
+                          setSelectedContainerId(container.storage_location_id);
+                          setExpanded(null);
+                        }}
+                        key={`item-container-${container.storage_location_id}`}
                         accessibilityRole="button"
-                        accessibilityState={{ selected }}
+                        accessibilityState={{
+                          selected:
+                            containerId === container.storage_location_id,
+                        }}
                         style={({ pressed }) => ({
                           opacity: pressed ? 0.7 : 1,
                         })}
-                        testID={`item-tag-${child.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        testID={`item-container-${container.storage_location_id}`}
                       >
                         <Badge
-                          text={child.name}
+                          text={container.name}
                           color={
-                            selected
+                            containerId === container.storage_location_id
                               ? theme.colors.accent
                               : theme.colors.border
                           }
-                          filled={selected}
+                          filled={containerId === container.storage_location_id}
                         />
                       </Pressable>
-                    );
-                  })}
+                    ))
+                  )}
                 </View>
-              </View>
-            );
-          })}
-
-          <View
-            style={{
-              flexDirection: "row",
-              gap: theme.spacing.sm,
-              alignItems: "center",
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Input
-                placeholder="Add custom tag"
-                value={customTagText}
-                onChangeText={setCustomTagText}
-                onSubmitEditing={handleAddCustomTag}
-                returnKeyType="done"
-                testID="item-custom-tag-input"
-              />
-            </View>
-            <Button
-              title="Add"
-              variant="secondary"
-              size="sm"
-              onPress={handleAddCustomTag}
-              loading={tagAction.submitting}
-              disabled={
-                tagAction.submitting || customTagText.trim().length === 0
-              }
-              testID="item-add-custom-tag-button"
-            />
-          </View>
-          {tagAction.error !== null ? (
-            <ThemedText variant="caption" style={{ color: theme.colors.error }}>
-              {tagAction.error}
-            </ThemedText>
+              ) : null}
+              {divider}
+            </>
           ) : null}
-        </View>
 
-        <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Rarity")}
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: theme.spacing.xs,
-            }}
-          >
-            {RarityArray.map((rarity) => (
-              <Pressable
-                onPress={() =>
-                  setItemInput((prev) => ({
-                    ...prev,
-                    rarity: rarity,
-                  }))
-                }
-                key={`create-item-rarity-${rarity}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: itemInput.rarity === rarity }}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                testID={`item-rarity-${rarity}`}
-              >
-                <Badge
-                  text={rarity}
-                  color={rarityColors[rarity]}
-                  filled={itemInput.rarity === rarity}
-                />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Description")}
-          <Input
-            placeholder="Description"
-            value={itemInput.description ?? ""}
-            testID="item-description-input"
-            onChangeText={(text) =>
-              setItemInput((prev) => ({ ...prev, description: text }))
-            }
-          />
-        </View>
-
-        {props.mode === "create" ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            {sectionLabel("Acquisition (optional)")}
+          {disclosureRow(
+            "Tags",
+            tagsSummary,
+            selectedTags.length > 0,
+            expanded === "tags",
+            () => toggleSection("tags"),
+            "item-tags-row",
+          )}
+          {expanded === "tags" ? (
             <View
               style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: theme.spacing.xs,
+                paddingHorizontal: theme.spacing.md,
+                paddingBottom: theme.spacing.md,
+                gap: theme.spacing.sm,
               }}
             >
-              {ACQUISITION_OPTIONS.map((option) => (
-                <Pressable
-                  key={`acquisition-${option.id}`}
-                  onPress={() => {
-                    setAcquisitionKind(option.id);
-                    if (
-                      option.id === "bought" &&
-                      paidAmountText.trim().length === 0 &&
-                      valueText.trim().length > 0
-                    ) {
-                      setPaidAmountText(valueText.trim());
-                      setPaidCurrency(valueCurrency);
-                    }
-                  }}
-                  accessibilityRole="button"
-                  accessibilityState={{
-                    selected: acquisitionKind === option.id,
-                  }}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                  testID={`item-acquisition-${option.id}`}
-                >
-                  <Badge
-                    text={option.label}
-                    color={
-                      acquisitionKind === option.id
-                        ? theme.colors.accent
-                        : theme.colors.border
-                    }
-                    filled={acquisitionKind === option.id}
-                  />
-                </Pressable>
-              ))}
-            </View>
-
-            {acquisitionKind === "bought" ? (
               <View
                 style={{
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderWidth: 1,
-                  borderRadius: theme.radius.md,
-                  borderCurve: "continuous",
-                  padding: theme.spacing.md,
-                  gap: theme.spacing.sm,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: theme.spacing.xs,
                 }}
               >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    gap: theme.spacing.sm,
-                    alignItems: "center",
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Input
-                      keyboardType="decimal-pad"
-                      placeholder="Amount paid"
-                      value={paidAmountText}
-                      onChangeText={setPaidAmountText}
-                      testID="item-paid-amount-input"
-                    />
-                  </View>
-                  <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
-                    {COIN_DENOMINATIONS.map((unit) => (
-                      <Pressable
-                        key={`item-paid-unit-${unit}`}
-                        onPress={() => setPaidCurrency(unit)}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: paidCurrency === unit }}
-                        style={({ pressed }) => ({
-                          opacity: pressed ? 0.7 : 1,
-                        })}
-                        testID={`item-paid-unit-${unit}`}
-                      >
-                        <Badge
-                          text={unit}
-                          color={
-                            paidCurrency === unit
-                              ? theme.colors.accent
-                              : theme.colors.border
-                          }
-                          filled={paidCurrency === unit}
-                        />
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
+                {topLevelTags.map((tag) => {
+                  const children = childrenByParent.get(tag.tag_id) ?? [];
+                  const childSelected = children.some((child) =>
+                    visibleSelectedTagIds.includes(child.tag_id),
+                  );
+                  const selected = visibleSelectedTagIds.includes(tag.tag_id);
 
-                {purse !== null ? (
-                  <ThemedText
-                    variant="caption"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
-                    Purse: {formatPurseSummary(purse)}
-                  </ThemedText>
-                ) : null}
-
-                {parsedPaidAmount > 0 ? (
-                  <Pressable
-                    style={({ pressed }) => ({
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: theme.spacing.md,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                    accessibilityRole="switch"
-                    accessibilityState={{ checked: shouldDeductFromPurse }}
-                    onPress={() => setShouldDeductFromPurse((prev) => !prev)}
-                  >
-                    <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                      <ThemedText variant="body">Deduct from purse</ThemedText>
-                      <ThemedText variant="caption">
-                        Turn off if another party member paid
-                      </ThemedText>
-                    </View>
-                    <Switch
-                      value={shouldDeductFromPurse}
-                      onValueChange={setShouldDeductFromPurse}
-                      trackColor={{
-                        false: theme.colors.border,
-                        true: theme.colors.accent,
+                  return (
+                    <Pressable
+                      key={`item-tag-${tag.tag_id}`}
+                      onPress={() => toggleTag(tag.tag_id)}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: selected || childSelected,
                       }}
-                      testID="item-deduct-purse-toggle"
-                    />
-                  </Pressable>
-                ) : null}
-
-                {deductionPreview?.status === "change" ? (
-                  <ThemedText
-                    variant="caption"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
-                    After purchase: {formatPurseSummary(deductionPreview.nextPurse)}
-                  </ThemedText>
-                ) : null}
-
-                {deductionPreview?.status === "insufficient" ? (
-                  <View style={{ gap: theme.spacing.xs }}>
-                    <ThemedText
-                      variant="caption"
-                      style={{ color: theme.colors.warning }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                      testID={`item-tag-${tag.name.toLowerCase().replace(/\s+/g, "-")}`}
                     >
-                      Exceeds purse ({deductionPreview.availableGold.toFixed(2)}{" "}
-                      gp available) — purse will not be changed
+                      <Badge
+                        text={tag.name}
+                        color={
+                          selected || childSelected
+                            ? theme.colors.accent
+                            : theme.colors.border
+                        }
+                        filled={selected}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {topLevelTags.map((parent) => {
+                const children = childrenByParent.get(parent.tag_id);
+                if (children === undefined || children.length === 0) {
+                  return null;
+                }
+                return (
+                  <View
+                    key={`item-subtags-${parent.tag_id}`}
+                    style={{ gap: theme.spacing.xs }}
+                  >
+                    <ThemedText variant="caption">
+                      {parent.name} types
                     </ThemedText>
                     <View
                       style={{
@@ -885,63 +673,421 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
                         gap: theme.spacing.xs,
                       }}
                     >
-                      <Pressable
-                        onPress={() => setShouldDeductFromPurse(false)}
-                        accessibilityRole="button"
-                        style={({ pressed }) => ({
-                          opacity: pressed ? 0.7 : 1,
-                        })}
-                        testID="item-dont-deduct-button"
-                      >
-                        <Badge
-                          text="Don't deduct"
-                          color={theme.colors.accent}
-                          filled={false}
-                        />
-                      </Pressable>
-                      {purse !== null && purseToCopper(purse) > 0 ? (
-                        <Pressable
-                          onPress={() => {
-                            const totalGp = purseToCopper(purse) / 100;
-                            setPaidAmountText(String(totalGp));
-                            setPaidCurrency("gp");
-                          }}
-                          accessibilityRole="button"
-                          style={({ pressed }) => ({
-                            opacity: pressed ? 0.7 : 1,
-                          })}
-                          testID="item-use-available-button"
-                        >
-                          <Badge
-                            text="Use available"
-                            color={theme.colors.accent}
-                            filled={false}
-                          />
-                        </Pressable>
-                      ) : null}
+                      {children.map((child) => {
+                        const selected = visibleSelectedTagIds.includes(
+                          child.tag_id,
+                        );
+                        return (
+                          <Pressable
+                            key={`item-tag-${child.tag_id}`}
+                            onPress={() => toggleTag(child.tag_id)}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected }}
+                            style={({ pressed }) => ({
+                              opacity: pressed ? 0.7 : 1,
+                            })}
+                            testID={`item-tag-${child.name.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <Badge
+                              text={child.name}
+                              color={
+                                selected
+                                  ? theme.colors.accent
+                                  : theme.colors.border
+                              }
+                              filled={selected}
+                            />
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   </View>
-                ) : null}
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
 
-                <Input
-                  placeholder="Note (optional)"
-                  value={acquisitionNote}
-                  onChangeText={setAcquisitionNote}
-                  testID="item-acquisition-note-input"
-                />
+        <View style={{ gap: theme.spacing.xs }}>
+          {sectionLabel("Optional details")}
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+              borderRadius: theme.radius.md,
+              borderCurve: "continuous",
+              overflow: "hidden",
+            }}
+          >
+            {disclosureRow(
+              "Value",
+              valueSummary,
+              valueText.trim().length > 0,
+              expanded === "value",
+              () => toggleSection("value"),
+              "item-value-row",
+            )}
+            {expanded === "value" ? (
+              <View
+                style={{
+                  paddingHorizontal: theme.spacing.md,
+                  paddingBottom: theme.spacing.md,
+                  flexDirection: "row",
+                  gap: theme.spacing.sm,
+                  alignItems: "center",
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Input
+                    keyboardType="decimal-pad"
+                    placeholder="Value"
+                    value={valueText}
+                    onChangeText={setValueText}
+                    testID="item-value-input"
+                  />
+                </View>
+                <View style={{ flexDirection: "row", gap: theme.spacing.xs }}>
+                  {COIN_DENOMINATIONS.map((unit) => (
+                    <Pressable
+                      key={`item-value-unit-${unit}`}
+                      onPress={() => setValueCurrency(unit)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: valueCurrency === unit }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                      testID={`item-value-unit-${unit}`}
+                    >
+                      <Badge
+                        text={unit}
+                        color={
+                          valueCurrency === unit
+                            ? theme.colors.accent
+                            : theme.colors.border
+                        }
+                        filled={valueCurrency === unit}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             ) : null}
 
-            {acquisitionKind === "looted" || acquisitionKind === "found" ? (
-              <Input
-                placeholder="Source (optional)"
-                value={acquisitionNote}
-                onChangeText={setAcquisitionNote}
-                testID="item-acquisition-note-input"
-              />
+            {props.mode === "create" ? (
+              <>
+                {divider}
+                {disclosureRow(
+                  "Acquisition",
+                  acquisitionSummary,
+                  acquisitionKind !== "none",
+                  expanded === "acquisition",
+                  () => toggleSection("acquisition"),
+                  "item-acquisition-row",
+                )}
+                {expanded === "acquisition" ? (
+                  <View
+                    style={{
+                      paddingHorizontal: theme.spacing.md,
+                      paddingBottom: theme.spacing.md,
+                      gap: theme.spacing.sm,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: theme.spacing.xs,
+                      }}
+                    >
+                      {ACQUISITION_OPTIONS.map((option) => (
+                        <Pressable
+                          key={`acquisition-${option.id}`}
+                          onPress={() => {
+                            setAcquisitionKind(option.id);
+                            if (
+                              option.id === "bought" &&
+                              paidAmountText.trim().length === 0 &&
+                              valueText.trim().length > 0
+                            ) {
+                              setPaidAmountText(valueText.trim());
+                              setPaidCurrency(valueCurrency);
+                            }
+                          }}
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            selected: acquisitionKind === option.id,
+                          }}
+                          style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                          })}
+                          testID={`item-acquisition-${option.id}`}
+                        >
+                          <Badge
+                            text={option.label}
+                            color={
+                              acquisitionKind === option.id
+                                ? theme.colors.accent
+                                : theme.colors.border
+                            }
+                            filled={acquisitionKind === option.id}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    {acquisitionKind === "bought" ? (
+                      <View style={{ gap: theme.spacing.sm }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            gap: theme.spacing.sm,
+                            alignItems: "center",
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Input
+                              keyboardType="decimal-pad"
+                              placeholder="Amount paid"
+                              value={paidAmountText}
+                              onChangeText={setPaidAmountText}
+                              testID="item-paid-amount-input"
+                            />
+                          </View>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              gap: theme.spacing.xs,
+                            }}
+                          >
+                            {COIN_DENOMINATIONS.map((unit) => (
+                              <Pressable
+                                key={`item-paid-unit-${unit}`}
+                                onPress={() => setPaidCurrency(unit)}
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                  selected: paidCurrency === unit,
+                                }}
+                                style={({ pressed }) => ({
+                                  opacity: pressed ? 0.7 : 1,
+                                })}
+                                testID={`item-paid-unit-${unit}`}
+                              >
+                                <Badge
+                                  text={unit}
+                                  color={
+                                    paidCurrency === unit
+                                      ? theme.colors.accent
+                                      : theme.colors.border
+                                  }
+                                  filled={paidCurrency === unit}
+                                />
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+
+                        {purse !== null ? (
+                          <ThemedText
+                            variant="caption"
+                            style={{ fontVariant: ["tabular-nums"] }}
+                          >
+                            Purse: {formatPurseSummary(purse)}
+                          </ThemedText>
+                        ) : null}
+
+                        {parsedPaidAmount > 0 ? (
+                          <Pressable
+                            style={({ pressed }) => ({
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: theme.spacing.md,
+                              opacity: pressed ? 0.7 : 1,
+                            })}
+                            accessibilityRole="switch"
+                            accessibilityState={{
+                              checked: shouldDeductFromPurse,
+                            }}
+                            onPress={() =>
+                              setShouldDeductFromPurse((prev) => !prev)
+                            }
+                          >
+                            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                              <ThemedText variant="body">
+                                Deduct from purse
+                              </ThemedText>
+                              <ThemedText variant="caption">
+                                Turn off if another party member paid
+                              </ThemedText>
+                            </View>
+                            <Switch
+                              value={shouldDeductFromPurse}
+                              onValueChange={setShouldDeductFromPurse}
+                              trackColor={{
+                                false: theme.colors.border,
+                                true: theme.colors.accent,
+                              }}
+                              testID="item-deduct-purse-toggle"
+                            />
+                          </Pressable>
+                        ) : null}
+
+                        {deductionPreview?.status === "change" ? (
+                          <ThemedText
+                            variant="caption"
+                            style={{ fontVariant: ["tabular-nums"] }}
+                          >
+                            After purchase:{" "}
+                            {formatPurseSummary(deductionPreview.nextPurse)}
+                          </ThemedText>
+                        ) : null}
+
+                        {deductionPreview?.status === "insufficient" ? (
+                          <View style={{ gap: theme.spacing.xs }}>
+                            <ThemedText
+                              variant="caption"
+                              style={{ color: theme.colors.warning }}
+                            >
+                              Exceeds purse (
+                              {deductionPreview.availableGold.toFixed(2)} gp
+                              available) — purse will not be changed
+                            </ThemedText>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                flexWrap: "wrap",
+                                gap: theme.spacing.xs,
+                              }}
+                            >
+                              <Pressable
+                                onPress={() => setShouldDeductFromPurse(false)}
+                                accessibilityRole="button"
+                                style={({ pressed }) => ({
+                                  opacity: pressed ? 0.7 : 1,
+                                })}
+                                testID="item-dont-deduct-button"
+                              >
+                                <Badge
+                                  text="Don't deduct"
+                                  color={theme.colors.accent}
+                                  filled={false}
+                                />
+                              </Pressable>
+                              {purse !== null && purseToCopper(purse) > 0 ? (
+                                <Pressable
+                                  onPress={() => {
+                                    const totalGp = purseToCopper(purse) / 100;
+                                    setPaidAmountText(String(totalGp));
+                                    setPaidCurrency("gp");
+                                  }}
+                                  accessibilityRole="button"
+                                  style={({ pressed }) => ({
+                                    opacity: pressed ? 0.7 : 1,
+                                  })}
+                                  testID="item-use-available-button"
+                                >
+                                  <Badge
+                                    text="Use available"
+                                    color={theme.colors.accent}
+                                    filled={false}
+                                  />
+                                </Pressable>
+                              ) : null}
+                            </View>
+                          </View>
+                        ) : null}
+
+                        <Input
+                          placeholder="Note (optional)"
+                          value={acquisitionNote}
+                          onChangeText={setAcquisitionNote}
+                          testID="item-acquisition-note-input"
+                        />
+                      </View>
+                    ) : null}
+
+                    {acquisitionKind === "looted" ||
+                    acquisitionKind === "found" ? (
+                      <Input
+                        placeholder="Source (optional)"
+                        value={acquisitionNote}
+                        onChangeText={setAcquisitionNote}
+                        testID="item-acquisition-note-input"
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
+            {divider}
+            {disclosureRow(
+              "Rarity",
+              itemInput.rarity,
+              itemInput.rarity !== "Common",
+              expanded === "rarity",
+              () => toggleSection("rarity"),
+              "item-rarity-row",
+            )}
+            {expanded === "rarity" ? (
+              <View
+                style={{
+                  paddingHorizontal: theme.spacing.md,
+                  paddingBottom: theme.spacing.md,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: theme.spacing.xs,
+                }}
+              >
+                {RarityArray.map((rarity) => (
+                  <Pressable
+                    onPress={() => {
+                      setItemInput((prev) => ({ ...prev, rarity }));
+                      setExpanded(null);
+                    }}
+                    key={`create-item-rarity-${rarity}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: itemInput.rarity === rarity }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    testID={`item-rarity-${rarity}`}
+                  >
+                    <Badge
+                      text={rarity}
+                      color={rarityColors[rarity]}
+                      filled={itemInput.rarity === rarity}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {divider}
+            {disclosureRow(
+              "Notes",
+              notesSummary,
+              notesSummary !== "Add",
+              expanded === "notes",
+              () => toggleSection("notes"),
+              "item-notes-row",
+            )}
+            {expanded === "notes" ? (
+              <View
+                style={{
+                  paddingHorizontal: theme.spacing.md,
+                  paddingBottom: theme.spacing.md,
+                }}
+              >
+                <Input
+                  placeholder="Description"
+                  value={itemInput.description ?? ""}
+                  testID="item-description-input"
+                  onChangeText={(text) =>
+                    setItemInput((prev) => ({ ...prev, description: text }))
+                  }
+                />
+              </View>
             ) : null}
           </View>
-        ) : null}
+        </View>
 
         {action.error !== null ? (
           <ThemedText variant="caption" style={{ color: theme.colors.error }}>

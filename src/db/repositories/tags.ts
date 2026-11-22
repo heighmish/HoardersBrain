@@ -5,7 +5,7 @@ import {
   Tag,
   tagsTable,
 } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 
 type RepositoryTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
@@ -135,7 +135,7 @@ export const ensureDefaultTagsForCharacter = async (
 };
 
 export type CreateTagInput = {
-  character_id: number;
+  character_id: number | null;
   name: string;
   parent_tag_id?: number | null;
   is_usable?: boolean;
@@ -151,18 +151,18 @@ export const createTag = async (
   }
 
   return db.transaction((tx) => {
-    const existing = tx
+    const scopeFilter =
+      input.character_id === null
+        ? isNull(tagsTable.character_id)
+        : eq(tagsTable.character_id, input.character_id);
+
+    const existingInScope = tx
       .select()
       .from(tagsTable)
-      .where(
-        and(
-          eq(tagsTable.character_id, input.character_id),
-          isNull(tagsTable.deleted_at),
-        ),
-      )
+      .where(and(scopeFilter, isNull(tagsTable.deleted_at)))
       .all();
 
-    const duplicate = existing.find(
+    const duplicate = existingInScope.find(
       (tag) => tag.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (duplicate !== undefined) {
@@ -172,7 +172,24 @@ export const createTag = async (
     let inheritedUsable = false;
     const parentId = input.parent_tag_id ?? null;
     if (parentId !== null) {
-      const parent = existing.find((tag) => tag.tag_id === parentId);
+      const parentScope =
+        input.character_id === null
+          ? isNull(tagsTable.character_id)
+          : or(
+              eq(tagsTable.character_id, input.character_id),
+              isNull(tagsTable.character_id),
+            );
+      const parent = tx
+        .select()
+        .from(tagsTable)
+        .where(
+          and(
+            eq(tagsTable.tag_id, parentId),
+            parentScope,
+            isNull(tagsTable.deleted_at),
+          ),
+        )
+        .get();
       if (parent === undefined) {
         throw new Error("Parent tag not found");
       }
@@ -183,7 +200,8 @@ export const createTag = async (
     }
 
     const nextOrder =
-      existing.reduce((max, tag) => Math.max(max, tag.sort_order), -1) + 1;
+      existingInScope.reduce((max, tag) => Math.max(max, tag.sort_order), -1) +
+      1;
 
     return tx
       .insert(tagsTable)
@@ -196,6 +214,22 @@ export const createTag = async (
       })
       .returning()
       .get();
+  });
+};
+
+export const softDeleteTag = async (
+  db: AppDatabase,
+  tagId: number,
+): Promise<void> => {
+  db.transaction((tx) => {
+    tx.update(tagsTable)
+      .set({ parent_tag_id: null })
+      .where(eq(tagsTable.parent_tag_id, tagId))
+      .run();
+    tx.update(tagsTable)
+      .set({ deleted_at: new Date() })
+      .where(eq(tagsTable.tag_id, tagId))
+      .run();
   });
 };
 
@@ -253,7 +287,10 @@ export const remapItemTagsInTransaction = (
     .from(tagsTable)
     .where(
       and(
-        eq(tagsTable.character_id, targetCharacterId),
+        or(
+          eq(tagsTable.character_id, targetCharacterId),
+          isNull(tagsTable.character_id),
+        ),
         isNull(tagsTable.deleted_at),
       ),
     )
@@ -267,6 +304,10 @@ export const remapItemTagsInTransaction = (
   const remappedIds: number[] = [];
 
   for (const tag of sourceTags) {
+    if (tag.character_id === null) {
+      remappedIds.push(tag.tag_id);
+      continue;
+    }
     const existingTarget = targetByLowerName.get(tag.name.toLowerCase());
     if (existingTarget !== undefined) {
       remappedIds.push(existingTarget.tag_id);
