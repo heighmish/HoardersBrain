@@ -3,7 +3,8 @@ import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { softDeleteStorageContainer } from "@/db/repositories";
-import { useActiveStorage } from "@/hooks/useActiveStorage";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useContainer } from "@/hooks/useContainer";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
@@ -28,19 +29,38 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
   const insets = useSafeAreaInsets();
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, run } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   const sheetGap = {
     paddingBottom: insets.bottom + theme.spacing.lg,
   };
 
-  const storage = useActiveStorage(storageId);
+  const storage = useContainer(storageId);
 
-  if (
-    storage.error ||
-    storage.updatedAt === undefined ||
-    storage.data === undefined
-  ) {
+  if (storage.status === "error") {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          padding: theme.spacing.md,
+          ...sheetGap,
+          gap: theme.spacing.md,
+        }}
+      >
+        <ThemedText variant="body">Failed to load storage container</ThemedText>
+        <Button
+          title="Close"
+          variant="secondary"
+          onPress={() => router.dismiss()}
+          testID="container-menu-close-button"
+        />
+      </View>
+    );
+  }
+
+  if (storage.status !== "ready") {
     return null;
   }
 
@@ -51,22 +71,15 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
     router.dismiss();
   };
 
-  const deleteContainer = async () => {
-    if (!confirmMatches || submitting) {
+  const deleteContainer = () => {
+    if (!confirmMatches) {
       return;
     }
 
-    setSubmitting(true);
-    try {
+    run(async () => {
       await softDeleteStorageContainer(db, container.storage_location_id);
       closeSheet();
-    } catch (error) {
-      console.error(
-        "[ContainerMenuSheet]: Failed to delete storage container",
-        error,
-      );
-      setSubmitting(false);
-    }
+    }, "Failed to delete container.");
   };
 
   const menuRow = (
@@ -113,6 +126,11 @@ const SheetContent = ({ storageId }: { storageId: number }) => {
           placeholder={container.name}
           testID="delete-confirm-input"
         />
+        {error !== null && (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {error}
+          </ThemedText>
+        )}
         <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
           <Button
             title="Cancel"

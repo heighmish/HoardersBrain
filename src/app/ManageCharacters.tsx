@@ -2,12 +2,11 @@ import AppHeader from "@/components/Basic/AppHeader";
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
-import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { renameCharacter, softDeleteCharacter } from "@/db/repositories";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -20,7 +19,9 @@ const ManageCharacters = () => {
   const { state, selectCharacter, clearCharacter } = useCharacterContext();
   const [action, setAction] = useState<ManagementAction>("none");
   const [renameInput, setRenameInput] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const renameAction = useAsyncAction();
+  const deleteAction = useAsyncAction({ keepBusyOnSuccess: true });
+  const submitting = renameAction.submitting || deleteAction.submitting;
 
   if (state.status !== "characterSelected") {
     return null;
@@ -28,52 +29,33 @@ const ManageCharacters = () => {
 
   const character = state.character;
 
-  const saveRename = async () => {
+  const saveRename = () => {
     const trimmed = renameInput.trim();
-    if (trimmed.length === 0 || submitting) {
+    if (trimmed.length === 0) {
       return;
     }
 
-    setSubmitting(true);
-    try {
+    renameAction.run(async () => {
       await renameCharacter(db, character.id, trimmed);
       selectCharacter({ id: character.id, name: trimmed });
       setAction("none");
-    } catch (error) {
-      console.error("[ManageCharacters]: Failed to rename character", error);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to update character.");
   };
 
-  const confirmDelete = async () => {
-    if (submitting) {
-      return;
-    }
-
-    setSubmitting(true);
-    try {
+  const confirmDelete = () => {
+    deleteAction.run(async () => {
       const next = await softDeleteCharacter(db, character.id);
 
       if (next === undefined) {
-        await AsyncStorage.removeItem(LAST_CHARACTER_ID);
         clearCharacter();
         router.replace("/");
         return;
       }
 
-      await AsyncStorage.setItem(
-        LAST_CHARACTER_ID,
-        next.character_id.toString(),
-      );
       selectCharacter({ id: next.character_id, name: next.name });
       setAction("none");
       router.back();
-    } catch (error) {
-      console.error("[ManageCharacters]: Failed to delete character", error);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to update character.");
   };
 
   return (
@@ -121,6 +103,14 @@ const ManageCharacters = () => {
               placeholder="Character Name"
               testID="character-rename-input"
             />
+            {renameAction.error !== null && (
+              <ThemedText
+                variant="caption"
+                style={{ color: theme.colors.error }}
+              >
+                {renameAction.error}
+              </ThemedText>
+            )}
             <View style={{ flexDirection: "row", gap: theme.spacing.sm }}>
               <Button
                 title="Save"
@@ -144,6 +134,14 @@ const ManageCharacters = () => {
 
         {action === "deleting" && (
           <View style={{ gap: theme.spacing.sm }}>
+            {deleteAction.error !== null && (
+              <ThemedText
+                variant="caption"
+                style={{ color: theme.colors.error }}
+              >
+                {deleteAction.error}
+              </ThemedText>
+            )}
             <Button
               title="Confirm Delete"
               testID="character-delete-confirm"

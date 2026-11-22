@@ -1,12 +1,11 @@
 import Button from "@/components/Basic/Button";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
-import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { createCharacterWithDefaultContainer } from "@/db/repositories";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
@@ -16,7 +15,9 @@ export default function Index() {
   const db = useDatabase();
   const { state, selectCharacter } = useCharacterContext();
   const [charNameInput, setCharNameInput] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, run } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   if (state.status === "loading") {
     return null;
@@ -26,24 +27,19 @@ export default function Index() {
     return <Redirect href="/(tabs)" />;
   }
 
-  const createCharacter = async () => {
+  const createCharacter = () => {
     const trimmedName = charNameInput.trim();
-    if (trimmedName.length === 0 || submitting) {
+    if (trimmedName.length === 0) {
       return;
     }
 
-    setSubmitting(true);
-    try {
+    run(async () => {
       const created = await createCharacterWithDefaultContainer(
         db,
         trimmedName,
       );
-      await AsyncStorage.setItem(LAST_CHARACTER_ID, created.id.toString());
       selectCharacter({ id: created.id, name: created.name });
-    } catch (error) {
-      console.error("[Index]: Failed to create character", error);
-      setSubmitting(false);
-    }
+    }, "Failed to create character.");
   };
 
   return (
@@ -63,6 +59,11 @@ export default function Index() {
         placeholder={"Character Name"}
         testID="character-name-input"
       />
+      {error !== null && (
+        <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+          {error}
+        </ThemedText>
+      )}
       <Button
         title="Create Character"
         onPress={createCharacter}

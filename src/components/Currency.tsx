@@ -4,7 +4,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useCharacter } from "@/hooks/useCharacter";
 import { calculateTotalGoldValue } from "@/utils/currency";
 
 interface CurrencyProps {
@@ -13,9 +13,9 @@ interface CurrencyProps {
 
 const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
   const theme = useTheme();
-  const character = useCharacterRow(characterId);
+  const character = useCharacter(characterId);
 
-  if (character.error) {
+  if (character.status === "error") {
     return (
       <View>
         <ThemedText variant="body">
@@ -25,7 +25,7 @@ const Currency: React.FC<CurrencyProps> = ({ characterId }) => {
     );
   }
 
-  if (!character.data) {
+  if (character.status !== "ready") {
     return null;
   }
 

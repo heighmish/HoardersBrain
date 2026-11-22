@@ -15,7 +15,7 @@ import {
 import Currency from "@/components/Currency";
 import Carrying from "@/components/Carrying";
 import ThemedText from "@/components/Basic/ThemedText";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useCharacter } from "@/hooks/useCharacter";
 
 const Inventory = () => {
   const { state } = useCharacterContext();
@@ -30,8 +30,10 @@ const Inventory = () => {
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const characterRow = useCharacterRow(character.id);
-  const showWeight = characterRow.data?.weight_tracking !== false;
+  const characterQuery = useCharacter(character.id);
+  const showWeight =
+    characterQuery.status !== "ready" ||
+    characterQuery.data.weight_tracking !== false;
 
   const storageLocations = useLiveQuery(
     db.query.storageLocationsTable.findMany({

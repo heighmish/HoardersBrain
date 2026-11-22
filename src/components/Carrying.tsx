@@ -7,7 +7,7 @@ import { and, eq, isNull, sum } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { View } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useCharacter } from "@/hooks/useCharacter";
 import {
   CarriedItemRow,
   calculateCarriedItemsWeight,
@@ -21,7 +21,7 @@ interface CarryingProps {
 const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const theme = useTheme();
   const db = useDatabase();
-  const character = useCharacterRow(characterId);
+  const character = useCharacter(characterId);
 
   const items = useLiveQuery(
     db
@@ -85,7 +85,11 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   const totalCarriedWeight =
     calculateCarriedItemsWeight(carriedRows) + containerWeight;
 
-  if (character.error || items.error || containerWeightQuery.error) {
+  if (
+    character.status === "error" ||
+    items.error ||
+    containerWeightQuery.error
+  ) {
     return (
       <View>
         <ThemedText variant="body">
@@ -96,7 +100,7 @@ const Carrying: React.FC<CarryingProps> = ({ characterId }) => {
   }
 
   if (
-    character.data === undefined ||
+    character.status !== "ready" ||
     items.updatedAt === undefined ||
     containerWeightQuery.updatedAt === undefined
   ) {

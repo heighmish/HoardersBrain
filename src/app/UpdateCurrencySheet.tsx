@@ -3,7 +3,8 @@ import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { updateCharacterCurrency } from "@/db/repositories";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacter } from "@/hooks/useCharacter";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { router } from "expo-router";
@@ -27,9 +28,9 @@ const CURRENCY_KEYS = [
 const UpdateCurrencySheet = () => {
   const theme = useTheme();
   const character = useSelectedCharacter();
-  const characterRow = useCharacterRow(character.id);
+  const characterQuery = useCharacter(character.id);
 
-  if (characterRow.error) {
+  if (characterQuery.status === "error") {
     return (
       <View
         style={{
@@ -44,12 +45,12 @@ const UpdateCurrencySheet = () => {
     );
   }
 
-  if (characterRow.updatedAt === undefined || characterRow.data === undefined) {
+  if (characterQuery.status !== "ready") {
     return null;
   }
 
   return (
-    <CurrencyForm initial={characterRow.data} characterId={character.id} />
+    <CurrencyForm initial={characterQuery.data} characterId={character.id} />
   );
 };
 
@@ -70,7 +71,9 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
     silver: initial.silver,
     copper: initial.copper,
   });
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, error, run } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   const handleChange = (currency: keyof CurrencyValues, value: string) => {
     const newValue = value === "" ? 0 : Math.max(0, parseInt(value) || 0);
@@ -80,19 +83,11 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
     }));
   };
 
-  const saveUpdate = async () => {
-    if (submitting) {
-      return;
-    }
-
-    setSubmitting(true);
-    try {
+  const saveUpdate = () => {
+    run(async () => {
       await updateCharacterCurrency(db, characterId, currencies);
       router.back();
-    } catch (error) {
-      console.error("[UpdateCurrencySheet]: Failed to update currency", error);
-      setSubmitting(false);
-    }
+    }, "Failed to update currency.");
   };
 
   return (
@@ -130,6 +125,11 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
           </View>
         ))}
       </View>
+      {error !== null && (
+        <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+          {error}
+        </ThemedText>
+      )}
       <View
         style={{
           flexDirection: "row",

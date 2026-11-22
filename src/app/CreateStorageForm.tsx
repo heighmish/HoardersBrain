@@ -14,8 +14,9 @@ import {
   updateStorageContainer,
 } from "@/db/repositories";
 import type { Storage } from "@/db/schema";
-import { useActiveStorage } from "@/hooks/useActiveStorage";
-import { useCharacterRow } from "@/hooks/useCharacterRow";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacter } from "@/hooks/useCharacter";
+import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
@@ -31,39 +32,53 @@ import {
   ViewStyle,
 } from "react-native";
 
+const returnToInventory = () =>
+  router.canGoBack() ? router.back() : router.replace("/(tabs)");
+
 const CreateStorageForm = () => {
+  const theme = useTheme();
   const { storageId } = useLocalSearchParams<{ storageId?: string }>();
   const editingId = parseIdParam(storageId);
 
-  if (editingId === null) {
-    return <StorageForm initialStorage={null} />;
-  }
-  return <EditStorageLoader storageId={editingId} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <AppHeader
+        title={editingId === null ? "Create new storage" : "Edit storage"}
+      />
+      {editingId === null ? (
+        <StorageForm initialStorage={null} />
+      ) : (
+        <EditStorageLoader storageId={editingId} />
+      )}
+    </View>
+  );
 };
 
 const EditStorageLoader = ({ storageId }: { storageId: number }) => {
-  const storage = useActiveStorage(storageId);
+  const storage = useContainer(storageId);
 
-  if (storage.error) {
+  if (storage.status === "error") {
     return (
       <ScreenState
         kind="message"
-        title="Edit storage"
         message="Failed to load storage container"
+        actionLabel="Back"
+        onAction={returnToInventory}
       />
     );
   }
 
-  if (storage.updatedAt === undefined) {
-    return <ScreenState kind="loading" title="Edit storage" />;
+  if (storage.status === "loading") {
+    return <ScreenState kind="loading" />;
   }
 
-  if (storage.data === undefined) {
+  if (storage.status === "missing") {
     return (
       <ScreenState
         kind="message"
-        title="Edit storage"
         message="Storage container not found."
+        actionLabel="Back"
+        onAction={returnToInventory}
       />
     );
   }
@@ -80,10 +95,15 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const db = useDatabase();
   const character = useSelectedCharacter();
   const isEditing = initialStorage !== null;
+  const { submitting, error, run } = useAsyncAction({
+    keepBusyOnSuccess: true,
+  });
 
   const characterId = initialStorage?.character_id ?? character.id;
-  const characterRow = useCharacterRow(characterId);
-  const showWeight = characterRow.data?.weight_tracking !== false;
+  const characterQuery = useCharacter(characterId);
+  const showWeight =
+    characterQuery.status !== "ready" ||
+    characterQuery.data.weight_tracking !== false;
 
   const [storageInput, setStorageInput] = useState<StorageInput>({
     name: initialStorage?.name ?? "",
@@ -98,14 +118,13 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const [weightText, setWeightText] = useState(
     initialStorage === null ? "0" : String(initialStorage.weight),
   );
-  const [submitting, setSubmitting] = useState(false);
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
   };
 
-  const submit = async () => {
-    if (storageInput.name === "" || submitting) {
+  const submit = () => {
+    if (storageInput.name === "") {
       return;
     }
 
@@ -116,8 +135,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         : (initialStorage?.weight ?? 0),
     };
 
-    setSubmitting(true);
-    try {
+    run(async () => {
       if (initialStorage === null) {
         await createStorageContainer(db, values);
       } else {
@@ -128,13 +146,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         );
       }
       router.back();
-    } catch (error) {
-      console.error(
-        "[CreateStorageForm]: Failed to save storage container",
-        error,
-      );
-      setSubmitting(false);
-    }
+    }, "Failed to save storage.");
   };
 
   const switchRowStyle = (pressed: boolean): ViewStyle => ({
@@ -148,9 +160,8 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
+      style={{ flex: 1 }}
     >
-      <AppHeader title={isEditing ? "Edit storage" : "Create new storage"} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -278,6 +289,12 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
             testID="carrying-toggle"
           />
         </Pressable>
+
+        {error !== null && (
+          <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+            {error}
+          </ThemedText>
+        )}
 
         <Button
           title={isEditing ? "Save" : "Create"}

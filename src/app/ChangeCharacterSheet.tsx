@@ -1,11 +1,9 @@
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
-import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { charactersTable } from "@/db/schema";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AntDesign } from "@expo/vector-icons";
 import { isNull } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
@@ -56,11 +54,7 @@ const ChangeCharacterSheet = () => {
             accessibilityRole="button"
             testID={`character-row-${item.character_id}`}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-            onPress={async () => {
-              await AsyncStorage.setItem(
-                LAST_CHARACTER_ID,
-                item.character_id.toString(),
-              );
+            onPress={() => {
               selectCharacter({
                 id: item.character_id,
                 name: item.name,
@@ -95,8 +89,7 @@ const ChangeCharacterSheet = () => {
           title="Create new character"
           variant="secondary"
           fullWidth
-          onPress={async () => {
-            await AsyncStorage.removeItem(LAST_CHARACTER_ID);
+          onPress={() => {
             clearCharacter();
             router.replace("/");
           }}
