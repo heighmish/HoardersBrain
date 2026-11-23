@@ -312,7 +312,7 @@ const TagSettings = () => {
           ) : null}
 
           <View style={{ gap: theme.spacing.xs }}>
-            {sectionLabel(`${character.name} tags`)}
+            {sectionLabel("Active character tags")}
             {characterTags.length === 0 ? (
               <ThemedText variant="subhead">No character tags</ThemedText>
             ) : (

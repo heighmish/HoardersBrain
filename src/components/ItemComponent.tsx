@@ -57,6 +57,7 @@ const ItemComponent: React.FC<ItemProps> = ({
         });
       }}
       style={({ pressed }) => ({
+        position: "relative",
         flexDirection: "row",
         alignItems: "center",
         gap: theme.spacing.sm,
@@ -68,33 +69,27 @@ const ItemComponent: React.FC<ItemProps> = ({
       })}
       testID={`item-row-${item.item_id}`}
     >
-      <View style={{ flex: 1, gap: theme.spacing.xs }}>
+      {hasRarityAccent ? (
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: theme.spacing.xs,
+            position: "absolute",
+            left: -10, // Hangs in the card's 16px left padding so item names stay flush-left
+            top: theme.spacing.sm,
+            bottom: theme.spacing.sm,
+            width: 3,
+            borderRadius: theme.radius.full,
+            backgroundColor: rarityColors[item.rarity],
           }}
+        />
+      ) : null}
+      <View style={{ flex: 1, gap: theme.spacing.xs }}>
+        <ThemedText
+          variant="subhead"
+          numberOfLines={2}
+          style={{ color: theme.colors.text }}
         >
-          {hasRarityAccent ? (
-            <View
-              style={{
-                width: 6,
-                height: 6,
-                marginTop: 6, // Centers dot on line 1 of subhead (15pt) when wrapped
-                borderRadius: theme.radius.full,
-                backgroundColor: rarityColors[item.rarity],
-              }}
-            />
-          ) : null}
-          <ThemedText
-            variant="subhead"
-            numberOfLines={2}
-            style={{ flexShrink: 1, color: theme.colors.text }}
-          >
-            {item.name}
-          </ThemedText>
-        </View>
+          {item.name}
+        </ThemedText>
         {visibleTags.length > 0 ? (
           <View
             style={{

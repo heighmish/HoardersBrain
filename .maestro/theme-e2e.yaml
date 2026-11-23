@@ -5,7 +5,7 @@ tags:
 name: Switch theme preset and mode
 ---
 # Journey: an empty database auto-seeds Sample Character, so the inventory is
-# ready immediately; open the theme screen from settings, switch to the Dracula
+# ready immediately; open the theme screen from settings, switch to the Tokyo Night
 # preset, then switch the mode to Dark. The screen's state line
 # ("PresetName · Mode") asserts each change with text-only assertions; taps go
 # through stable testIDs.
@@ -29,8 +29,8 @@ name: Switch theme preset and mode
     visible: "Mind Flayer · System"
     timeout: 30000
 - tapOn:
-    id: theme-preset-dracula
-- assertVisible: "Dracula · System"
+    id: theme-preset-tokyo-night
+- assertVisible: "Tokyo Night · System"
 - tapOn:
     id: theme-mode-dark
-- assertVisible: "Dracula · Dark"
+- assertVisible: "Tokyo Night · Dark"

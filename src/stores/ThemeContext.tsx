@@ -91,11 +91,15 @@ const parseStoredSettings = (stored: string): PersistedThemeSettings => {
           isPaletteSemantics(palette),
       )
     : [];
+  const rawPresetId =
+    typeof candidate.presetId === "string"
+      ? candidate.presetId
+      : DEFAULT_PRESET_ID;
+  const presetExists =
+    findThemePreset(rawPresetId) !== undefined ||
+    findCustomPalette(rawPresetId, customPalettes) !== undefined;
   return {
-    presetId:
-      typeof candidate.presetId === "string"
-        ? candidate.presetId
-        : DEFAULT_PRESET_ID,
+    presetId: presetExists ? rawPresetId : DEFAULT_PRESET_ID,
     mode: isThemeMode(candidate.mode) ? candidate.mode : "system",
     customPalettes,
   };
