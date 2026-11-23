@@ -37,6 +37,8 @@ name: Capture visual evidence across the core journey
 - tapOn:
     text: "Name"
 - inputText: "Bag of Holding"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
 - tapOn: "Create"
 

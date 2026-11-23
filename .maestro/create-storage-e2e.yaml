@@ -30,6 +30,8 @@ name: Create a storage container end to end
 - tapOn:
     text: "Description"
 - inputText: "Extra dimensional space"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
 - tapOn: "Create"
 

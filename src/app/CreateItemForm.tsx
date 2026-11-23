@@ -931,7 +931,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
                   <Pressable
                     onPress={() => {
                       setItemInput((prev) => ({ ...prev, rarity }));
-                      setExpanded(null);
                     }}
                     key={`create-item-rarity-${rarity}`}
                     accessibilityRole="button"

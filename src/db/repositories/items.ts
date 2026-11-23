@@ -247,6 +247,35 @@ export const removeOneFromStack = async (
     .where(eq(itemsTable.item_id, itemId));
 };
 
+export const useOneFromItem = async (
+  db: AppDatabase,
+  itemId: number,
+): Promise<void> => {
+  db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      return;
+    }
+    if (item.quantity <= 1) {
+      tx.update(itemsTable)
+        .set({ deleted_at: new Date() })
+        .where(eq(itemsTable.item_id, itemId))
+        .run();
+    } else {
+      tx.update(itemsTable)
+        .set({ quantity: item.quantity - 1 })
+        .where(eq(itemsTable.item_id, itemId))
+        .run();
+    }
+    tx.insert(ledgerTable)
+      .values({
+        character_id: item.character_id,
+        message: `Used ${item.name}`,
+      })
+      .run();
+  });
+};
+
 export const splitItemStack = async (
   db: AppDatabase,
   itemId: number,

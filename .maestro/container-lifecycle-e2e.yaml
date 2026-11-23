@@ -30,6 +30,8 @@ name: Create, edit, and delete a container end to end
 - tapOn:
     text: "Name"
 - inputText: "Bag of Holding"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
 - tapOn: "Create"
 
