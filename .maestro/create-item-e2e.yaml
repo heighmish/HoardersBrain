@@ -4,33 +4,49 @@ tags:
   - create-item
 name: Create an item end to end
 ---
-# Full journey: create character, create storage, create an item inside it,
-# and see the item row rendered on the inventory.
+# Full journey: an empty database auto-seeds Sample Character, so switch to a
+# fresh character, create a storage container, create an item inside it, and
+# see the item row rendered on the inventory.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
 - tapOn:
-    text: "Character Name"
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    id: character-name-input
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
 - extendedWaitUntil:
-    visible: ".*Currency.*"
-    timeout: 30000
-- tapOn: "Add Container"
-
-- extendedWaitUntil:
-    visible: "Description"
+    visible: ".*QA Hero.*"
     timeout: 30000
 - tapOn:
-    text: "Name"
+    id: add-container-button
+
+- extendedWaitUntil:
+    visible:
+      id: storage-name-input
+    timeout: 30000
+- tapOn:
+    id: storage-name-input
 - inputText: "Bag of Holding"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
-- tapOn: "Create"
+- tapOn:
+    id: create-storage-button
 
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
@@ -39,15 +55,15 @@ name: Create an item end to end
     id: fab-add-item
 
 - extendedWaitUntil:
-    visible: "Weight"
+    visible:
+      id: item-name-input
     timeout: 30000
+- tapOn: "Bag of Holding"
 - tapOn:
-    text: "Bag of Holding"
-- tapOn:
-    text: "Name"
+    id: item-name-input
 - inputText: "Rope of Climbing"
 - tapOn:
-    text: "Description"
+    id: item-description-input
 - inputText: "50 feet of hemp"
 - tapOn:
     id: item-rarity-row
@@ -56,7 +72,8 @@ name: Create an item end to end
     id: item-weight-input
 - eraseText
 - inputText: "1.5"
-- tapOn: "Create"
+- tapOn:
+    id: create-item-button
 
 - assertVisible: "Rope of Climbing"
 - assertVisible: "1.5"

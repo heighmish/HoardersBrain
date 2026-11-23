@@ -4,6 +4,7 @@ import { DatabaseProvider } from "@/db/DatabaseProvider";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { CharacterProvider } from "@/stores/CharacterContext";
+import { InventoryDisplayProvider } from "@/stores/InventoryDisplayContext";
 import {
   ThemeProvider as AppThemeProvider,
   useTheme,
@@ -77,6 +78,16 @@ const RootNavigator = () => {
             sheetCornerRadius: 15,
           }}
         />
+        <Stack.Screen
+          name="InventoryDisplaySheet"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: "fitToContents",
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 15,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
@@ -141,7 +152,9 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <DatabaseProvider>
             <CharacterProvider>
-              <RootNavigator />
+              <InventoryDisplayProvider>
+                <RootNavigator />
+              </InventoryDisplayProvider>
             </CharacterProvider>
           </DatabaseProvider>
         </SafeAreaProvider>

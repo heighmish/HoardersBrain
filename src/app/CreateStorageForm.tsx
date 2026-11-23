@@ -19,6 +19,7 @@ import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
+import { AntDesign } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -81,7 +82,12 @@ const EditStorageLoader = ({ storageId }: { storageId: number }) => {
     );
   }
 
-  return <StorageForm initialStorage={storage.data} />;
+  return (
+    <StorageForm
+      key={storage.data.storage_location_id}
+      initialStorage={storage.data}
+    />
+  );
 };
 
 interface StorageFormProps {
@@ -110,6 +116,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const [weightText, setWeightText] = useState(
     initialStorage === null ? "0" : String(initialStorage.weight),
   );
+  const [rarityExpanded, setRarityExpanded] = useState(false);
 
   const adjustWeight = (delta: number) => {
     setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
@@ -166,14 +173,21 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           gap: theme.spacing.md,
         }}
       >
-        <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Name")}
+        <View style={{ gap: theme.spacing.sm }}>
           <Input
             placeholder="Name"
             value={storageInput.name}
             testID="storage-name-input"
             onChangeText={(text) =>
               setStorageInput((prev) => ({ ...prev, name: text }))
+            }
+          />
+          <Input
+            placeholder="Description"
+            value={storageInput.description ?? ""}
+            testID="storage-description-input"
+            onChangeText={(text) =>
+              setStorageInput((prev) => ({ ...prev, description: text }))
             }
           />
         </View>
@@ -189,147 +203,203 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
           />
         </View>
 
-        <View
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
-            borderWidth: 1,
-            borderRadius: theme.radius.md,
-            borderCurve: "continuous",
-            overflow: "hidden",
-          }}
-        >
-          <Pressable
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: theme.spacing.md,
-              padding: theme.spacing.md,
-              opacity: pressed ? 0.7 : 1,
-            })}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: storageInput.carrying }}
-            onPress={() =>
-              setStorageInput((prev) => ({
-                ...prev,
-                carrying: !prev.carrying,
-              }))
-            }
-          >
-            <View style={{ flex: 1, gap: theme.spacing.xs }}>
-              <ThemedText variant="body">Carrying</ThemedText>
-              <ThemedText variant="caption">
-                Counts toward encumbrance
-              </ThemedText>
-            </View>
-            <Switch
-              value={storageInput.carrying}
-              onValueChange={(value) =>
-                setStorageInput((prev) => ({
-                  ...prev,
-                  carrying: value,
-                }))
-              }
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.accent,
-              }}
-              testID="carrying-toggle"
-            />
-          </Pressable>
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: theme.colors.border,
-            }}
-          />
-
-          <Pressable
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: theme.spacing.md,
-              padding: theme.spacing.md,
-              opacity: pressed ? 0.7 : 1,
-            })}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: storageInput.is_fixed_weight }}
-            onPress={() =>
-              setStorageInput((prev) => ({
-                ...prev,
-                is_fixed_weight: !prev.is_fixed_weight,
-              }))
-            }
-          >
-            <View style={{ flex: 1, gap: theme.spacing.xs }}>
-              <ThemedText variant="body">Fixed weight</ThemedText>
-              <ThemedText variant="caption">
-                Ignores contents (e.g. Bag of Holding)
-              </ThemedText>
-            </View>
-            <Switch
-              value={storageInput.is_fixed_weight}
-              onValueChange={(value) =>
-                setStorageInput((prev) => ({
-                  ...prev,
-                  is_fixed_weight: value,
-                }))
-              }
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.accent,
-              }}
-              testID="fixed-weight-toggle"
-            />
-          </Pressable>
-        </View>
-
         <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Rarity")}
+          {sectionLabel("Encumbrance")}
           <View
             style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: theme.spacing.xs,
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+              borderRadius: theme.radius.md,
+              borderCurve: "continuous",
+              overflow: "hidden",
             }}
           >
-            {RarityArray.map((rarity) => (
-              <Pressable
-                onPress={() =>
+            <Pressable
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: theme.spacing.md,
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                minHeight: 44,
+                opacity: pressed ? 0.7 : 1,
+              })}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: storageInput.carrying }}
+              onPress={() =>
+                setStorageInput((prev) => ({
+                  ...prev,
+                  carrying: !prev.carrying,
+                }))
+              }
+            >
+              <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                <ThemedText variant="body">Carrying</ThemedText>
+                <ThemedText variant="caption">
+                  Counts toward encumbrance
+                </ThemedText>
+              </View>
+              <Switch
+                value={storageInput.carrying}
+                onValueChange={(value) =>
                   setStorageInput((prev) => ({
                     ...prev,
-                    rarity: rarity,
+                    carrying: value,
                   }))
                 }
-                key={`create-storage-rarity-${rarity}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: storageInput.rarity === rarity }}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                testID={`storage-rarity-${rarity}`}
-              >
-                <Badge
-                  text={rarity}
-                  color={rarityColors[rarity]}
-                  filled={storageInput.rarity === rarity}
-                />
-              </Pressable>
-            ))}
+                trackColor={{
+                  false: theme.colors.border,
+                  true: theme.colors.accent,
+                }}
+                testID="carrying-toggle"
+              />
+            </Pressable>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: theme.colors.border,
+              }}
+            />
+
+            <Pressable
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: theme.spacing.md,
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                minHeight: 44,
+                opacity: pressed ? 0.7 : 1,
+              })}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: storageInput.is_fixed_weight }}
+              onPress={() =>
+                setStorageInput((prev) => ({
+                  ...prev,
+                  is_fixed_weight: !prev.is_fixed_weight,
+                }))
+              }
+            >
+              <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                <ThemedText variant="body">Fixed weight</ThemedText>
+                <ThemedText variant="caption">
+                  Ignores contents (e.g. Bag of Holding)
+                </ThemedText>
+              </View>
+              <Switch
+                value={storageInput.is_fixed_weight}
+                onValueChange={(value) =>
+                  setStorageInput((prev) => ({
+                    ...prev,
+                    is_fixed_weight: value,
+                  }))
+                }
+                trackColor={{
+                  false: theme.colors.border,
+                  true: theme.colors.accent,
+                }}
+                testID="fixed-weight-toggle"
+              />
+            </Pressable>
           </View>
         </View>
 
         <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Description")}
-          <Input
-            placeholder="Description"
-            value={storageInput.description ?? ""}
-            testID="storage-description-input"
-            onChangeText={(text) =>
-              setStorageInput((prev) => ({ ...prev, description: text }))
-            }
-          />
+          {sectionLabel("Optional details")}
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+              borderRadius: theme.radius.md,
+              borderCurve: "continuous",
+              overflow: "hidden",
+            }}
+          >
+            <Pressable
+              onPress={() => setRarityExpanded((prev) => !prev)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: rarityExpanded }}
+              testID="storage-rarity-row"
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: theme.spacing.md,
+                paddingVertical: theme.spacing.sm,
+                minHeight: 44,
+                gap: theme.spacing.sm,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <ThemedText variant="body">Rarity</ThemedText>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: theme.spacing.xs,
+                  flexShrink: 1,
+                }}
+              >
+                <ThemedText
+                  variant="subhead"
+                  numberOfLines={1}
+                  style={{
+                    color:
+                      storageInput.rarity !== "Common"
+                        ? theme.colors.accent
+                        : theme.colors.textMuted,
+                  }}
+                >
+                  {storageInput.rarity}
+                </ThemedText>
+                <AntDesign
+                  name={rarityExpanded ? "up" : "down"}
+                  size={12}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+            {rarityExpanded ? (
+              <View
+                style={{
+                  paddingHorizontal: theme.spacing.md,
+                  paddingBottom: theme.spacing.md,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: theme.spacing.xs,
+                }}
+              >
+                {RarityArray.map((rarity) => (
+                  <Pressable
+                    onPress={() => {
+                      setStorageInput((prev) => ({
+                        ...prev,
+                        rarity,
+                      }));
+                    }}
+                    key={`create-storage-rarity-${rarity}`}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: storageInput.rarity === rarity,
+                    }}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    testID={`storage-rarity-${rarity}`}
+                  >
+                    <Badge
+                      text={rarity}
+                      color={rarityColors[rarity]}
+                      filled={storageInput.rarity === rarity}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
         </View>
 
         {error !== null && (

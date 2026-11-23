@@ -1,6 +1,7 @@
 import { LAST_CHARACTER_ID } from "@/constants/CacheKeys";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { findActiveCharacterById } from "@/db/repositories/characters";
+import { loadSampleData } from "@/db/sampleData";
 import { charactersTable } from "@/db/schema";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { asc, isNull } from "drizzle-orm";
@@ -96,10 +97,18 @@ export const CharacterProvider: React.FC<CharacterContextProps> = ({
           return;
         }
 
-        if (storedId !== null) {
-          AsyncStorage.removeItem(LAST_CHARACTER_ID).catch(console.error);
-        }
-        setState({ status: "noCharacter" });
+        const sampleCharacter = await loadSampleData(db);
+        AsyncStorage.setItem(
+          LAST_CHARACTER_ID,
+          String(sampleCharacter.id),
+        ).catch(console.error);
+        setState({
+          status: "characterSelected",
+          character: {
+            id: sampleCharacter.id,
+            name: sampleCharacter.name,
+          },
+        });
       } catch (error) {
         console.error(
           "[CharacterContext]: Error loading last used character",

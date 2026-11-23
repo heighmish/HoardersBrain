@@ -5,13 +5,12 @@ import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { splitItemStack } from "@/db/repositories/items";
-import { Item, storageLocationsTable } from "@/db/schema";
+import { Item } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacterContainers } from "@/hooks/useCharacterContainers";
 import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
-import { and, eq, isNull, ne } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -91,15 +90,9 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
   const [destinationId, setDestinationId] = useState<number | null>(null);
   const action = useAsyncAction({ keepBusyOnSuccess: true });
 
-  const containers = useLiveQuery(
-    db.query.storageLocationsTable.findMany({
-      where: and(
-        eq(storageLocationsTable.character_id, item.character_id),
-        ne(storageLocationsTable.storage_location_id, item.storage_location_id),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [item.character_id, item.storage_location_id],
+  const containers = useCharacterContainers(item.character_id);
+  const destinations = containers.data.filter(
+    (container) => container.storage_location_id !== item.storage_location_id,
   );
 
   const maxAmount = item.quantity - 1;
@@ -153,7 +146,7 @@ const SplitItemFormBody = ({ item }: { item: Item }) => {
             </View>
             <View style={{ gap: theme.spacing.sm }}>
               <ThemedText variant="headline">Destination</ThemedText>
-              {containers.data.map((container) => (
+              {destinations.map((container) => (
                 <Pressable
                   key={container.storage_location_id}
                   accessibilityRole="button"

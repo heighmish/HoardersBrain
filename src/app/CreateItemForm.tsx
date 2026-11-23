@@ -13,11 +13,13 @@ import {
   ItemAcquisition,
   updateItemDetails,
 } from "@/db/repositories";
-import { Item, itemTagsTable, storageLocationsTable } from "@/db/schema";
+import { Item } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacter } from "@/hooks/useCharacter";
+import { useCharacterContainers } from "@/hooks/useCharacterContainers";
 import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { useItem } from "@/hooks/useItem";
+import { useItemTagLinks } from "@/hooks/useItemTagLinks";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import {
@@ -29,8 +31,6 @@ import {
 } from "@/utils/currency";
 import { parseIdParam } from "@/utils/params";
 import { AntDesign } from "@expo/vector-icons";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -115,16 +115,10 @@ const CreateItemForm = () => {
 };
 
 const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
-  const db = useDatabase();
   const item = useItem(itemId);
-  const tagLinks = useLiveQuery(
-    db.query.itemTagsTable.findMany({
-      where: eq(itemTagsTable.item_id, itemId),
-    }),
-    [itemId],
-  );
+  const tagLinks = useItemTagLinks(itemId);
 
-  if (item.status === "error") {
+  if (item.status === "error" || tagLinks.error) {
     return (
       <ScreenState
         kind="message"
@@ -135,7 +129,7 @@ const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
     );
   }
 
-  if (item.status === "loading" || tagLinks.updatedAt === undefined) {
+  if (item.status === "loading" || !tagLinks.isReady) {
     return <ScreenState kind="loading" />;
   }
 
@@ -170,7 +164,7 @@ const EditItemFormLoader = ({ itemId }: { itemId: number }) => {
       initialQuantityText={String(loaded.quantity)}
       initialValueText={loaded.value === null ? "" : String(loaded.value)}
       initialValueCurrency={loaded.value_currency ?? "gp"}
-      initialTagIds={tagLinks.data.map((link) => link.tag_id)}
+      initialTagIds={tagLinks.tagIds}
     />
   );
 };
@@ -240,16 +234,8 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
     }
   }
 
-  const containers = useLiveQuery(
-    db.query.storageLocationsTable.findMany({
-      where: and(
-        eq(storageLocationsTable.character_id, initialInput.character_id),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [initialInput.character_id],
-  );
-  const containerList = containers.data ?? [];
+  const containers = useCharacterContainers(initialInput.character_id);
+  const containerList = containers.data;
 
   const defaultContainerId =
     mode === "create" && selectedContainerId === null
@@ -931,7 +917,6 @@ const ItemFormBody = (props: ItemFormBodyProps) => {
                   <Pressable
                     onPress={() => {
                       setItemInput((prev) => ({ ...prev, rarity }));
-                      setExpanded(null);
                     }}
                     key={`create-item-rarity-${rarity}`}
                     accessibilityRole="button"

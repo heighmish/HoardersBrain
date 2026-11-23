@@ -4,33 +4,49 @@ tags:
   - item-lifecycle
 name: Item lifecycle end to end
 ---
-# Full journey: create a character, a container, and a stacked item; open the
-# item detail; edit the item; decrement the stack; remove the rest.
+# Full journey: an empty database auto-seeds Sample Character, so switch to a
+# fresh character, create a container and a stacked item; open the item detail;
+# edit the item; decrement the stack; remove the rest.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
 - tapOn:
-    text: "Character Name"
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    id: character-name-input
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
 - extendedWaitUntil:
-    visible: ".*Currency.*"
-    timeout: 30000
-- tapOn: "Add Container"
-
-- extendedWaitUntil:
-    visible: "Description"
+    visible: ".*QA Hero.*"
     timeout: 30000
 - tapOn:
-    text: "Name"
+    id: add-container-button
+
+- extendedWaitUntil:
+    visible:
+      id: storage-name-input
+    timeout: 30000
+- tapOn:
+    id: storage-name-input
 - inputText: "Bag of Holding"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
-- tapOn: "Create"
+- tapOn:
+    id: create-storage-button
 
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
@@ -39,18 +55,19 @@ name: Item lifecycle end to end
     id: fab-add-item
 
 - extendedWaitUntil:
-    visible: "Weight"
+    visible:
+      id: item-name-input
     timeout: 30000
+- tapOn: "Bag of Holding"
 - tapOn:
-    text: "Bag of Holding"
-- tapOn:
-    text: "Name"
+    id: item-name-input
 - inputText: "Rope of Climbing"
 - tapOn:
     id: item-quantity-input
 - eraseText
 - inputText: "3"
-- tapOn: "Create"
+- tapOn:
+    id: create-item-button
 
 - assertVisible: "Rope of Climbing"
 - assertVisible: "3"
@@ -58,7 +75,8 @@ name: Item lifecycle end to end
 - tapOn:
     text: "Rope of Climbing"
 - extendedWaitUntil:
-    id: item-detail-screen
+    visible:
+      id: item-detail-screen
     timeout: 30000
 - assertVisible: "Quantity"
 - assertVisible: "Bag of Holding"
@@ -67,7 +85,8 @@ name: Item lifecycle end to end
 - tapOn:
     id: edit-item-button
 - extendedWaitUntil:
-    visible: "Weight"
+    visible:
+      id: item-name-input
     timeout: 30000
 - tapOn:
     id: item-name-input

@@ -11,7 +11,7 @@ Expo SDK APIs change every release. Before using an Expo or React Native API, ch
 ```bash
 npx expo install <package>              # install SDK-compatible packages
 npx expo start                          # Metro dev server (interactive dev only)
-npm run check                           # oxlint + tsc --noEmit + design-token guardrail
+npm run check                           # oxlint + tsc --noEmit + design-token guardrail + knip (unused files)
 npx expo run:ios --configuration Release # Release build for Maestro merge gates
 ```
 
@@ -20,7 +20,9 @@ Run `npm run check` before declaring any task done.
 ## Architecture
 
 - **Routing**: Expo Router under `src/app/` (`_layout.tsx` navigators, screen files). Non-route code lives in `src/` outside `src/app/`, imported via `@/*`.
-- **Layered boundaries**: Screens own navigation, local UI state, and layout. Writes go through the repository layer, reusable live-query subscriptions live in hooks, and pure domain logic (encumbrance, currency, parsing) lives in framework-free utilities.
+- **Layered boundaries**: Screens own navigation, local UI state, and layout. Writes go through `src/db/repositories/`, reusable live-query subscriptions live in `src/hooks/` (don't inline `useLiveQuery` in screens/components), and pure domain logic (encumbrance, currency, weight formatting, filtering) lives in `src/utils/`.
+- **Live-query hygiene**: `drizzle-orm/expo-sqlite` `useLiveQuery` only subscribes to the primary table of a join — use separate single-table queries joined via `useMemo`.
+- **State hygiene**: Use `useReducer` when local UI state has multi-field transitions, and key character-scoped content on `character.id` so state never leaks across character switches.
 - **Local-first SQLite**: Drizzle on `expo-sqlite` — multi-step writes run inside synchronous `db.transaction` callbacks, and active queries filter out soft-deleted rows (`deleted_at`).
 - **Encumbrance**: Carried weight includes only `carrying = true` containers; fixed-weight containers exclude their contents' weight.
 

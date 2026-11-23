@@ -4,89 +4,114 @@ tags:
   - design
 name: Capture visual evidence across the core journey
 ---
-# Evidence flow for merge gates: walks the same golden path as the
-# create-storage and create-item flows, saving a screenshot at each
-# meaningful state, then flips the theme to dark in the settings sheet.
-# Run it at gates after visual changes and attach the screenshots to
-# the merge report as the before/after evidence AGENTS.md requires.
+# Evidence flow for merge gates: captures the auto-seeded Sample Character
+# inventory first (a cleared database seeds on launch), then switches to a
+# fresh character and walks the create-storage and create-item journey, saving
+# a screenshot at each meaningful state, and finally flips the theme to dark.
+# Run it at gates after visual changes and attach the screenshots to the merge
+# report as the before/after evidence AGENTS.md requires.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
-- takeScreenshot: 01-character-creation.png
+- takeScreenshot: 01-inventory-sample-light.png
 
 - tapOn:
-    text: "Character Name"
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- takeScreenshot: 02-character-creation.png
+
+- tapOn:
+    id: character-name-input
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
 - extendedWaitUntil:
-    visible: ".*Currency.*"
+    visible: ".*QA Hero.*"
     timeout: 30000
-- takeScreenshot: 02-inventory-empty-light.png
-
-- tapOn: "Add Container"
-- extendedWaitUntil:
-    visible: "Weight?"
-    timeout: 30000
-- takeScreenshot: 03-create-storage-form.png
+- takeScreenshot: 03-inventory-empty-light.png
 
 - tapOn:
-    text: "Name"
+    id: add-container-button
+- extendedWaitUntil:
+    visible:
+      id: storage-name-input
+    timeout: 30000
+- takeScreenshot: 04-create-storage-form.png
+
+- tapOn:
+    id: storage-name-input
 - inputText: "Bag of Holding"
+- tapOn:
+    id: storage-rarity-row
 - tapOn: "Uncommon"
-- tapOn: "Create"
+- tapOn:
+    id: create-storage-button
 
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
     timeout: 30000
-- takeScreenshot: 04-inventory-with-storage-light.png
+- takeScreenshot: 05-inventory-with-storage-light.png
 
 - tapOn:
     id: fab-add-item
 - extendedWaitUntil:
-    visible: "Weight?"
+    visible:
+      id: item-name-input
     timeout: 30000
-- tapOn:
-    text: "Bag of Holding"
-- takeScreenshot: 05-create-item-form.png
+- tapOn: "Bag of Holding"
+- takeScreenshot: 06-create-item-form.png
 
 - tapOn:
-    text: "Name"
+    id: item-name-input
 - inputText: "Rope of Climbing"
-- tapOn: "Create"
+- tapOn:
+    id: create-item-button
 
 - extendedWaitUntil:
     visible: "Rope of Climbing"
     timeout: 30000
-- takeScreenshot: 06-inventory-with-item-light.png
+- takeScreenshot: 07-inventory-with-item-light.png
 
+# QA Hero's default container is id 5, so the new container is id 6.
 - tapOn:
-    id: container-menu-2
+    id: container-menu-6
 - extendedWaitUntil:
     visible: "Edit"
     timeout: 30000
-- takeScreenshot: 07-container-menu.png
+- takeScreenshot: 08-container-menu.png
 - tapOn:
-    id: container-edit-action-2
+    id: container-edit-action-6
 - extendedWaitUntil:
     visible: "Fixed weight"
     timeout: 30000
-- takeScreenshot: 08-container-edit.png
+- takeScreenshot: 09-container-edit.png
 - tapOn:
     id: back-button
 
 - tapOn:
-    id: theme-settings-button
+    id: settings-button
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 30000
+- tapOn:
+    id: settings-theme-row
 - extendedWaitUntil:
     visible: "Mind Flayer · System"
     timeout: 30000
-- takeScreenshot: 09-theme-sheet.png
+- takeScreenshot: 10-theme-screen.png
 
 - tapOn:
     id: theme-mode-dark
 - assertVisible: "Mind Flayer · Dark"
-- takeScreenshot: 10-theme-sheet-dark.png
+- takeScreenshot: 11-theme-screen-dark.png
