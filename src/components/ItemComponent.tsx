@@ -72,7 +72,7 @@ const ItemComponent: React.FC<ItemProps> = ({
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: theme.spacing.xs,
           }}
         >
@@ -81,15 +81,16 @@ const ItemComponent: React.FC<ItemProps> = ({
               style={{
                 width: 6,
                 height: 6,
+                marginTop: 6, // Centers dot on line 1 of subhead (15pt) when wrapped
                 borderRadius: theme.radius.full,
                 backgroundColor: rarityColors[item.rarity],
               }}
             />
           ) : null}
           <ThemedText
-            variant="body"
-            numberOfLines={1}
-            style={{ flexShrink: 1 }}
+            variant="subhead"
+            numberOfLines={2}
+            style={{ flexShrink: 1, color: theme.colors.text }}
           >
             {item.name}
           </ThemedText>
@@ -160,13 +161,14 @@ const ItemComponent: React.FC<ItemProps> = ({
 
       {prefs.showQuantity ? (
         <ThemedText
-          variant="body"
+          variant="subhead"
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.75}
           style={{
             width: colWidths.qty,
             textAlign: "right",
+            color: theme.colors.text,
             fontVariant: ["tabular-nums"],
           }}
         >
@@ -176,7 +178,7 @@ const ItemComponent: React.FC<ItemProps> = ({
 
       {prefs.showWeight ? (
         <ThemedText
-          variant="body"
+          variant="subhead"
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.75}
@@ -193,7 +195,7 @@ const ItemComponent: React.FC<ItemProps> = ({
 
       {prefs.showValue ? (
         <ThemedText
-          variant="body"
+          variant="subhead"
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.75}
