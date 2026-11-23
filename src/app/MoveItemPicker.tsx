@@ -5,13 +5,12 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { rarityColors } from "@/constants/rarity";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { moveItemToContainer } from "@/db/repositories/items";
-import { Item, storageLocationsTable } from "@/db/schema";
+import { Item } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useCharacterContainers } from "@/hooks/useCharacterContainers";
 import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
-import { and, eq, isNull, ne } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -81,15 +80,9 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
   const action = useAsyncAction({ keepBusyOnSuccess: true });
-  const containers = useLiveQuery(
-    db.query.storageLocationsTable.findMany({
-      where: and(
-        eq(storageLocationsTable.character_id, item.character_id),
-        ne(storageLocationsTable.storage_location_id, item.storage_location_id),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [item.character_id, item.storage_location_id],
+  const containers = useCharacterContainers(item.character_id);
+  const destinations = containers.data.filter(
+    (container) => container.storage_location_id !== item.storage_location_id,
   );
 
   const moveToContainer = (destinationStorageId: number) => {
@@ -108,14 +101,14 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
       }}
     >
       <ThemedText variant="headline">{item.name}</ThemedText>
-      {containers.data.length === 0 ? (
+      {destinations.length === 0 ? (
         <ThemedText variant="body">No other containers</ThemedText>
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ gap: theme.spacing.sm }}
         >
-          {containers.data.map((container) => (
+          {destinations.map((container) => (
             <Pressable
               key={container.storage_location_id}
               accessibilityRole="button"

@@ -53,6 +53,9 @@ const InventoryDisplaySheet = () => {
         ) : null}
       </View>
       <Switch
+        // The row is the single accessible switch control: hiding the native
+        // control avoids VoiceOver announcing a duplicate element.
+        accessible={false}
         value={prefs[key]}
         onValueChange={(value) => setPref(key, value)}
         trackColor={{

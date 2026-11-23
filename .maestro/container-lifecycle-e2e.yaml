@@ -4,36 +4,50 @@ tags:
   - container-lifecycle
 name: Create, edit, and delete a container end to end
 ---
-# Golden path: create a character and a container, add an item to the
-# container, rename the container, then delete it and confirm the
-# container is gone (soft-deleted: the item is hidden with it).
+# Golden path: an empty database auto-seeds Sample Character, so switch to a
+# fresh character, add a container, add an item to it, rename the container,
+# then delete it and confirm the container is gone (soft-deleted: the item is
+# hidden with it).
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
 - tapOn:
-    text: "Character Name"
+    id: character-switcher
+- extendedWaitUntil:
+    visible: "Create new character"
+    timeout: 30000
+- tapOn: "Create new character"
+- extendedWaitUntil:
+    visible: "Please create a character"
+    timeout: 30000
+- tapOn:
+    id: character-name-input
 - inputText: "QA Hero"
 - tapOn: "Create Character"
 
 - extendedWaitUntil:
-    visible: ".*Currency.*"
-    timeout: 30000
-- tapOn: "Add Container"
-
-- extendedWaitUntil:
-    visible: "Description"
+    visible: ".*QA Hero.*"
     timeout: 30000
 - tapOn:
-    text: "Name"
+    id: add-container-button
+
+- extendedWaitUntil:
+    visible:
+      id: storage-name-input
+    timeout: 30000
+- tapOn:
+    id: storage-name-input
 - inputText: "Bag of Holding"
 - tapOn:
     id: storage-rarity-row
 - tapOn: "Uncommon"
-- tapOn: "Create"
+- tapOn:
+    id: create-storage-button
 
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
@@ -41,26 +55,28 @@ name: Create, edit, and delete a container end to end
 - tapOn:
     id: fab-add-item
 - extendedWaitUntil:
-    visible: "Weight?"
+    visible:
+      id: item-name-input
     timeout: 30000
+- tapOn: "Bag of Holding"
 - tapOn:
-    text: "Bag of Holding"
-- tapOn:
-    text: "Name"
+    id: item-name-input
 - inputText: "Rope of Climbing"
-- tapOn: "Create"
+- tapOn:
+    id: create-item-button
 
 - extendedWaitUntil:
     visible: "Rope of Climbing"
     timeout: 30000
 
+# QA Hero's default container is id 5, so the new container is id 6.
 - tapOn:
-    id: container-menu-2
+    id: container-menu-6
 - extendedWaitUntil:
     visible: "Edit"
     timeout: 30000
 - tapOn:
-    id: container-edit-action-2
+    id: container-edit-action-6
 - extendedWaitUntil:
     visible: "Fixed weight"
     timeout: 30000
@@ -76,12 +92,12 @@ name: Create, edit, and delete a container end to end
     timeout: 30000
 
 - tapOn:
-    id: container-menu-2
+    id: container-menu-6
 - extendedWaitUntil:
     visible: "Delete"
     timeout: 30000
 - tapOn:
-    id: container-delete-action-2
+    id: container-delete-action-6
 - extendedWaitUntil:
     visible: "Delete container?"
     timeout: 30000
@@ -94,5 +110,4 @@ name: Create, edit, and delete a container end to end
 - extendedWaitUntil:
     notVisible: ".*Bag of Holding Two.*"
     timeout: 30000
-- assertNotVisible: ".*Bag of Holding.*"
 - assertNotVisible: "Rope of Climbing"

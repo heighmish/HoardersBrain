@@ -1,23 +1,15 @@
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { charactersTable } from "@/db/schema";
+import { useActiveCharacters } from "@/hooks/useActiveCharacters";
 import { useCharacterContext } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { AntDesign } from "@expo/vector-icons";
-import { isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 
 const ChangeCharacterSheet = () => {
   const theme = useTheme();
-  const db = useDatabase();
-  const characters = useLiveQuery(
-    db.query.charactersTable.findMany({
-      where: isNull(charactersTable.deleted_at),
-    }),
-  );
+  const characters = useActiveCharacters();
   const { state, selectCharacter, clearCharacter } = useCharacterContext();
 
   if (characters.error) {
@@ -34,7 +26,7 @@ const ChangeCharacterSheet = () => {
     );
   }
 
-  if (characters.updatedAt === undefined) {
+  if (!characters.isReady) {
     return null;
   }
 

@@ -4,27 +4,26 @@ tags:
   - theme
 name: Switch theme preset and mode
 ---
-# Journey: create a character, open the theme sheet from the inventory
-# header, switch to the Dracula preset, then switch the mode to Dark.
-# The sheet's state line ("PresetName · Mode") asserts each change with
-# text-only assertions; taps go through stable testIDs.
+# Journey: an empty database auto-seeds Sample Character, so the inventory is
+# ready immediately; open the theme screen from settings, switch to the Dracula
+# preset, then switch the mode to Dark. The screen's state line
+# ("PresetName · Mode") asserts each change with text-only assertions; taps go
+# through stable testIDs.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
 - tapOn:
-    text: "Character Name"
-- inputText: "QA Hero"
-- tapOn: "Create Character"
-
+    id: settings-button
 - extendedWaitUntil:
-    visible: ".*Currency.*"
+    visible: "Theme"
     timeout: 30000
 - tapOn:
-    id: theme-settings-button
+    id: settings-theme-row
 
 - extendedWaitUntil:
     visible: "Mind Flayer · System"

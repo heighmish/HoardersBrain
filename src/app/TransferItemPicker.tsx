@@ -3,13 +3,12 @@ import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { transferItemToCharacter } from "@/db/repositories/items";
-import { charactersTable, Item } from "@/db/schema";
+import { Item } from "@/db/schema";
+import { useActiveCharacters } from "@/hooks/useActiveCharacters";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
-import { and, isNull, ne } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -79,14 +78,9 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
   const db = useDatabase();
   const action = useAsyncAction({ keepBusyOnSuccess: true });
-  const characters = useLiveQuery(
-    db.query.charactersTable.findMany({
-      where: and(
-        ne(charactersTable.character_id, item.character_id),
-        isNull(charactersTable.deleted_at),
-      ),
-    }),
-    [item.character_id],
+  const characters = useActiveCharacters();
+  const targets = characters.data.filter(
+    (character) => character.character_id !== item.character_id,
   );
 
   const transferToCharacter = (targetCharacterId: number) => {
@@ -105,14 +99,14 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
       }}
     >
       <ThemedText variant="headline">{item.name}</ThemedText>
-      {characters.data.length === 0 ? (
+      {targets.length === 0 ? (
         <ThemedText variant="body">No other characters</ThemedText>
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ gap: theme.spacing.sm }}
         >
-          {characters.data.map((character) => (
+          {targets.map((character) => (
             <Pressable
               key={character.character_id}
               accessibilityRole="button"

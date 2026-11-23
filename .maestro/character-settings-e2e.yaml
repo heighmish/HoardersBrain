@@ -4,30 +4,31 @@ tags:
   - character-settings
 name: Character rename and settings end to end
 ---
-# Exercises rename from the character sheet and the character settings screen:
-# renames the active character, edits max encumbrance, turns weight tracking
-# off, saves, and confirms the Carrying card disappears from the inventory.
+# Exercises rename from the character management screen and the character
+# settings screen: renames the active character, edits max encumbrance,
+# turns weight tracking off, saves, and confirms the encumbrance card
+# disappears from the inventory summary strip.
+# An empty database auto-seeds "Sample Character", so the flow starts there.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
 
 - extendedWaitUntil:
-    visible: "Please create a character"
+    visible:
+      id: currency-card
     timeout: 60000
-- tapOn:
-    text: "Character Name"
-- inputText: "QA Hero"
-- tapOn: "Create Character"
+- assertVisible: ".*Sample Character.*"
 
+- tapOn:
+    id: settings-button
 - extendedWaitUntil:
-    visible: ".*Currency.*"
+    visible: "Rename or delete"
     timeout: 30000
-- assertVisible: ".*QA Hero.*"
-
 - tapOn:
-    id: character-switcher
+    id: manage-characters-row
 - extendedWaitUntil:
-    visible: "Create new character"
+    visible:
+      id: rename-character-button
     timeout: 30000
 
 - tapOn:
@@ -47,13 +48,12 @@ name: Character rename and settings end to end
     visible: ".*QA Renamed.*"
     timeout: 30000
 - tapOn:
-    text: "QA Renamed"
-
+    id: back-button
 - extendedWaitUntil:
-    visible: ".*QA Renamed.*"
+    visible: "Encumbrance & weight"
     timeout: 30000
 - tapOn:
-    id: character-settings-button
+    id: settings-encumbrance-row
 
 - extendedWaitUntil:
     visible: "Max Encumbrance"
@@ -68,7 +68,13 @@ name: Character rename and settings end to end
     id: character-settings-save
 
 - extendedWaitUntil:
-    visible: ".*Currency.*"
+    visible: "Encumbrance & weight"
+    timeout: 30000
+- tapOn:
+    id: back-button
+- extendedWaitUntil:
+    visible:
+      id: currency-card
     timeout: 30000
 - extendedWaitUntil:
     notVisible:
