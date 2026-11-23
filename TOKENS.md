@@ -37,7 +37,7 @@ theme.shadows      // { card: "0 1px 2px rgba(0,0,0,0.05)", raised: "0 4px 12px 
 theme.motion       // { fast: 150, base: 250, slow: 400 } — feedback, elements, surfaces
 theme.mode         // "system" | "light" | "dark"  — the user's preference
 theme.resolvedMode // "light" | "dark" — what is actually rendered
-theme.presetId     // "mind-flayer" | "dracula" | "tokyo-night" | "catppuccin" | "nord" | "gruvbox" | "custom:<id>"
+theme.presetId     // "mind-flayer" | "tokyo-night" | "catppuccin" | "nord" | "gruvbox" | "custom:<id>"
 theme.presetName   // display name of the active preset
 theme.customPalettes
 theme.selectPreset(presetId)
@@ -65,7 +65,7 @@ theme.colors.error            // feedback tone (≥ 1.5× max encumbrance)
 ```
 
 Presets ship as **data** in `src/constants/themePresets.ts` (each defines `light`
-and `dark` variants; sources are official palettes: Dracula family, Tokyo
+and `dark` variants; sources are official palettes: Mind Flayer, Tokyo
 Night, Catppuccin Mocha/Latte, Nord, Gruvbox). Custom palettes use the same
 semantic shape (editor UI deferred; see `ROADMAP.md`).
 

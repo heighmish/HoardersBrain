@@ -8,7 +8,7 @@ export interface InventoryFilterCriteria {
 }
 
 export const itemMatchesFilter = (
-  item: Pick<Item, "name" | "description">,
+  item: Pick<Item, "name" | "description" | "rarity">,
   itemTags: readonly Tag[],
   tagById: ReadonlyMap<number, Tag>,
   criteria: InventoryFilterCriteria,
@@ -33,6 +33,16 @@ export const itemMatchesFilter = (
   }
 
   if (item.name.toLowerCase().includes(normalizedQuery)) {
+    return true;
+  }
+  const normalizedRarity = item.rarity.toLowerCase();
+  const rarityMatch =
+    normalizedRarity === "common"
+      ? normalizedQuery.length >= 4 &&
+        normalizedRarity.startsWith(normalizedQuery)
+      : normalizedQuery.length >= 3 &&
+        normalizedRarity.includes(normalizedQuery);
+  if (rarityMatch) {
     return true;
   }
   if (item.description?.toLowerCase().includes(normalizedQuery)) {
