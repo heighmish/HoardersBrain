@@ -2,15 +2,12 @@ import ThemedText from "@/components/Basic/ThemedText";
 import { Item, Storage, Tag } from "@/db/schema";
 import { useInventoryDisplay } from "@/stores/InventoryDisplayContext";
 import { useTheme } from "@/stores/ThemeContext";
+import { formatWeight } from "@/utils/encumbrance";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, View } from "react-native";
-import ItemComponent, {
-  ITEM_QTY_COLUMN_WIDTH,
-  ITEM_VALUE_COLUMN_WIDTH,
-  ITEM_WEIGHT_COLUMN_WIDTH,
-} from "./ItemComponent";
+import ItemComponent, { getItemColumnWidths } from "./ItemComponent";
 
 interface StorageContainerProps {
   storage: Storage;
@@ -18,8 +15,6 @@ interface StorageContainerProps {
   tagsByItemId?: ReadonlyMap<number, Tag[]>;
   isSearching?: boolean;
 }
-
-const formatWeight = (value: number): string => String(Number(value.toFixed(2)));
 
 const StorageContainer: React.FC<StorageContainerProps> = ({
   storage,
@@ -29,6 +24,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
 }) => {
   const theme = useTheme();
   const { prefs } = useInventoryDisplay();
+  const colWidths = getItemColumnWidths();
 
   const [collapsed, setCollapsed] = useState(!storage.carrying);
   const [expanded, setExpanded] = useState(false);
@@ -170,7 +166,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
                   <ThemedText
                     variant="caption"
                     style={{
-                      width: ITEM_QTY_COLUMN_WIDTH,
+                      width: colWidths.qty,
                       textAlign: "right",
                       textTransform: "uppercase",
                       letterSpacing: 0.5,
@@ -183,7 +179,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
                   <ThemedText
                     variant="caption"
                     style={{
-                      width: ITEM_WEIGHT_COLUMN_WIDTH,
+                      width: colWidths.weight,
                       textAlign: "right",
                       textTransform: "uppercase",
                       letterSpacing: 0.5,
@@ -196,7 +192,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
                   <ThemedText
                     variant="caption"
                     style={{
-                      width: ITEM_VALUE_COLUMN_WIDTH,
+                      width: colWidths.value,
                       textAlign: "right",
                       textTransform: "uppercase",
                       letterSpacing: 0.5,

@@ -4,9 +4,9 @@ import { useCharacter } from "@/hooks/useCharacter";
 import { useTheme } from "@/stores/ThemeContext";
 import { calculateTotalGoldValue } from "@/utils/currency";
 import {
-  CarriedItemRow,
-  calculateCarriedItemsWeight,
   determineEncumbranceTone,
+  formatWeight,
+  sumCarriedWeight,
 } from "@/utils/encumbrance";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -20,8 +20,6 @@ interface InventorySummaryStripProps {
   encumbranceReady: boolean;
 }
 
-const formatWeight = (value: number): string => String(Number(value.toFixed(2)));
-
 const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   characterId,
   items,
@@ -31,50 +29,39 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   const theme = useTheme();
   const character = useCharacter(characterId);
 
+  if (character.status === "error") {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: theme.radius.md,
+          padding: theme.spacing.sm,
+        }}
+      >
+        <ThemedText variant="caption" style={{ color: theme.colors.error }}>
+          Failed to load character summary
+        </ThemedText>
+      </View>
+    );
+  }
+
   if (character.status !== "ready") {
     return null;
   }
 
   const goldValue = calculateTotalGoldValue(character.data);
   const showEncumbrance = character.data.weight_tracking && encumbranceReady;
-
-  let totalCarriedWeight = 0;
-  let encumbranceColor = theme.colors.success;
-
-  if (showEncumbrance) {
-    const containerById = new Map<number, Storage>(
-      containers.map((container) => [
-        container.storage_location_id,
-        container,
-      ]),
-    );
-    const carriedRows: CarriedItemRow[] = items.flatMap((item) => {
-      const storage = containerById.get(item.storage_location_id);
-      if (storage === undefined) {
-        return [];
-      }
-      return [
-        {
-          itemWeight: item.weight,
-          itemQuantity: item.quantity,
-          isFixedWeight: storage.is_fixed_weight,
-          isCarrying: storage.carrying,
-        },
-      ];
-    });
-    const containerWeight = containers.reduce(
-      (total, container) =>
-        container.carrying ? total + container.weight : total,
-      0,
-    );
-    totalCarriedWeight =
-      calculateCarriedItemsWeight(carriedRows) + containerWeight;
-    const tone = determineEncumbranceTone(
-      totalCarriedWeight,
-      character.data.max_encumbrance,
-    );
-    encumbranceColor = theme.colors[tone];
-  }
+  const totalCarriedWeight = showEncumbrance
+    ? sumCarriedWeight(items, containers)
+    : 0;
+  const encumbranceColor = showEncumbrance
+    ? theme.colors[
+        determineEncumbranceTone(
+          totalCarriedWeight,
+          character.data.max_encumbrance,
+        )
+      ]
+    : theme.colors.success;
 
   return (
     <View

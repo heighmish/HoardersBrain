@@ -6,16 +6,20 @@ import { Item, Tag } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useInventoryDisplay } from "@/stores/InventoryDisplayContext";
 import { useTheme } from "@/stores/ThemeContext";
+import { formatWeight } from "@/utils/encumbrance";
 import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { PixelRatio, Pressable, View } from "react-native";
 
-export const ITEM_QTY_COLUMN_WIDTH = 44;
-export const ITEM_WEIGHT_COLUMN_WIDTH = 56;
-export const ITEM_VALUE_COLUMN_WIDTH = 64;
+export const getItemColumnWidths = () => {
+  const scale = Math.max(1, Math.min(PixelRatio.getFontScale(), 1.5));
+  return {
+    qty: Math.round(44 * scale),
+    weight: Math.round(56 * scale),
+    value: Math.round(64 * scale),
+  };
+};
 
 const MAX_INLINE_TAGS = 2;
-
-const formatWeight = (value: number): string => String(Number(value.toFixed(2)));
 
 interface ItemProps {
   item: Item;
@@ -32,6 +36,7 @@ const ItemComponent: React.FC<ItemProps> = ({
   const db = useDatabase();
   const { prefs } = useInventoryDisplay();
   const useAction = useAsyncAction();
+  const colWidths = getItemColumnWidths();
 
   const hasRarityAccent = prefs.showRarity && item.rarity !== "Common";
   const isUsable = prefs.showQuickUse && tags.some((tag) => tag.is_usable);
@@ -157,8 +162,10 @@ const ItemComponent: React.FC<ItemProps> = ({
         <ThemedText
           variant="body"
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
           style={{
-            width: ITEM_QTY_COLUMN_WIDTH,
+            width: colWidths.qty,
             textAlign: "right",
             fontVariant: ["tabular-nums"],
           }}
@@ -171,8 +178,10 @@ const ItemComponent: React.FC<ItemProps> = ({
         <ThemedText
           variant="body"
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
           style={{
-            width: ITEM_WEIGHT_COLUMN_WIDTH,
+            width: colWidths.weight,
             textAlign: "right",
             color: theme.colors.textMuted,
             fontVariant: ["tabular-nums"],
@@ -186,8 +195,10 @@ const ItemComponent: React.FC<ItemProps> = ({
         <ThemedText
           variant="body"
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
           style={{
-            width: ITEM_VALUE_COLUMN_WIDTH,
+            width: colWidths.value,
             textAlign: "right",
             color: theme.colors.textMuted,
             fontVariant: ["tabular-nums"],

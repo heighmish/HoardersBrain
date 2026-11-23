@@ -2,6 +2,7 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { Tag, tagsTable } from "@/db/schema";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { useLiveQuery } from "drizzle-orm/expo-sqlite";
+import { useMemo } from "react";
 
 // Separate single-table live queries: drizzle-orm/expo-sqlite only subscribes
 // to the primary table of a join, so edits to `tags` or `item_tags` both update.
@@ -23,24 +24,26 @@ export const useCharacterItemTags = (
 
   const links = useLiveQuery(db.query.itemTagsTable.findMany(), []);
 
-  const tagById = new Map<number, Tag>(
-    tags.data.map((tag) => [tag.tag_id, tag]),
-  );
+  return useMemo(() => {
+    const tagById = new Map<number, Tag>(
+      tags.data.map((tag) => [tag.tag_id, tag]),
+    );
 
-  const byItem = new Map<number, Tag[]>();
-  for (const link of links.data) {
-    const tag = tagById.get(link.tag_id);
-    if (tag === undefined) {
-      continue;
+    const byItem = new Map<number, Tag[]>();
+    for (const link of links.data) {
+      const tag = tagById.get(link.tag_id);
+      if (tag === undefined) {
+        continue;
+      }
+      const list = byItem.get(link.item_id) ?? [];
+      list.push(tag);
+      byItem.set(link.item_id, list);
     }
-    const list = byItem.get(link.item_id) ?? [];
-    list.push(tag);
-    byItem.set(link.item_id, list);
-  }
 
-  for (const list of byItem.values()) {
-    list.sort((a, b) => a.sort_order - b.sort_order || a.tag_id - b.tag_id);
-  }
+    for (const list of byItem.values()) {
+      list.sort((a, b) => a.sort_order - b.sort_order || a.tag_id - b.tag_id);
+    }
 
-  return byItem;
+    return byItem;
+  }, [tags.data, links.data]);
 };

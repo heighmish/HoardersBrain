@@ -229,22 +229,43 @@ export const deleteItemRow = async (
     .where(eq(itemsTable.item_id, itemId));
 };
 
-export const removeOneFromStack = async (
-  db: AppDatabase,
+const decrementItemInTransaction = (
+  tx: RepositoryTransaction,
   itemId: number,
-): Promise<void> => {
-  const item = await loadItemById(db, itemId);
+  buildLedgerMessage?: (item: Item) => string,
+): void => {
+  const item = loadItemByIdInTransaction(tx, itemId);
   if (item === undefined) {
     return;
   }
   if (item.quantity <= 1) {
-    await deleteItemRow(db, itemId);
-    return;
+    tx.update(itemsTable)
+      .set({ deleted_at: new Date() })
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
+  } else {
+    tx.update(itemsTable)
+      .set({ quantity: item.quantity - 1 })
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
   }
-  await db
-    .update(itemsTable)
-    .set({ quantity: item.quantity - 1 })
-    .where(eq(itemsTable.item_id, itemId));
+  if (buildLedgerMessage !== undefined) {
+    tx.insert(ledgerTable)
+      .values({
+        character_id: item.character_id,
+        message: buildLedgerMessage(item),
+      })
+      .run();
+  }
+};
+
+export const removeOneFromStack = async (
+  db: AppDatabase,
+  itemId: number,
+): Promise<void> => {
+  db.transaction((tx) => {
+    decrementItemInTransaction(tx, itemId);
+  });
 };
 
 export const useOneFromItem = async (
@@ -252,27 +273,7 @@ export const useOneFromItem = async (
   itemId: number,
 ): Promise<void> => {
   db.transaction((tx) => {
-    const item = loadItemByIdInTransaction(tx, itemId);
-    if (item === undefined) {
-      return;
-    }
-    if (item.quantity <= 1) {
-      tx.update(itemsTable)
-        .set({ deleted_at: new Date() })
-        .where(eq(itemsTable.item_id, itemId))
-        .run();
-    } else {
-      tx.update(itemsTable)
-        .set({ quantity: item.quantity - 1 })
-        .where(eq(itemsTable.item_id, itemId))
-        .run();
-    }
-    tx.insert(ledgerTable)
-      .values({
-        character_id: item.character_id,
-        message: `Used ${item.name}`,
-      })
-      .run();
+    decrementItemInTransaction(tx, itemId, (item) => `Used ${item.name}`);
   });
 };
 

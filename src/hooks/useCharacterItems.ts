@@ -5,7 +5,7 @@ import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 
 export const useCharacterItems = (
   characterId: number,
-): { data: Item[]; isReady: boolean } => {
+): { data: Item[]; isReady: boolean; error: Error | undefined } => {
   const db = useDatabase();
   const query = useLiveQuery(
     db.query.itemsTable.findMany({
@@ -17,5 +17,9 @@ export const useCharacterItems = (
     [characterId],
   );
 
-  return { data: query.data, isReady: query.updatedAt !== undefined };
+  return {
+    data: query.data,
+    isReady: query.updatedAt !== undefined,
+    error: query.error,
+  };
 };

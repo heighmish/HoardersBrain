@@ -74,7 +74,9 @@ const Inventory = () => {
     return null;
   }
 
-  return <InventoryContent character={state.character} />;
+  return (
+    <InventoryContent key={state.character.id} character={state.character} />
+  );
 };
 
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
@@ -86,25 +88,29 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const allTags = useCharacterTags(character.id);
   const tagsByItemId = useCharacterItemTags(character.id);
 
-  const isFiltering =
-    search.query.trim().length > 0 || search.tagFilter !== null;
-
-  const activeTagLabel = useMemo(() => {
-    if (search.tagFilter === null) {
-      return null;
-    }
-    if (search.tagFilter === "usable") {
-      return "Usable";
-    }
-    return (
-      allTags.find((tag) => tag.tag_id === search.tagFilter)?.name ?? null
-    );
-  }, [search.tagFilter, allTags]);
-
   const tagById = useMemo(
     () => new Map(allTags.map((tag) => [tag.tag_id, tag])),
     [allTags],
   );
+
+  // Ignore a tag filter if that tag was deleted in settings.
+  const effectiveTagFilter: TagFilter =
+    typeof search.tagFilter === "number" && !tagById.has(search.tagFilter)
+      ? null
+      : search.tagFilter;
+
+  const isFiltering =
+    search.query.trim().length > 0 || effectiveTagFilter !== null;
+
+  const activeTagLabel = useMemo(() => {
+    if (effectiveTagFilter === null) {
+      return null;
+    }
+    if (effectiveTagFilter === "usable") {
+      return "Usable";
+    }
+    return tagById.get(effectiveTagFilter)?.name ?? null;
+  }, [effectiveTagFilter, tagById]);
 
   const itemsByContainer = useMemo(() => {
     const grouped = new Map<number, Item[]>();
@@ -114,7 +120,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         if (
           !itemMatchesFilter(item, itemTags, tagById, {
             query: search.query,
-            tagFilter: search.tagFilter,
+            tagFilter: effectiveTagFilter,
           })
         ) {
           continue;
@@ -130,7 +136,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
     allItems.data,
     isFiltering,
     search.query,
-    search.tagFilter,
+    effectiveTagFilter,
     tagById,
     tagsByItemId,
   ]);
@@ -247,7 +253,9 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
           paddingTop: theme.spacing.sm,
-          paddingBottom: FLOATING_DOCK_CLEARANCE,
+          paddingBottom: search.focused
+            ? FLOATING_DOCK_CLEARANCE + 44
+            : FLOATING_DOCK_CLEARANCE,
           gap: theme.spacing.sm,
         }}
         keyExtractor={(item) => item.storage_location_id.toString()}

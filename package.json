@@ -33,6 +33,7 @@
     "drizzle-kit": "0.31.11",
     "expo-mcp": "0.2.4",
     "husky": "9.1.7",
+    "knip": "^6.48.0",
     "lint-staged": "17.6.1",
     "oxlint": "1.94.0",
     "prettier": "3.10.1",
@@ -46,8 +47,9 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "lint:design": "bash scripts/lint-design-tokens.sh",
+    "lint:unused": "knip --include files",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "check": "npm run lint && npm run typecheck && npm run lint:design",
+    "check": "npm run lint && npm run typecheck && npm run lint:design && npm run lint:unused",
     "prepare": "husky"
   },
   "lint-staged": {
