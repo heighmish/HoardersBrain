@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useReducer } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -7,10 +7,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import { Item, itemsTable, storageLocationsTable } from "@/db/schema";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
-import { and, eq, isNull } from "drizzle-orm";
+import type { Item } from "@/db/schema";
 import StorageContainer from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
@@ -22,12 +19,53 @@ import {
 import InventorySummaryStrip from "@/components/InventorySummaryStrip";
 import Input from "@/components/Basic/Input";
 import ThemedText from "@/components/Basic/ThemedText";
+import { useCharacterContainers } from "@/hooks/useCharacterContainers";
+import { useCharacterItems } from "@/hooks/useCharacterItems";
 import { useCharacterItemTags } from "@/hooks/useCharacterItemTags";
 import { useCharacterTags } from "@/hooks/useCharacterTags";
-
-type TagFilter = null | "usable" | number;
+import { itemMatchesFilter, TagFilter } from "@/utils/inventoryFilter";
 
 const FLOATING_DOCK_CLEARANCE = 96; // Space for floating search pill + FAB above tab bar
+
+interface SearchState {
+  query: string;
+  focused: boolean;
+  tagFilter: TagFilter;
+}
+
+type SearchAction =
+  | { type: "SET_QUERY"; query: string }
+  | { type: "SET_FOCUSED"; focused: boolean }
+  | { type: "TOGGLE_TAG"; tag: Exclude<TagFilter, null> }
+  | { type: "CLEAR_TAG" }
+  | { type: "CLEAR_ALL" };
+
+const INITIAL_SEARCH_STATE: SearchState = {
+  query: "",
+  focused: false,
+  tagFilter: null,
+};
+
+const searchReducer = (
+  state: SearchState,
+  action: SearchAction,
+): SearchState => {
+  switch (action.type) {
+    case "SET_QUERY":
+      return { ...state, query: action.query };
+    case "SET_FOCUSED":
+      return { ...state, focused: action.focused };
+    case "TOGGLE_TAG":
+      return {
+        ...state,
+        tagFilter: state.tagFilter === action.tag ? null : action.tag,
+      };
+    case "CLEAR_TAG":
+      return { ...state, tagFilter: null };
+    case "CLEAR_ALL":
+      return { ...state, query: "", tagFilter: null };
+  }
+};
 
 const Inventory = () => {
   const { state } = useCharacterContext();
@@ -41,48 +79,27 @@ const Inventory = () => {
 
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
-  const db = useDatabase();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [activeTagFilter, setActiveTagFilter] = useState<TagFilter>(null);
+  const [search, dispatch] = useReducer(searchReducer, INITIAL_SEARCH_STATE);
 
-  const storageLocations = useLiveQuery(
-    db.query.storageLocationsTable.findMany({
-      where: and(
-        eq(storageLocationsTable.character_id, character.id),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [character.id],
-  );
-
-  const allItems = useLiveQuery(
-    db.query.itemsTable.findMany({
-      where: and(
-        eq(itemsTable.character_id, character.id),
-        isNull(itemsTable.deleted_at),
-      ),
-    }),
-    [character.id],
-  );
-
+  const storageLocations = useCharacterContainers(character.id);
+  const allItems = useCharacterItems(character.id);
   const allTags = useCharacterTags(character.id);
   const tagsByItemId = useCharacterItemTags(character.id);
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const isFiltering = normalizedQuery.length > 0 || activeTagFilter !== null;
+  const isFiltering =
+    search.query.trim().length > 0 || search.tagFilter !== null;
 
   const activeTagLabel = useMemo(() => {
-    if (activeTagFilter === null) {
+    if (search.tagFilter === null) {
       return null;
     }
-    if (activeTagFilter === "usable") {
+    if (search.tagFilter === "usable") {
       return "Usable";
     }
     return (
-      allTags.find((tag) => tag.tag_id === activeTagFilter)?.name ?? null
+      allTags.find((tag) => tag.tag_id === search.tagFilter)?.name ?? null
     );
-  }, [activeTagFilter, allTags]);
+  }, [search.tagFilter, allTags]);
 
   const tagById = useMemo(
     () => new Map(allTags.map((tag) => [tag.tag_id, tag])),
@@ -92,40 +109,14 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const itemsByContainer = useMemo(() => {
     const grouped = new Map<number, Item[]>();
     for (const item of allItems.data) {
-      const itemTags = tagsByItemId.get(item.item_id) ?? [];
-
-      if (activeTagFilter === "usable") {
-        if (!itemTags.some((tag) => tag.is_usable)) {
-          continue;
-        }
-      } else if (typeof activeTagFilter === "number") {
-        const matchesSelected = itemTags.some(
-          (tag) =>
-            tag.tag_id === activeTagFilter ||
-            tag.parent_tag_id === activeTagFilter,
-        );
-        if (!matchesSelected) {
-          continue;
-        }
-      }
-
-      if (normalizedQuery.length > 0) {
-        const nameMatch = item.name.toLowerCase().includes(normalizedQuery);
-        const descMatch =
-          item.description?.toLowerCase().includes(normalizedQuery) ?? false;
-        const tagMatch = itemTags.some((tag) => {
-          if (tag.name.toLowerCase().includes(normalizedQuery)) {
-            return true;
-          }
-          if (tag.parent_tag_id !== null) {
-            const parent = tagById.get(tag.parent_tag_id);
-            if (parent?.name.toLowerCase().includes(normalizedQuery)) {
-              return true;
-            }
-          }
-          return false;
-        });
-        if (!nameMatch && !descMatch && !tagMatch) {
+      if (isFiltering) {
+        const itemTags = tagsByItemId.get(item.item_id) ?? [];
+        if (
+          !itemMatchesFilter(item, itemTags, tagById, {
+            query: search.query,
+            tagFilter: search.tagFilter,
+          })
+        ) {
           continue;
         }
       }
@@ -135,7 +126,14 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       grouped.set(item.storage_location_id, list);
     }
     return grouped;
-  }, [allItems.data, activeTagFilter, normalizedQuery, tagById, tagsByItemId]);
+  }, [
+    allItems.data,
+    isFiltering,
+    search.query,
+    search.tagFilter,
+    tagById,
+    tagsByItemId,
+  ]);
 
   const visibleContainers = useMemo(() => {
     if (!isFiltering) {
@@ -146,10 +144,6 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         (itemsByContainer.get(container.storage_location_id)?.length ?? 0) > 0,
     );
   }, [isFiltering, itemsByContainer, storageLocations.data]);
-
-  const toggleTagFilter = (next: Exclude<TagFilter, null>) => {
-    setActiveTagFilter((prev) => (prev === next ? null : next));
-  };
 
   return (
     <KeyboardAvoidingView
@@ -235,7 +229,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         ListHeaderComponent={
-          <InventorySummaryStrip characterId={character.id} />
+          <InventorySummaryStrip
+            characterId={character.id}
+            items={allItems.data}
+            containers={storageLocations.data}
+            encumbranceReady={allItems.isReady && storageLocations.isReady}
+          />
         }
         renderItem={({ item }) => (
           <StorageContainer
@@ -299,7 +298,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           gap: theme.spacing.sm,
         }}
       >
-        {searchFocused ? (
+        {search.focused ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -311,15 +310,15 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: activeTagFilter === "usable" }}
-              onPress={() => toggleTagFilter("usable")}
+              accessibilityState={{ selected: search.tagFilter === "usable" }}
+              onPress={() => dispatch({ type: "TOGGLE_TAG", tag: "usable" })}
               style={({ pressed }) => ({
                 backgroundColor:
-                  activeTagFilter === "usable"
+                  search.tagFilter === "usable"
                     ? theme.colors.accent
                     : theme.colors.surface,
                 borderColor:
-                  activeTagFilter === "usable"
+                  search.tagFilter === "usable"
                     ? theme.colors.accent
                     : theme.colors.border,
                 borderWidth: 1,
@@ -335,7 +334,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 variant="caption"
                 style={{
                   color:
-                    activeTagFilter === "usable"
+                    search.tagFilter === "usable"
                       ? theme.colors.accentText
                       : theme.colors.text,
                   fontWeight: "600",
@@ -345,13 +344,15 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               </ThemedText>
             </Pressable>
             {allTags.map((tag) => {
-              const selected = activeTagFilter === tag.tag_id;
+              const selected = search.tagFilter === tag.tag_id;
               return (
                 <Pressable
                   key={`filter-tag-${tag.tag_id}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  onPress={() => toggleTagFilter(tag.tag_id)}
+                  onPress={() =>
+                    dispatch({ type: "TOGGLE_TAG", tag: tag.tag_id })
+                  }
                   style={({ pressed }) => ({
                     backgroundColor: selected
                       ? theme.colors.accent
@@ -417,7 +418,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Clear ${activeTagLabel} filter`}
-                onPress={() => setActiveTagFilter(null)}
+                onPress={() => dispatch({ type: "CLEAR_TAG" })}
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
@@ -450,10 +451,10 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               placeholder={
                 activeTagLabel !== null ? "Filter..." : "Search items or tags"
               }
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              value={search.query}
+              onChangeText={(query) => dispatch({ type: "SET_QUERY", query })}
+              onFocus={() => dispatch({ type: "SET_FOCUSED", focused: true })}
+              onBlur={() => dispatch({ type: "SET_FOCUSED", focused: false })}
               returnKeyType="search"
               testID="inventory-search-input"
               style={{
@@ -468,10 +469,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
-                onPress={() => {
-                  setSearchQuery("");
-                  setActiveTagFilter(null);
-                }}
+                onPress={() => dispatch({ type: "CLEAR_ALL" })}
                 hitSlop={8}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                 testID="inventory-search-clear"

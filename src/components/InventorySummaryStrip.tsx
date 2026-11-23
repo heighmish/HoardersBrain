@@ -1,6 +1,5 @@
 import ThemedText from "@/components/Basic/ThemedText";
-import { useDatabase } from "@/db/DatabaseProvider";
-import { itemsTable, Storage, storageLocationsTable } from "@/db/schema";
+import type { Item, Storage } from "@/db/schema";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useTheme } from "@/stores/ThemeContext";
 import { calculateTotalGoldValue } from "@/utils/currency";
@@ -10,68 +9,46 @@ import {
   determineEncumbranceTone,
 } from "@/utils/encumbrance";
 import { AntDesign } from "@expo/vector-icons";
-import { and, eq, isNull } from "drizzle-orm";
-import { useLiveQuery } from "drizzle-orm/expo-sqlite";
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
 
 interface InventorySummaryStripProps {
   characterId: number;
+  items: readonly Item[];
+  containers: readonly Storage[];
+  encumbranceReady: boolean;
 }
 
 const formatWeight = (value: number): string => String(Number(value.toFixed(2)));
 
 const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   characterId,
+  items,
+  containers,
+  encumbranceReady,
 }) => {
   const theme = useTheme();
-  const db = useDatabase();
   const character = useCharacter(characterId);
-
-  // Separate single-table live queries: drizzle-orm/expo-sqlite only listens
-  // for changes on the primary table, so a joined query misses container edits.
-  const items = useLiveQuery(
-    db.query.itemsTable.findMany({
-      where: and(
-        eq(itemsTable.character_id, characterId),
-        isNull(itemsTable.deleted_at),
-      ),
-    }),
-    [characterId],
-  );
-
-  const containers = useLiveQuery(
-    db.query.storageLocationsTable.findMany({
-      where: and(
-        eq(storageLocationsTable.character_id, characterId),
-        isNull(storageLocationsTable.deleted_at),
-      ),
-    }),
-    [characterId],
-  );
 
   if (character.status !== "ready") {
     return null;
   }
 
   const goldValue = calculateTotalGoldValue(character.data);
-  const showEncumbrance =
-    character.data.weight_tracking &&
-    items.updatedAt !== undefined &&
-    containers.updatedAt !== undefined;
+  const showEncumbrance = character.data.weight_tracking && encumbranceReady;
 
   let totalCarriedWeight = 0;
   let encumbranceColor = theme.colors.success;
 
   if (showEncumbrance) {
     const containerById = new Map<number, Storage>(
-      containers.data.map((container) => [
+      containers.map((container) => [
         container.storage_location_id,
         container,
       ]),
     );
-    const carriedRows: CarriedItemRow[] = items.data.flatMap((item) => {
+    const carriedRows: CarriedItemRow[] = items.flatMap((item) => {
       const storage = containerById.get(item.storage_location_id);
       if (storage === undefined) {
         return [];
@@ -85,7 +62,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
         },
       ];
     });
-    const containerWeight = containers.data.reduce(
+    const containerWeight = containers.reduce(
       (total, container) =>
         container.carrying ? total + container.weight : total,
       0,
