@@ -280,14 +280,31 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 router.push("/CreateStorageForm");
               }}
               style={({ pressed }) => ({
-                opacity: pressed ? 0.6 : 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: theme.spacing.sm,
+                minHeight: 52,
                 paddingVertical: theme.spacing.md,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                borderCurve: "continuous",
+                borderWidth: 1.5,
+                borderStyle: "dashed",
+                borderColor: theme.colors.border,
+                opacity: pressed ? 0.7 : 1,
               })}
               testID="add-container-button"
             >
+              <AntDesign name="plus" size={16} color={theme.colors.accent} />
               <ThemedText
                 variant="subhead"
-                style={{ color: theme.colors.textMuted }}
+                style={{
+                  color: theme.colors.accent,
+                  fontWeight: "600",
+                  flexShrink: 1,
+                  textAlign: "center",
+                }}
               >
                 Add Container
               </ThemedText>
