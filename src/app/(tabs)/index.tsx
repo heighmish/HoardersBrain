@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from "react";
+import React, { useEffect, useMemo, useReducer, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -7,8 +7,14 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import type { Item } from "@/db/schema";
-import StorageContainer from "@/components/StorageContainer";
+import type { Item, Storage } from "@/db/schema";
+import {
+  DEFAULT_VISIBLE_LIMIT,
+  SEARCH_VISIBLE_LIMIT,
+  StorageContainerFooter,
+  StorageContainerHeader,
+  StorageContainerItemRow,
+} from "@/components/StorageContainer";
 import { Link, router, Stack } from "expo-router";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/stores/ThemeContext";
@@ -26,6 +32,31 @@ import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { itemMatchesFilter, TagFilter } from "@/utils/inventoryFilter";
 
 const FLOATING_DOCK_CLEARANCE = 96; // Space for floating search pill + FAB above tab bar
+const SEARCH_DEBOUNCE_MS = 150;
+
+type InventoryRow =
+  | {
+      key: string;
+      type: "container-header";
+      storage: Storage;
+      itemCount: number;
+      effectiveWeight: number;
+      isCollapsed: boolean;
+    }
+  | {
+      key: string;
+      type: "item";
+      item: Item;
+      isLastItem: boolean;
+      isCardEnd: boolean;
+    }
+  | {
+      key: string;
+      type: "container-footer";
+      storageId: number;
+      hiddenCount: number;
+      isExpanded: boolean;
+    };
 
 interface SearchState {
   query: string;
@@ -82,6 +113,27 @@ const Inventory = () => {
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
   const [search, dispatch] = useReducer(searchReducer, INITIAL_SEARCH_STATE);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [collapsedOverrides, setCollapsedOverrides] = useState<
+    ReadonlyMap<number, boolean>
+  >(() => new Map());
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
+  const [searchExpandedIds, setSearchExpandedIds] = useState<
+    ReadonlySet<number>
+  >(() => new Set());
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(search.query);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search.query]);
+
+  // Clear immediately when the input is emptied; debounce non-empty typing.
+  const effectiveQuery =
+    search.query.trim().length === 0 ? "" : debouncedQuery;
 
   const storageLocations = useCharacterContainers(character.id);
   const allItems = useCharacterItems(character.id);
@@ -100,7 +152,17 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       : search.tagFilter;
 
   const isFiltering =
-    search.query.trim().length > 0 || effectiveTagFilter !== null;
+    effectiveQuery.trim().length > 0 || effectiveTagFilter !== null;
+  const hasSearchInput =
+    search.query.length > 0 || effectiveTagFilter !== null;
+  const [prevIsFiltering, setPrevIsFiltering] = useState(isFiltering);
+
+  if (prevIsFiltering !== isFiltering) {
+    setPrevIsFiltering(isFiltering);
+    if (!isFiltering && searchExpandedIds.size > 0) {
+      setSearchExpandedIds(new Set());
+    }
+  }
 
   const activeTagLabel = useMemo(() => {
     if (effectiveTagFilter === null) {
@@ -119,7 +181,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         const itemTags = tagsByItemId.get(item.item_id) ?? [];
         if (
           !itemMatchesFilter(item, itemTags, tagById, {
-            query: search.query,
+            query: effectiveQuery,
             tagFilter: effectiveTagFilter,
           })
         ) {
@@ -135,7 +197,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   }, [
     allItems.data,
     isFiltering,
-    search.query,
+    effectiveQuery,
     effectiveTagFilter,
     tagById,
     tagsByItemId,
@@ -150,6 +212,107 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         (itemsByContainer.get(container.storage_location_id)?.length ?? 0) > 0,
     );
   }, [isFiltering, itemsByContainer, storageLocations.data]);
+
+  const flatRows = useMemo<InventoryRow[]>(() => {
+    const rows: InventoryRow[] = [];
+    const visibleLimit = isFiltering
+      ? SEARCH_VISIBLE_LIMIT
+      : DEFAULT_VISIBLE_LIMIT;
+    const activeExpandedIds = isFiltering ? searchExpandedIds : expandedIds;
+
+    for (const storage of visibleContainers) {
+      const storageId = storage.storage_location_id;
+      const items = itemsByContainer.get(storageId) ?? [];
+      const isCollapsed =
+        !isFiltering &&
+        (collapsedOverrides.get(storageId) ?? !storage.carrying);
+
+      const contentsWeight = items.reduce(
+        (sum, item) => sum + item.weight * item.quantity,
+        0,
+      );
+      const effectiveWeight = storage.is_fixed_weight
+        ? storage.weight
+        : storage.weight + contentsWeight;
+
+      rows.push({
+        key: `header-${storageId}`,
+        type: "container-header",
+        storage,
+        itemCount: items.length,
+        effectiveWeight,
+        isCollapsed,
+      });
+
+      if (isCollapsed || items.length === 0) {
+        continue;
+      }
+
+      const isExpanded = activeExpandedIds.has(storageId);
+      const visibleItems = isExpanded ? items : items.slice(0, visibleLimit);
+      const hasFooter = items.length > visibleLimit;
+
+      for (let i = 0; i < visibleItems.length; i += 1) {
+        const item = visibleItems[i];
+        if (item === undefined) {
+          continue;
+        }
+        const isLastItem = i === visibleItems.length - 1;
+        rows.push({
+          key: `item-${item.item_id}`,
+          type: "item",
+          item,
+          isLastItem,
+          isCardEnd: isLastItem && !hasFooter,
+        });
+      }
+
+      if (hasFooter) {
+        rows.push({
+          key: `footer-${storageId}`,
+          type: "container-footer",
+          storageId,
+          hiddenCount: items.length - visibleLimit,
+          isExpanded,
+        });
+      }
+    }
+
+    return rows;
+  }, [
+    collapsedOverrides,
+    expandedIds,
+    isFiltering,
+    itemsByContainer,
+    searchExpandedIds,
+    visibleContainers,
+  ]);
+
+  const handleToggleCollapse = (storageId: number) => {
+    const storage = storageLocations.data.find(
+      (c) => c.storage_location_id === storageId,
+    );
+    const defaultCollapsed = storage ? !storage.carrying : false;
+    setCollapsedOverrides((prev) => {
+      const next = new Map(prev);
+      const current = prev.get(storageId) ?? defaultCollapsed;
+      next.set(storageId, !current);
+      return next;
+    });
+  };
+
+  const handleToggleExpand = (storageId: number) => {
+    const setter = isFiltering ? setSearchExpandedIds : setExpandedIds;
+    setter((prev) => {
+      const next = new Set(prev);
+      if (next.has(storageId)) {
+        next.delete(storageId);
+      } else {
+        next.add(storageId);
+      }
+      return next;
+    });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -231,34 +394,63 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       />
 
       <FlatList
-        data={visibleContainers}
+        data={flatRows}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        initialNumToRender={16}
+        maxToRenderPerBatch={12}
+        windowSize={7}
         ListHeaderComponent={
-          <InventorySummaryStrip
-            characterId={character.id}
-            items={allItems.data}
-            containers={storageLocations.data}
-            encumbranceReady={allItems.isReady && storageLocations.isReady}
-          />
+          <View style={{ marginBottom: theme.spacing.sm }}>
+            <InventorySummaryStrip
+              characterId={character.id}
+              items={allItems.data}
+              containers={storageLocations.data}
+              encumbranceReady={allItems.isReady && storageLocations.isReady}
+            />
+          </View>
         }
-        renderItem={({ item }) => (
-          <StorageContainer
-            storage={item}
-            items={itemsByContainer.get(item.storage_location_id) ?? []}
-            tagsByItemId={tagsByItemId}
-            isSearching={isFiltering}
-          />
-        )}
+        renderItem={({ item: row }) => {
+          switch (row.type) {
+            case "container-header":
+              return (
+                <StorageContainerHeader
+                  storage={row.storage}
+                  itemCount={row.itemCount}
+                  effectiveWeight={row.effectiveWeight}
+                  isCollapsed={row.isCollapsed}
+                  isSearching={isFiltering}
+                  onToggleCollapse={handleToggleCollapse}
+                />
+              );
+            case "item":
+              return (
+                <StorageContainerItemRow
+                  item={row.item}
+                  tags={tagsByItemId.get(row.item.item_id)}
+                  isLastItem={row.isLastItem}
+                  isCardEnd={row.isCardEnd}
+                />
+              );
+            case "container-footer":
+              return (
+                <StorageContainerFooter
+                  storageId={row.storageId}
+                  hiddenCount={row.hiddenCount}
+                  isExpanded={row.isExpanded}
+                  onToggleExpand={handleToggleExpand}
+                />
+              );
+          }
+        }}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
           paddingTop: theme.spacing.sm,
           paddingBottom: search.focused
             ? FLOATING_DOCK_CLEARANCE + 44
             : FLOATING_DOCK_CLEARANCE,
-          gap: theme.spacing.sm,
         }}
-        keyExtractor={(item) => item.storage_location_id.toString()}
+        keyExtractor={(row) => row.key}
         ListEmptyComponent={
           isFiltering ? (
             <ThemedText
@@ -490,7 +682,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 paddingVertical: theme.spacing.xs,
               }}
             />
-            {isFiltering ? (
+            {hasSearchInput ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"

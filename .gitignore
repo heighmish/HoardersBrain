@@ -39,3 +39,7 @@ skills-lock.json
 # Build artifacts (iOS analog of *.apk; Android keystore analog of *.jks)
 *.ipa
 *.keystore
+
+# Local stress/benchmark scripts
+scripts/generate-stress-db.mjs
+scripts/inject-ios-sim-db.sh
