@@ -9,7 +9,8 @@ import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type CurrencyValues = {
   platinum: number;
@@ -64,6 +65,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
   characterId,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const db = useDatabase();
   const [currencies, setCurrencies] = useState<CurrencyValues>({
     platinum: initial.platinum,
@@ -91,11 +93,13 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.surface,
+    <ScrollView
+      style={{ backgroundColor: theme.colors.surface }}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{
         padding: theme.spacing.md,
+        paddingBottom: insets.bottom + theme.spacing.lg,
         gap: theme.spacing.md,
       }}
     >
@@ -111,10 +115,16 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
             <View>
               <NumericInput
                 buttonDecrement={() =>
-                  handleChange(currency, (currencies[currency] - 1).toString())
+                  handleChange(
+                    currency,
+                    (currencies[currency] - 1).toString(),
+                  )
                 }
                 buttonIncrement={() =>
-                  handleChange(currency, (currencies[currency] + 1).toString())
+                  handleChange(
+                    currency,
+                    (currencies[currency] + 1).toString(),
+                  )
                 }
                 placeholder={currency}
                 onChangeText={(text) => handleChange(currency, text)}
@@ -145,7 +155,7 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
           disabled={submitting}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 };
 

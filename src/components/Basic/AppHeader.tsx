@@ -20,24 +20,33 @@ const AppHeader = ({ title }: { title: string }) => {
     >
       <View
         style={{
-          // 44 is the platform minimum touch target, kept as the fixed header height.
-          height: 44,
+          minHeight: theme.layout.touchMin,
           flexDirection: "row",
           alignItems: "center",
           gap: theme.spacing.sm,
           paddingHorizontal: theme.spacing.md,
+          paddingVertical: theme.spacing.xs,
         }}
       >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
           testID="back-button"
+          hitSlop={10}
           onPress={() => router.back()}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          style={({ pressed }) => ({
+            opacity: pressed ? theme.opacity.pressed : 1,
+          })}
         >
-          <AntDesign name="arrow-left" size={24} color={theme.colors.accent} />
+          <AntDesign
+            name="arrow-left"
+            size={theme.layout.icon.lg}
+            color={theme.colors.accent}
+          />
         </Pressable>
-        <ThemedText variant="headline">{title}</ThemedText>
+        <ThemedText variant="headline" numberOfLines={1} style={{ flex: 1 }}>
+          {title}
+        </ThemedText>
       </View>
     </View>
   );

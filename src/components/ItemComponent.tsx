@@ -4,18 +4,25 @@ import { useDatabase } from "@/db/DatabaseProvider";
 import { useOneFromItem } from "@/db/repositories";
 import { Item, Tag } from "@/db/schema";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { useLayout } from "@/hooks/useLayout";
 import { useInventoryDisplay } from "@/stores/InventoryDisplayContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { formatWeight } from "@/utils/encumbrance";
 import { router } from "expo-router";
-import { PixelRatio, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 
-export const getItemColumnWidths = () => {
-  const scale = Math.max(1, Math.min(PixelRatio.getFontScale(), 1.5));
+export const getItemColumnWidths = (
+  isCompactWidth: boolean,
+  fontScale: number,
+) => {
+  const scale = Math.max(1, Math.min(fontScale, 1.5));
+  const base = isCompactWidth
+    ? { qty: 40, weight: 56, value: 58 }
+    : { qty: 44, weight: 56, value: 64 };
   return {
-    qty: Math.round(44 * scale),
-    weight: Math.round(56 * scale),
-    value: Math.round(64 * scale),
+    qty: Math.round(base.qty * scale),
+    weight: Math.round(base.weight * scale),
+    value: Math.round(base.value * scale),
   };
 };
 
@@ -35,8 +42,9 @@ const ItemComponent: React.FC<ItemProps> = ({
   const theme = useTheme();
   const db = useDatabase();
   const { prefs } = useInventoryDisplay();
+  const { isCompactWidth, isLargeText, fontScale } = useLayout();
   const useAction = useAsyncAction();
-  const colWidths = getItemColumnWidths();
+  const colWidths = getItemColumnWidths(isCompactWidth, fontScale);
 
   const hasRarityAccent = prefs.showRarity && item.rarity !== "Common";
   const isUsable = prefs.showQuickUse && tags.some((tag) => tag.is_usable);
@@ -46,6 +54,23 @@ const ItemComponent: React.FC<ItemProps> = ({
       ? `${item.value} ${item.value_currency}`
       : "—";
   const totalWeight = formatWeight(item.weight * item.quantity);
+
+  const compactMetaParts: string[] = [];
+  if (isLargeText) {
+    if (prefs.showQuantity) {
+      compactMetaParts.push(`Qty ${item.quantity}`);
+    }
+    if (prefs.showWeight) {
+      compactMetaParts.push(`Weight ${totalWeight}`);
+    }
+    if (
+      prefs.showValue &&
+      item.value !== null &&
+      item.value_currency !== null
+    ) {
+      compactMetaParts.push(valueLabel);
+    }
+  }
 
   return (
     <Pressable
@@ -62,10 +87,10 @@ const ItemComponent: React.FC<ItemProps> = ({
         alignItems: "center",
         gap: theme.spacing.sm,
         paddingVertical: theme.spacing.sm,
-        minHeight: 44,
-        borderBottomWidth: isLast ? 0 : 1,
+        minHeight: theme.layout.touchMin,
+        borderBottomWidth: isLast ? 0 : theme.layout.hairline,
         borderColor: theme.colors.border,
-        opacity: pressed ? 0.7 : 1,
+        opacity: pressed ? theme.opacity.pressed : 1,
       })}
       testID={`item-row-${item.item_id}`}
     >
@@ -85,11 +110,19 @@ const ItemComponent: React.FC<ItemProps> = ({
       <View style={{ flex: 1, gap: theme.spacing.xs }}>
         <ThemedText
           variant="subhead"
-          numberOfLines={2}
+          numberOfLines={isLargeText ? 3 : 2}
           style={{ color: theme.colors.text }}
         >
           {item.name}
         </ThemedText>
+        {isLargeText && compactMetaParts.length > 0 ? (
+          <ThemedText
+            variant="caption"
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
+            {compactMetaParts.join(" · ")}
+          </ThemedText>
+        ) : null}
         {visibleTags.length > 0 ? (
           <View
             style={{
@@ -137,7 +170,11 @@ const ItemComponent: React.FC<ItemProps> = ({
             borderRadius: theme.radius.full,
             paddingHorizontal: theme.spacing.sm,
             paddingVertical: theme.spacing.xs,
-            opacity: useAction.submitting ? 0.4 : pressed ? 0.7 : 1,
+            opacity: useAction.submitting
+              ? theme.opacity.disabled
+              : pressed
+                ? theme.opacity.pressed
+                : 1,
           })}
           testID={`item-quick-use-${item.item_id}`}
         >
@@ -154,7 +191,7 @@ const ItemComponent: React.FC<ItemProps> = ({
         </Pressable>
       ) : null}
 
-      {prefs.showQuantity ? (
+      {!isLargeText && prefs.showQuantity ? (
         <ThemedText
           variant="subhead"
           numberOfLines={1}
@@ -171,7 +208,7 @@ const ItemComponent: React.FC<ItemProps> = ({
         </ThemedText>
       ) : null}
 
-      {prefs.showWeight ? (
+      {!isLargeText && prefs.showWeight ? (
         <ThemedText
           variant="subhead"
           numberOfLines={1}
@@ -188,7 +225,7 @@ const ItemComponent: React.FC<ItemProps> = ({
         </ThemedText>
       ) : null}
 
-      {prefs.showValue ? (
+      {!isLargeText && prefs.showValue ? (
         <ThemedText
           variant="subhead"
           numberOfLines={1}

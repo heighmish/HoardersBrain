@@ -10,7 +10,8 @@ import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const goBack = () => {
   if (router.canGoBack()) {
@@ -76,6 +77,7 @@ const TransferItemPickerContent = ({ itemId }: { itemId: number }) => {
 
 const TransferItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const db = useDatabase();
   const action = useAsyncAction({ keepBusyOnSuccess: true });
   const characters = useActiveCharacters();
@@ -94,6 +96,7 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
     <View
       testID="transfer-picker-screen"
       style={{
+        flex: 1,
         padding: theme.spacing.md,
         gap: theme.spacing.md,
       }}
@@ -104,7 +107,12 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ gap: theme.spacing.sm }}
+          contentContainerStyle={{
+            gap: theme.spacing.sm,
+            paddingBottom:
+              theme.spacing.md +
+              (Platform.OS === "android" ? insets.bottom : 0),
+          }}
         >
           {targets.map((character) => (
             <Pressable
@@ -115,19 +123,22 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
               disabled={action.submitting}
               onPress={() => transferToCharacter(character.character_id)}
               style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
+                opacity: pressed ? theme.opacity.pressed : 1,
                 backgroundColor: theme.colors.surface,
                 boxShadow: theme.shadows.card,
                 borderRadius: theme.radius.lg,
                 borderCurve: "continuous",
                 padding: theme.spacing.sm,
+                minHeight: theme.layout.touchMin,
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
               })}
               testID={`transfer-target-${character.character_id}`}
             >
-              <ThemedText variant="body">{character.name}</ThemedText>
+              <ThemedText variant="body" style={{ flex: 1 }}>
+                {character.name}
+              </ThemedText>
             </Pressable>
           ))}
         </ScrollView>

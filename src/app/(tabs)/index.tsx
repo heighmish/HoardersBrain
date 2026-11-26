@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useMemo, useReducer } from "react";
+import React, { useDeferredValue, useMemo, useReducer, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -14,7 +14,7 @@ import {
   StorageContainerHeader,
   StorageContainerItemRow,
 } from "@/components/StorageContainer";
-import { Link, router, Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/stores/ThemeContext";
 import {
@@ -30,7 +30,9 @@ import { useCharacterItemTags } from "@/hooks/useCharacterItemTags";
 import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { itemMatchesFilter, TagFilter } from "@/utils/inventoryFilter";
 
-const FLOATING_DOCK_CLEARANCE = 96; // Space for floating search pill + FAB above tab bar
+const DEFAULT_DOCK_CLEARANCE = 96; // Initial bottom clearance before floating dock onLayout measures it
+const FAB_SIZE = 52; // Floating action button and Add Container row height
+const SEARCH_PILL_MIN_HEIGHT = 48; // Floating search pill minimum touch height
 
 type InventoryRow =
   | {
@@ -133,6 +135,7 @@ const Inventory = () => {
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
   const [ui, dispatch] = useReducer(inventoryUiReducer, INITIAL_UI_STATE);
+  const [dockHeight, setDockHeight] = useState(DEFAULT_DOCK_CLEARANCE);
   const effectiveQuery = useDeferredValue(ui.query);
 
   const storageLocations = useCharacterContainers(character.id);
@@ -283,23 +286,37 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
       <Stack.Screen
         options={{
           headerLeft: () => (
-            <Link
-              href="/ChangeCharacterSheet"
-              style={{
-                paddingLeft: theme.spacing.sm,
-                gap: theme.spacing.xs,
-                alignItems: "center",
-              }}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={character.name}
               testID="character-switcher"
+              onPress={() => {
+                router.push("/ChangeCharacterSheet");
+              }}
+              style={({ pressed }) => ({
+                paddingLeft: theme.spacing.sm,
+                maxWidth: 220, // Keeps switcher clear of headerRight icons on narrow screens
+                flexDirection: "row",
+                alignItems: "center",
+                gap: theme.spacing.xs,
+                opacity: pressed ? theme.opacity.pressed : 1,
+              })}
             >
               <ThemedText
                 variant="headline"
-                style={{ color: theme.colors.accent }}
+                numberOfLines={1}
+                // Cap Dynamic Type inside the fixed-height native nav bar to prevent vertical clipping.
+                maxFontSizeMultiplier={1.35}
+                style={{ color: theme.colors.accent, flexShrink: 1 }}
               >
-                {character.name.slice(0, 25)}{" "}
+                {character.name}
               </ThemedText>
-              <AntDesign name="down" size={12} color={theme.colors.accent} />
-            </Link>
+              <AntDesign
+                name="down"
+                size={theme.layout.icon.xs}
+                color={theme.colors.accent}
+              />
+            </Pressable>
           ),
           headerTitle: () => <></>,
           headerRight: () => (
@@ -415,9 +432,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
           paddingTop: theme.spacing.sm,
-          paddingBottom: ui.focused
-            ? FLOATING_DOCK_CLEARANCE + 44
-            : FLOATING_DOCK_CLEARANCE,
+          paddingBottom: dockHeight + theme.spacing.md,
         }}
         keyExtractor={(row) => row.key}
         ListEmptyComponent={
@@ -445,7 +460,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: theme.spacing.sm,
-                minHeight: 52,
+                minHeight: FAB_SIZE,
                 paddingVertical: theme.spacing.md,
                 paddingHorizontal: theme.spacing.md,
                 borderRadius: theme.radius.lg,
@@ -476,6 +491,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
       <View
         pointerEvents="box-none"
+        onLayout={(event) => {
+          const measured = Math.ceil(event.nativeEvent.layout.height);
+          if (measured > 0 && measured !== dockHeight) {
+            setDockHeight(measured);
+          }
+        }}
         style={{
           position: "absolute",
           left: theme.spacing.sm,
@@ -591,7 +612,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               borderWidth: 1,
               borderRadius: theme.radius.full,
               paddingHorizontal: theme.spacing.md,
-              minHeight: 48,
+              minHeight: SEARCH_PILL_MIN_HEIGHT,
               boxShadow: theme.shadows.raised,
             }}
           >
@@ -677,19 +698,19 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               router.push("/CreateItemForm");
             }}
             style={({ pressed }) => ({
-              width: 52,
-              height: 52,
+              width: FAB_SIZE,
+              height: FAB_SIZE,
               borderRadius: theme.radius.full,
               backgroundColor: theme.colors.accent,
               alignItems: "center",
               justifyContent: "center",
               boxShadow: theme.shadows.raised,
-              opacity: pressed ? 0.7 : 1,
+              opacity: pressed ? theme.opacity.pressed : 1,
             })}
           >
             <AntDesign
               name="plus"
-              size={24}
+              size={theme.layout.icon.lg}
               color={theme.colors.accentText}
             />
           </Pressable>

@@ -1,6 +1,7 @@
 import ThemedText from "@/components/Basic/ThemedText";
 import type { Item, Storage } from "@/db/schema";
 import { useCharacter } from "@/hooks/useCharacter";
+import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/stores/ThemeContext";
 import { calculateTotalGoldValue } from "@/utils/currency";
 import {
@@ -27,6 +28,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   encumbranceReady,
 }) => {
   const theme = useTheme();
+  const { isLargeText } = useLayout();
   const character = useCharacter(characterId);
 
   if (character.status === "error") {
@@ -70,9 +72,9 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
         boxShadow: theme.shadows.card,
         borderRadius: theme.radius.md,
         borderCurve: "continuous",
-        flexDirection: "row",
-        alignItems: "center",
-        minHeight: 44,
+        flexDirection: isLargeText ? "column" : "row",
+        alignItems: isLargeText ? "stretch" : "center",
+        minHeight: theme.layout.touchMin,
         overflow: "hidden",
       }}
       testID="inventory-summary-strip"
@@ -83,25 +85,29 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
         testID="currency-card"
         onPress={() => router.push("/UpdateCurrencySheet")}
         style={({ pressed }) => ({
-          flex: 1,
+          flex: isLargeText ? undefined : 1,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: theme.spacing.md,
           paddingVertical: theme.spacing.sm,
+          minHeight: theme.layout.touchMin,
           gap: theme.spacing.xs,
-          opacity: pressed ? 0.7 : 1,
+          opacity: pressed ? theme.opacity.pressed : 1,
         })}
       >
         <View
           style={{
             flexDirection: "row",
+            flexWrap: isLargeText ? "wrap" : "nowrap",
             alignItems: "center",
             gap: theme.spacing.xs,
-            flexShrink: 1,
+            flex: 1,
           }}
         >
-          <ThemedText variant="caption">Currency</ThemedText>
+          <ThemedText variant="caption" numberOfLines={1}>
+            Currency
+          </ThemedText>
           <ThemedText
             variant="subhead"
             numberOfLines={1}
@@ -109,23 +115,36 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
               color: theme.colors.text,
               fontWeight: "600",
               fontVariant: ["tabular-nums"],
+              flexShrink: 1,
             }}
           >
             {goldValue.toFixed(2)} gp
           </ThemedText>
         </View>
-        <AntDesign name="right" size={12} color={theme.colors.textMuted} />
+        <AntDesign
+          name="right"
+          size={theme.layout.icon.xs}
+          color={theme.colors.textMuted}
+        />
       </Pressable>
 
       {showEncumbrance ? (
         <>
           <View
-            style={{
-              width: 1,
-              alignSelf: "stretch",
-              marginVertical: theme.spacing.sm,
-              backgroundColor: theme.colors.border,
-            }}
+            style={
+              isLargeText
+                ? {
+                    height: theme.layout.hairline,
+                    marginHorizontal: theme.spacing.md,
+                    backgroundColor: theme.colors.border,
+                  }
+                : {
+                    width: theme.layout.hairline,
+                    alignSelf: "stretch",
+                    marginVertical: theme.spacing.sm,
+                    backgroundColor: theme.colors.border,
+                  }
+            }
           />
           <Pressable
             accessibilityRole="button"
@@ -135,32 +154,48 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
+              justifyContent: isLargeText ? "space-between" : "flex-start",
               gap: theme.spacing.xs,
               paddingHorizontal: theme.spacing.md,
               paddingVertical: theme.spacing.sm,
-              opacity: pressed ? 0.7 : 1,
+              minHeight: theme.layout.touchMin,
+              opacity: pressed ? theme.opacity.pressed : 1,
             })}
           >
             <View
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: theme.radius.full,
-                backgroundColor: encumbranceColor,
-              }}
-            />
-            <ThemedText
-              variant="subhead"
-              numberOfLines={1}
-              style={{
-                color: theme.colors.text,
-                fontWeight: "600",
-                fontVariant: ["tabular-nums"],
+                flexDirection: "row",
+                alignItems: "center",
+                gap: theme.spacing.xs,
+                flexShrink: 1,
               }}
             >
-              {formatWeight(totalCarriedWeight)}/{character.data.max_encumbrance}
-            </ThemedText>
-            <AntDesign name="right" size={12} color={theme.colors.textMuted} />
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: theme.radius.full,
+                  backgroundColor: encumbranceColor,
+                }}
+              />
+              <ThemedText
+                variant="subhead"
+                numberOfLines={1}
+                style={{
+                  color: theme.colors.text,
+                  fontWeight: "600",
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {formatWeight(totalCarriedWeight)}/
+                {character.data.max_encumbrance}
+              </ThemedText>
+            </View>
+            <AntDesign
+              name="right"
+              size={theme.layout.icon.xs}
+              color={theme.colors.textMuted}
+            />
           </Pressable>
         </>
       ) : null}

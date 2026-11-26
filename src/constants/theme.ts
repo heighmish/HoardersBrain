@@ -31,6 +31,23 @@ export const motion = {
 
 export type Motion = (typeof motion)[keyof typeof motion];
 
+export const layout = {
+  touchMin: 44,
+  controlSm: 36,
+  controlMd: 50,
+  hairline: 1,
+  icon: {
+    xs: 12,
+    md: 20,
+    lg: 24,
+  },
+} as const;
+
+export const opacity = {
+  pressed: 0.7,
+  disabled: 0.4,
+} as const;
+
 export type ThemeMode = "system" | "light" | "dark";
 
 export type ResolvedThemeMode = "light" | "dark";
