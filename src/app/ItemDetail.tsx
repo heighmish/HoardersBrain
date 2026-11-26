@@ -14,10 +14,12 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useContainer } from "@/hooks/useContainer";
 import { useItem } from "@/hooks/useItem";
 import { useItemTags } from "@/hooks/useItemTags";
+import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const goBack = () => {
   if (router.canGoBack()) {
@@ -91,6 +93,8 @@ const statRow = {
 
 const ItemDetailBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { isLargeText } = useLayout();
   const db = useDatabase();
   const storage = useContainer(item.storage_location_id);
   const itemTags = useItemTags(item.character_id, item.item_id);
@@ -123,6 +127,7 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: theme.spacing.md,
+        paddingBottom: insets.bottom + theme.spacing.lg,
         gap: theme.spacing.md,
       }}
     >
@@ -176,17 +181,43 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
             </ThemedText>
           </View>
         ) : null}
-        <View style={statRow}>
+        <View
+          style={
+            isLargeText
+              ? { gap: theme.spacing.xs }
+              : [statRow, { gap: theme.spacing.md }]
+          }
+        >
           <ThemedText variant="subhead">Type</ThemedText>
-          <ThemedText variant="body">{item.item_type}</ThemedText>
+          <ThemedText
+            variant="body"
+            style={
+              isLargeText ? undefined : { flexShrink: 1, textAlign: "right" }
+            }
+          >
+            {item.item_type}
+          </ThemedText>
         </View>
         {storage.status === "ready" ? (
-          <View style={statRow}>
+          <View
+            style={
+              isLargeText
+                ? { gap: theme.spacing.xs }
+                : [statRow, { gap: theme.spacing.md }]
+            }
+          >
             <ThemedText variant="subhead">Container</ThemedText>
-            <ThemedText variant="body">{storage.data.name}</ThemedText>
+            <ThemedText
+              variant="body"
+              style={
+                isLargeText ? undefined : { flexShrink: 1, textAlign: "right" }
+              }
+            >
+              {storage.data.name}
+            </ThemedText>
           </View>
         ) : null}
-        <View style={statRow}>
+        <View style={{ gap: theme.spacing.xs }}>
           <ThemedText variant="subhead">Description</ThemedText>
           <ThemedText variant="body">{item.description ?? "None"}</ThemedText>
         </View>

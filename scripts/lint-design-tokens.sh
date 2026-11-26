@@ -36,4 +36,20 @@ if [ -n "$textinput_violations" ]; then
   status=1
 fi
 
+radius_violations=$(grep -rnE "border[A-Za-z]*Radius: *[1-9][0-9]*\b" src/app src/components || true)
+if [ -n "$radius_violations" ]; then
+  echo "Raw borderRadius literals in src/app or src/components:"
+  echo "$radius_violations"
+  echo "Use theme.radius.* via useTheme(). See TOKENS.md."
+  status=1
+fi
+
+dimensions_violations=$(grep -rnE "\b(useWindowDimensions|Dimensions\.get|PixelRatio\.getFontScale)\b" src/app src/components || true)
+if [ -n "$dimensions_violations" ]; then
+  echo "Direct window dimension or fontScale reads in src/app or src/components:"
+  echo "$dimensions_violations"
+  echo "Read responsive metrics through src/hooks/useLayout.ts instead."
+  status=1
+fi
+
 exit $status

@@ -35,10 +35,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
         style={({ pressed }) => [
           styles.numberButton,
           {
+            minHeight: theme.layout.touchMin,
+            paddingVertical: theme.spacing.xs,
             borderTopLeftRadius: theme.radius.md,
             borderBottomLeftRadius: theme.radius.md,
           },
-          pressed && { opacity: 0.6 },
+          pressed && { opacity: theme.opacity.pressedSubtle },
         ]}
       >
         <Text
@@ -69,10 +71,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
         style={({ pressed }) => [
           styles.numberButton,
           {
+            minHeight: theme.layout.touchMin,
+            paddingVertical: theme.spacing.xs,
             borderTopRightRadius: theme.radius.md,
             borderBottomRightRadius: theme.radius.md,
           },
-          pressed && { opacity: 0.6 },
+          pressed && { opacity: theme.opacity.pressedSubtle },
         ]}
       >
         <Text
@@ -89,7 +93,6 @@ const NumericInput: React.FC<NumericInputProps> = ({
   );
 };
 
-// 44 is the platform minimum touch target, kept as a fixed control height.
 const styles = StyleSheet.create({
   group: {
     flexDirection: "row",
@@ -99,7 +102,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flex: 1,
-    height: 44,
   },
   numberButtonText: {
     textAlign: "center",

@@ -13,6 +13,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const goBack = () => {
   if (router.canGoBack()) {
@@ -78,6 +79,7 @@ const MoveItemPickerContent = ({ itemId }: { itemId: number }) => {
 
 const MoveItemPickerBody = ({ item }: { item: Item }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const db = useDatabase();
   const action = useAsyncAction({ keepBusyOnSuccess: true });
   const containers = useCharacterContainers(item.character_id);
@@ -96,6 +98,7 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
     <View
       testID="move-picker-screen"
       style={{
+        flex: 1,
         padding: theme.spacing.md,
         gap: theme.spacing.md,
       }}
@@ -106,7 +109,10 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ gap: theme.spacing.sm }}
+          contentContainerStyle={{
+            gap: theme.spacing.sm,
+            paddingBottom: insets.bottom + theme.spacing.md,
+          }}
         >
           {destinations.map((container) => (
             <Pressable
@@ -117,19 +123,23 @@ const MoveItemPickerBody = ({ item }: { item: Item }) => {
               disabled={action.submitting}
               onPress={() => moveToContainer(container.storage_location_id)}
               style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
+                opacity: pressed ? theme.opacity.pressed : 1,
                 backgroundColor: theme.colors.surface,
                 boxShadow: theme.shadows.card,
                 borderRadius: theme.radius.lg,
                 borderCurve: "continuous",
                 padding: theme.spacing.sm,
+                minHeight: theme.layout.touchMin,
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
+                gap: theme.spacing.sm,
               })}
               testID={`move-destination-${container.storage_location_id}`}
             >
-              <ThemedText variant="body">{container.name}</ThemedText>
+              <ThemedText variant="body" style={{ flex: 1 }}>
+                {container.name}
+              </ThemedText>
               <Badge
                 text={container.rarity}
                 color={rarityColors[container.rarity]}

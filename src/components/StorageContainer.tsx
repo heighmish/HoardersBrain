@@ -1,5 +1,6 @@
 import ThemedText from "@/components/Basic/ThemedText";
 import { Item, Storage, Tag } from "@/db/schema";
+import { useLayout } from "@/hooks/useLayout";
 import { useInventoryDisplay } from "@/stores/InventoryDisplayContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { formatWeight } from "@/utils/encumbrance";
@@ -30,7 +31,8 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
 }) => {
   const theme = useTheme();
   const { prefs } = useInventoryDisplay();
-  const colWidths = getItemColumnWidths();
+  const { isCompactWidth, isLargeText, fontScale } = useLayout();
+  const colWidths = getItemColumnWidths(isCompactWidth, fontScale);
 
   const metaParts: string[] = [];
   if (prefs.showWeight) {
@@ -137,19 +139,20 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
 
       {isCollapsed ? null : itemCount === 0 ? (
         <ThemedText variant="subhead">No items</ThemedText>
-      ) : (
+      ) : isLargeText ? null : (
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: theme.spacing.sm,
-            borderBottomWidth: 1,
+            borderBottomWidth: theme.layout.hairline,
             borderColor: theme.colors.border,
             paddingBottom: theme.spacing.xs,
           }}
         >
           <ThemedText
             variant="caption"
+            numberOfLines={1}
             style={{
               flex: 1,
               textTransform: "uppercase",
@@ -161,6 +164,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
           {prefs.showQuantity ? (
             <ThemedText
               variant="caption"
+              numberOfLines={1}
               style={{
                 width: colWidths.qty,
                 textAlign: "right",
@@ -174,6 +178,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
           {prefs.showWeight ? (
             <ThemedText
               variant="caption"
+              numberOfLines={1}
               style={{
                 width: colWidths.weight,
                 textAlign: "right",
@@ -187,6 +192,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
           {prefs.showValue ? (
             <ThemedText
               variant="caption"
+              numberOfLines={1}
               style={{
                 width: colWidths.value,
                 textAlign: "right",

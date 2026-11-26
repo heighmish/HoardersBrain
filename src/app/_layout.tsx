@@ -9,13 +9,11 @@ import {
   ThemeProvider as AppThemeProvider,
   useTheme,
 } from "@/stores/ThemeContext";
-import { useWindowDimensions } from "react-native";
 import Button from "@/components/Basic/Button";
 import ThemedText from "@/components/Basic/ThemedText";
 
 const RootNavigator = () => {
   const theme = useTheme();
-  const { height } = useWindowDimensions();
   const baseNavTheme = theme.resolvedMode === "dark" ? DarkTheme : DefaultTheme;
   const navTheme = {
     ...baseNavTheme,
@@ -53,7 +51,7 @@ const RootNavigator = () => {
             headerShown: false,
             sheetAllowedDetents: "fitToContents",
             sheetGrabberVisible: true,
-            sheetCornerRadius: 15,
+            sheetCornerRadius: theme.radius.lg,
           }}
         />
         <Stack.Screen
@@ -61,10 +59,10 @@ const RootNavigator = () => {
           options={{
             presentation: "formSheet",
             headerShown: false,
-            sheetAllowedDetents: height < 700 ? [0.22] : "fitToContents",
+            sheetAllowedDetents: "fitToContents",
             sheetGrabberVisible: true,
             sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            sheetCornerRadius: theme.radius.lg,
           }}
         />
         <Stack.Screen
@@ -75,7 +73,7 @@ const RootNavigator = () => {
             sheetAllowedDetents: "fitToContents",
             sheetGrabberVisible: false,
             sheetExpandsWhenScrolledToEdge: true,
-            sheetCornerRadius: 15,
+            sheetCornerRadius: theme.radius.lg,
           }}
         />
         <Stack.Screen
@@ -85,7 +83,7 @@ const RootNavigator = () => {
             headerShown: false,
             sheetAllowedDetents: "fitToContents",
             sheetGrabberVisible: true,
-            sheetCornerRadius: 15,
+            sheetCornerRadius: theme.radius.lg,
           }}
         />
       </Stack>
