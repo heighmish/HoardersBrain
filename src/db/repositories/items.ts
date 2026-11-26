@@ -1,4 +1,3 @@
-import type { Rarity } from "@/constants/databaseTypes";
 import type { AppDatabase } from "@/db/DatabaseProvider";
 import {
   charactersTable,
@@ -8,7 +7,7 @@ import {
   ledgerTable,
   storageLocationsTable,
 } from "@/db/schema";
-import { findActiveStorageById, DEFAULT_CONTAINER_NAME } from "./containers";
+import { DEFAULT_CONTAINER_NAME } from "./containers";
 import {
   remapItemTagsInTransaction,
   setItemTagsInTransaction,
@@ -23,31 +22,23 @@ type RepositoryTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
 
-export type ItemDetails = {
-  name: string;
-  description: string | null;
-  item_type: string;
-  weight: number;
-  rarity: Rarity;
-  quantity: number;
-  value: number | null;
-  value_currency: CoinDenomination | null;
-  properties: unknown;
-};
+export type ItemDetails = Pick<
+  Item,
+  | "name"
+  | "description"
+  | "item_type"
+  | "weight"
+  | "rarity"
+  | "quantity"
+  | "value"
+  | "value_currency"
+  | "properties"
+>;
 
-export type ItemCreateInput = {
-  storage_location_id: number;
-  character_id: number;
-  name: string;
-  description: string | null;
-  item_type: string;
-  weight: number;
-  rarity?: Rarity;
-  properties?: unknown;
-  quantity?: number;
-  value?: number | null;
-  value_currency?: CoinDenomination | null;
-};
+export type ItemCreateInput = Omit<
+  typeof itemsTable.$inferInsert,
+  "item_id" | "deleted_at"
+>;
 
 const loadItemByIdInTransaction = (
   tx: RepositoryTransaction,
@@ -351,24 +342,35 @@ export const moveItemToContainer = async (
   itemId: number,
   destinationStorageId: number,
 ): Promise<void> => {
-  const item = await loadItemById(db, itemId);
-  if (item === undefined) {
-    throw new Error("Item not found");
-  }
-  const destination = await findActiveStorageById(db, destinationStorageId);
-  if (destination === undefined) {
-    throw new Error("Destination container not found");
-  }
-  if (destination.character_id !== item.character_id) {
-    throw new Error("Destination container belongs to another character");
-  }
-  if (destination.storage_location_id === item.storage_location_id) {
-    return;
-  }
-  await db
-    .update(itemsTable)
-    .set({ storage_location_id: destinationStorageId })
-    .where(eq(itemsTable.item_id, itemId));
+  db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      throw new Error("Item not found");
+    }
+    const destination = tx
+      .select()
+      .from(storageLocationsTable)
+      .where(
+        and(
+          eq(storageLocationsTable.storage_location_id, destinationStorageId),
+          isNull(storageLocationsTable.deleted_at),
+        ),
+      )
+      .get();
+    if (destination === undefined) {
+      throw new Error("Destination container not found");
+    }
+    if (destination.character_id !== item.character_id) {
+      throw new Error("Destination container belongs to another character");
+    }
+    if (destination.storage_location_id === item.storage_location_id) {
+      return;
+    }
+    tx.update(itemsTable)
+      .set({ storage_location_id: destinationStorageId })
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
+  });
 };
 
 export const transferItemToCharacter = async (

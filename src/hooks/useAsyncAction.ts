@@ -4,6 +4,7 @@ type AsyncActionOptions = {
   keepBusyOnSuccess?: boolean;
 };
 
+// `lockRef` blocks same-frame double-taps before React commits `submitting`.
 export const useAsyncAction = (options?: AsyncActionOptions) => {
   const lockRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);

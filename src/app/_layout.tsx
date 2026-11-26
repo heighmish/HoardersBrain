@@ -117,12 +117,13 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  retryKey: number;
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
+  state: ErrorBoundaryState = { hasError: false, retryKey: 0 };
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
+  static getDerivedStateFromError(): Partial<ErrorBoundaryState> {
     return { hasError: true };
   }
 
@@ -131,7 +132,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false });
+    this.setState((previous) => ({
+      hasError: false,
+      retryKey: previous.retryKey + 1,
+    }));
   };
 
   render() {
@@ -139,7 +143,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       return <ErrorFallback onRetry={this.handleRetry} />;
     }
 
-    return this.props.children;
+    return (
+      <React.Fragment key={this.state.retryKey}>
+        {this.props.children}
+      </React.Fragment>
+    );
   }
 }
 

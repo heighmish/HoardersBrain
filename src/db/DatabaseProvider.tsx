@@ -1,4 +1,5 @@
 import { drizzle, ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
+import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import React, {
   createContext,
@@ -7,12 +8,16 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import * as SQLite from "expo-sqlite";
 import migrations from "../drizzle/migrations";
 import { schema } from "@/db/schema";
 
 export type AppDatabase = ExpoSQLiteDatabase<typeof schema>;
+
+type MigrationState =
+  | { status: "migrating" }
+  | { status: "ready" }
+  | { status: "error"; error: Error };
 
 const DatabaseContext = createContext<AppDatabase | undefined>(undefined);
 
@@ -23,8 +28,6 @@ interface DatabaseProviderProps {
 export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   children,
 }) => {
-  // Lazy-initialized once; this app does not use StrictMode, and even
-  // under it a second SQLite connection to the same file is harmless.
   const [{ db, sqliteDb }] = useState(() => {
     const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
       enableChangeListener: true,
@@ -38,23 +41,52 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     };
   });
 
-  const { success, error } = useMigrations(db, migrations);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  const [migrationState, setMigrationState] = useState<MigrationState>({
+    status: "migrating",
+  });
 
   useDrizzleStudio(sqliteDb);
 
   useEffect(() => {
-    if (success) {
-      sqliteDb.execSync("PRAGMA foreign_keys = ON;");
-    }
-  }, [success, sqliteDb]);
+    return () => {
+      sqliteDb.closeSync();
+    };
+  }, [sqliteDb]);
 
-  // Gate children on completed migrations so nothing queries the
-  // database before its schema exists (matters on first launch).
-  if (!success) {
+  useEffect(() => {
+    let cancelled = false;
+
+    migrate(db, migrations)
+      .then(() => {
+        if (cancelled) {
+          return;
+        }
+        // Enable FKs strictly after migrations complete (SQLite ignores
+        // PRAGMA foreign_keys=OFF inside Drizzle's migration transaction)
+        // and before children mount so no child effect writes without FKs.
+        sqliteDb.execSync("PRAGMA foreign_keys = ON;");
+        setMigrationState({ status: "ready" });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setMigrationState({
+          status: "error",
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [db, sqliteDb]);
+
+  if (migrationState.status === "error") {
+    throw migrationState.error;
+  }
+
+  if (migrationState.status !== "ready") {
     return null;
   }
 

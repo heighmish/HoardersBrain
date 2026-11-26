@@ -1,14 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { INVENTORY_DISPLAY_PREFS } from "@/constants/CacheKeys";
+import Storage from "expo-sqlite/kv-store";
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-
-const STORAGE_KEY = "INVENTORY_DISPLAY_PREFS";
 
 export interface InventoryDisplayPrefs {
   showQuantity: boolean;
@@ -28,6 +28,10 @@ export const DEFAULT_INVENTORY_DISPLAY_PREFS: InventoryDisplayPrefs = {
   showQuickUse: true,
 };
 
+const PREF_KEYS = Object.keys(
+  DEFAULT_INVENTORY_DISPLAY_PREFS,
+) as (keyof InventoryDisplayPrefs)[];
+
 interface InventoryDisplayContextValue {
   prefs: InventoryDisplayPrefs;
   togglePref: (key: keyof InventoryDisplayPrefs) => void;
@@ -45,15 +49,7 @@ const parseStoredPrefs = (raw: string): Partial<InventoryDisplayPrefs> => {
     }
     const record = parsed as Record<string, unknown>;
     const result: Partial<InventoryDisplayPrefs> = {};
-    const keys: (keyof InventoryDisplayPrefs)[] = [
-      "showQuantity",
-      "showWeight",
-      "showValue",
-      "showTags",
-      "showRarity",
-      "showQuickUse",
-    ];
-    for (const key of keys) {
+    for (const key of PREF_KEYS) {
       if (typeof record[key] === "boolean") {
         result[key] = record[key];
       }
@@ -64,55 +60,49 @@ const parseStoredPrefs = (raw: string): Partial<InventoryDisplayPrefs> => {
   }
 };
 
+const loadStoredPrefs = (): InventoryDisplayPrefs => {
+  try {
+    const raw = Storage.getItemSync(INVENTORY_DISPLAY_PREFS);
+    if (raw !== null) {
+      return { ...DEFAULT_INVENTORY_DISPLAY_PREFS, ...parseStoredPrefs(raw) };
+    }
+  } catch (error) {
+    console.error("[InventoryDisplayContext]: Error loading display prefs", error);
+  }
+  return DEFAULT_INVENTORY_DISPLAY_PREFS;
+};
+
 export const InventoryDisplayProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const [prefs, setPrefs] = useState<InventoryDisplayPrefs>(
-    DEFAULT_INVENTORY_DISPLAY_PREFS,
-  );
+  const [prefs, setPrefs] = useState<InventoryDisplayPrefs>(loadStoredPrefs);
+  const didMountRef = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (!mounted || raw === null) {
-          return;
-        }
-        setPrefs((prev) => ({ ...prev, ...parseStoredPrefs(raw) }));
-      })
-      .catch(console.error);
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const persist = useCallback((next: InventoryDisplayPrefs) => {
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(
-      console.error,
-    );
-  }, []);
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    try {
+      Storage.setItemSync(INVENTORY_DISPLAY_PREFS, JSON.stringify(prefs));
+    } catch (error) {
+      console.error(
+        "[InventoryDisplayContext]: Error persisting display prefs",
+        error,
+      );
+    }
+  }, [prefs]);
 
   const setPref = useCallback(
     (key: keyof InventoryDisplayPrefs, value: boolean) => {
-      setPrefs((prev) => {
-        const next = { ...prev, [key]: value };
-        persist(next);
-        return next;
-      });
+      setPrefs((prev) => ({ ...prev, [key]: value }));
     },
-    [persist],
+    [],
   );
 
-  const togglePref = useCallback(
-    (key: keyof InventoryDisplayPrefs) => {
-      setPrefs((prev) => {
-        const next = { ...prev, [key]: !prev[key] };
-        persist(next);
-        return next;
-      });
-    },
-    [persist],
-  );
+  const togglePref = useCallback((key: keyof InventoryDisplayPrefs) => {
+    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const value = useMemo(
     () => ({ prefs, togglePref, setPref }),

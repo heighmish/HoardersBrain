@@ -1,6 +1,5 @@
 appId: com.heighmish.HoardersBrain
 tags:
-  - e2e
   - design
 name: Capture visual evidence across the core journey
 ---
@@ -93,7 +92,8 @@ name: Capture visual evidence across the core journey
 - tapOn:
     id: container-edit-action-6
 - extendedWaitUntil:
-    visible: "Fixed weight"
+    visible:
+      id: save-storage-button
     timeout: 30000
 - takeScreenshot: 09-container-edit.png
 - tapOn:

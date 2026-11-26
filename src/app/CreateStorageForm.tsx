@@ -23,6 +23,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -321,7 +322,10 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
             }}
           >
             <Pressable
-              onPress={() => setRarityExpanded((prev) => !prev)}
+              onPress={() => {
+                Keyboard.dismiss();
+                setRarityExpanded((prev) => !prev);
+              }}
               accessibilityRole="button"
               accessibilityState={{ expanded: rarityExpanded }}
               testID="storage-rarity-row"
