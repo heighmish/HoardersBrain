@@ -17,7 +17,7 @@ export const getItemColumnWidths = (
 ) => {
   const scale = Math.max(1, Math.min(fontScale, 1.5));
   const base = isCompactWidth
-    ? { qty: 40, weight: 50, value: 58 }
+    ? { qty: 40, weight: 56, value: 58 }
     : { qty: 44, weight: 56, value: 64 };
   return {
     qty: Math.round(base.qty * scale),
