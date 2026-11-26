@@ -10,7 +10,6 @@ import { Pressable, View } from "react-native";
 import ItemComponent, { getItemColumnWidths } from "./ItemComponent";
 
 export const DEFAULT_VISIBLE_LIMIT = 5;
-export const SEARCH_VISIBLE_LIMIT = 100;
 
 export interface StorageContainerHeaderProps {
   storage: Storage;
@@ -18,7 +17,7 @@ export interface StorageContainerHeaderProps {
   effectiveWeight: number;
   isCollapsed: boolean;
   isSearching: boolean;
-  onToggleCollapse: (storageId: number) => void;
+  onToggleCollapse: () => void;
 }
 
 export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
@@ -51,6 +50,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
     <View
       style={{
         backgroundColor: theme.colors.surface,
+        boxShadow: isStandaloneCard ? theme.shadows.card : undefined,
         borderTopLeftRadius: theme.radius.lg,
         borderTopRightRadius: theme.radius.lg,
         borderBottomLeftRadius: isStandaloneCard ? theme.radius.lg : 0,
@@ -81,7 +81,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
               : `Collapse ${storage.name}`
           }
           disabled={isSearching}
-          onPress={() => onToggleCollapse(storage.storage_location_id)}
+          onPress={onToggleCollapse}
           style={({ pressed }) => ({
             flex: 1,
             flexDirection: "row",
@@ -236,7 +236,7 @@ export interface StorageContainerFooterProps {
   storageId: number;
   hiddenCount: number;
   isExpanded: boolean;
-  onToggleExpand: (storageId: number) => void;
+  onToggleExpand: () => void;
 }
 
 export const StorageContainerFooter: React.FC<StorageContainerFooterProps> = ({
@@ -264,7 +264,7 @@ export const StorageContainerFooter: React.FC<StorageContainerFooterProps> = ({
         accessibilityLabel={
           isExpanded ? "Show fewer items" : `Show ${hiddenCount} more items`
         }
-        onPress={() => onToggleExpand(storageId)}
+        onPress={onToggleExpand}
         style={({ pressed }) => ({
           opacity: pressed ? 0.7 : 1,
           alignSelf: "flex-start",

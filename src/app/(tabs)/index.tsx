@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState } from "react";
+import React, { useDeferredValue, useMemo, useReducer } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -10,7 +10,6 @@ import {
 import type { Item, Storage } from "@/db/schema";
 import {
   DEFAULT_VISIBLE_LIMIT,
-  SEARCH_VISIBLE_LIMIT,
   StorageContainerFooter,
   StorageContainerHeader,
   StorageContainerItemRow,
@@ -32,7 +31,6 @@ import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { itemMatchesFilter, TagFilter } from "@/utils/inventoryFilter";
 
 const FLOATING_DOCK_CLEARANCE = 96; // Space for floating search pill + FAB above tab bar
-const SEARCH_DEBOUNCE_MS = 150;
 
 type InventoryRow =
   | {
@@ -58,29 +56,35 @@ type InventoryRow =
       isExpanded: boolean;
     };
 
-interface SearchState {
+interface InventoryUiState {
   query: string;
   focused: boolean;
   tagFilter: TagFilter;
+  collapsed: Record<number, boolean>;
+  expanded: Record<number, boolean>;
 }
 
-type SearchAction =
+type InventoryUiAction =
   | { type: "SET_QUERY"; query: string }
   | { type: "SET_FOCUSED"; focused: boolean }
   | { type: "TOGGLE_TAG"; tag: Exclude<TagFilter, null> }
   | { type: "CLEAR_TAG" }
-  | { type: "CLEAR_ALL" };
+  | { type: "CLEAR_ALL" }
+  | { type: "TOGGLE_COLLAPSE"; storageId: number; currentCollapsed: boolean }
+  | { type: "TOGGLE_EXPAND"; storageId: number };
 
-const INITIAL_SEARCH_STATE: SearchState = {
+const INITIAL_UI_STATE: InventoryUiState = {
   query: "",
   focused: false,
   tagFilter: null,
+  collapsed: {},
+  expanded: {},
 };
 
-const searchReducer = (
-  state: SearchState,
-  action: SearchAction,
-): SearchState => {
+const inventoryUiReducer = (
+  state: InventoryUiState,
+  action: InventoryUiAction,
+): InventoryUiState => {
   switch (action.type) {
     case "SET_QUERY":
       return { ...state, query: action.query };
@@ -95,6 +99,22 @@ const searchReducer = (
       return { ...state, tagFilter: null };
     case "CLEAR_ALL":
       return { ...state, query: "", tagFilter: null };
+    case "TOGGLE_COLLAPSE":
+      return {
+        ...state,
+        collapsed: {
+          ...state.collapsed,
+          [action.storageId]: !action.currentCollapsed,
+        },
+      };
+    case "TOGGLE_EXPAND":
+      return {
+        ...state,
+        expanded: {
+          ...state.expanded,
+          [action.storageId]: !state.expanded[action.storageId],
+        },
+      };
   }
 };
 
@@ -112,28 +132,8 @@ const Inventory = () => {
 
 const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
   const theme = useTheme();
-  const [search, dispatch] = useReducer(searchReducer, INITIAL_SEARCH_STATE);
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [collapsedOverrides, setCollapsedOverrides] = useState<
-    ReadonlyMap<number, boolean>
-  >(() => new Map());
-  const [expandedIds, setExpandedIds] = useState<ReadonlySet<number>>(
-    () => new Set(),
-  );
-  const [searchExpandedIds, setSearchExpandedIds] = useState<
-    ReadonlySet<number>
-  >(() => new Set());
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(search.query);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [search.query]);
-
-  // Clear immediately when the input is emptied; debounce non-empty typing.
-  const effectiveQuery =
-    search.query.trim().length === 0 ? "" : debouncedQuery;
+  const [ui, dispatch] = useReducer(inventoryUiReducer, INITIAL_UI_STATE);
+  const effectiveQuery = useDeferredValue(ui.query);
 
   const storageLocations = useCharacterContainers(character.id);
   const allItems = useCharacterItems(character.id);
@@ -147,22 +147,13 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
   // Ignore a tag filter if that tag was deleted in settings.
   const effectiveTagFilter: TagFilter =
-    typeof search.tagFilter === "number" && !tagById.has(search.tagFilter)
+    typeof ui.tagFilter === "number" && !tagById.has(ui.tagFilter)
       ? null
-      : search.tagFilter;
+      : ui.tagFilter;
 
   const isFiltering =
     effectiveQuery.trim().length > 0 || effectiveTagFilter !== null;
-  const hasSearchInput =
-    search.query.length > 0 || effectiveTagFilter !== null;
-  const [prevIsFiltering, setPrevIsFiltering] = useState(isFiltering);
-
-  if (prevIsFiltering !== isFiltering) {
-    setPrevIsFiltering(isFiltering);
-    if (!isFiltering && searchExpandedIds.size > 0) {
-      setSearchExpandedIds(new Set());
-    }
-  }
+  const hasSearchInput = ui.query.length > 0 || effectiveTagFilter !== null;
 
   const activeTagLabel = useMemo(() => {
     if (effectiveTagFilter === null) {
@@ -215,17 +206,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
   const flatRows = useMemo<InventoryRow[]>(() => {
     const rows: InventoryRow[] = [];
-    const visibleLimit = isFiltering
-      ? SEARCH_VISIBLE_LIMIT
-      : DEFAULT_VISIBLE_LIMIT;
-    const activeExpandedIds = isFiltering ? searchExpandedIds : expandedIds;
 
     for (const storage of visibleContainers) {
       const storageId = storage.storage_location_id;
       const items = itemsByContainer.get(storageId) ?? [];
       const isCollapsed =
-        !isFiltering &&
-        (collapsedOverrides.get(storageId) ?? !storage.carrying);
+        !isFiltering && (ui.collapsed[storageId] ?? !storage.carrying);
 
       const contentsWeight = items.reduce(
         (sum, item) => sum + item.weight * item.quantity,
@@ -248,15 +234,14 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         continue;
       }
 
-      const isExpanded = activeExpandedIds.has(storageId);
-      const visibleItems = isExpanded ? items : items.slice(0, visibleLimit);
-      const hasFooter = items.length > visibleLimit;
+      const isExpanded = Boolean(ui.expanded[storageId]);
+      const visibleItems =
+        isFiltering || isExpanded
+          ? items
+          : items.slice(0, DEFAULT_VISIBLE_LIMIT);
+      const hasFooter = !isFiltering && items.length > DEFAULT_VISIBLE_LIMIT;
 
-      for (let i = 0; i < visibleItems.length; i += 1) {
-        const item = visibleItems[i];
-        if (item === undefined) {
-          continue;
-        }
+      visibleItems.forEach((item, i) => {
         const isLastItem = i === visibleItems.length - 1;
         rows.push({
           key: `item-${item.item_id}`,
@@ -265,14 +250,14 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           isLastItem,
           isCardEnd: isLastItem && !hasFooter,
         });
-      }
+      });
 
       if (hasFooter) {
         rows.push({
           key: `footer-${storageId}`,
           type: "container-footer",
           storageId,
-          hiddenCount: items.length - visibleLimit,
+          hiddenCount: items.length - DEFAULT_VISIBLE_LIMIT,
           isExpanded,
         });
       }
@@ -280,39 +265,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
 
     return rows;
   }, [
-    collapsedOverrides,
-    expandedIds,
     isFiltering,
     itemsByContainer,
-    searchExpandedIds,
+    ui.collapsed,
+    ui.expanded,
     visibleContainers,
   ]);
-
-  const handleToggleCollapse = (storageId: number) => {
-    const storage = storageLocations.data.find(
-      (c) => c.storage_location_id === storageId,
-    );
-    const defaultCollapsed = storage ? !storage.carrying : false;
-    setCollapsedOverrides((prev) => {
-      const next = new Map(prev);
-      const current = prev.get(storageId) ?? defaultCollapsed;
-      next.set(storageId, !current);
-      return next;
-    });
-  };
-
-  const handleToggleExpand = (storageId: number) => {
-    const setter = isFiltering ? setSearchExpandedIds : setExpandedIds;
-    setter((prev) => {
-      const next = new Set(prev);
-      if (next.has(storageId)) {
-        next.delete(storageId);
-      } else {
-        next.add(storageId);
-      }
-      return next;
-    });
-  };
 
   return (
     <KeyboardAvoidingView
@@ -420,7 +378,13 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                   effectiveWeight={row.effectiveWeight}
                   isCollapsed={row.isCollapsed}
                   isSearching={isFiltering}
-                  onToggleCollapse={handleToggleCollapse}
+                  onToggleCollapse={() =>
+                    dispatch({
+                      type: "TOGGLE_COLLAPSE",
+                      storageId: row.storage.storage_location_id,
+                      currentCollapsed: row.isCollapsed,
+                    })
+                  }
                 />
               );
             case "item":
@@ -438,7 +402,12 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                   storageId={row.storageId}
                   hiddenCount={row.hiddenCount}
                   isExpanded={row.isExpanded}
-                  onToggleExpand={handleToggleExpand}
+                  onToggleExpand={() =>
+                    dispatch({
+                      type: "TOGGLE_EXPAND",
+                      storageId: row.storageId,
+                    })
+                  }
                 />
               );
           }
@@ -446,7 +415,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
           paddingTop: theme.spacing.sm,
-          paddingBottom: search.focused
+          paddingBottom: ui.focused
             ? FLOATING_DOCK_CLEARANCE + 44
             : FLOATING_DOCK_CLEARANCE,
         }}
@@ -515,7 +484,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           gap: theme.spacing.sm,
         }}
       >
-        {search.focused ? (
+        {ui.focused ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -527,15 +496,15 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ selected: search.tagFilter === "usable" }}
+              accessibilityState={{ selected: ui.tagFilter === "usable" }}
               onPress={() => dispatch({ type: "TOGGLE_TAG", tag: "usable" })}
               style={({ pressed }) => ({
                 backgroundColor:
-                  search.tagFilter === "usable"
+                  ui.tagFilter === "usable"
                     ? theme.colors.accent
                     : theme.colors.surface,
                 borderColor:
-                  search.tagFilter === "usable"
+                  ui.tagFilter === "usable"
                     ? theme.colors.accent
                     : theme.colors.border,
                 borderWidth: 1,
@@ -551,7 +520,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 variant="caption"
                 style={{
                   color:
-                    search.tagFilter === "usable"
+                    ui.tagFilter === "usable"
                       ? theme.colors.accentText
                       : theme.colors.text,
                   fontWeight: "600",
@@ -561,7 +530,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               </ThemedText>
             </Pressable>
             {allTags.map((tag) => {
-              const selected = search.tagFilter === tag.tag_id;
+              const selected = ui.tagFilter === tag.tag_id;
               return (
                 <Pressable
                   key={`filter-tag-${tag.tag_id}`}
@@ -668,7 +637,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               placeholder={
                 activeTagLabel !== null ? "Filter..." : "Search items or tags"
               }
-              value={search.query}
+              value={ui.query}
               onChangeText={(query) => dispatch({ type: "SET_QUERY", query })}
               onFocus={() => dispatch({ type: "SET_FOCUSED", focused: true })}
               onBlur={() => dispatch({ type: "SET_FOCUSED", focused: false })}
