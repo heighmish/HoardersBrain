@@ -4,9 +4,7 @@ type AsyncActionOptions = {
   keepBusyOnSuccess?: boolean;
 };
 
-// Synchronous double-tap latch plus error holder for form/sheet mutations.
-// `lockRef` blocks same-frame re-entry before React commits `submitting`;
-// `keepBusyOnSuccess` keeps controls locked during post-submit dismissal.
+// `lockRef` blocks same-frame double-taps before React commits `submitting`.
 export const useAsyncAction = (options?: AsyncActionOptions) => {
   const lockRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
@@ -45,11 +43,5 @@ export const useAsyncAction = (options?: AsyncActionOptions) => {
     setError(null);
   }, []);
 
-  const reset = useCallback(() => {
-    lockRef.current = false;
-    setSubmitting(false);
-    setError(null);
-  }, []);
-
-  return { submitting, error, run, clearError, reset };
+  return { submitting, error, run, clearError };
 };

@@ -28,8 +28,6 @@ interface DatabaseProviderProps {
 export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   children,
 }) => {
-  // Lazy-initialized once; this app does not use StrictMode, and even
-  // under it a second SQLite connection to the same file is harmless.
   const [{ db, sqliteDb }] = useState(() => {
     const sqliteDb = SQLite.openDatabaseSync("hoardersbrain.db", {
       enableChangeListener: true,
@@ -48,6 +46,12 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   });
 
   useDrizzleStudio(sqliteDb);
+
+  useEffect(() => {
+    return () => {
+      sqliteDb.closeSync();
+    };
+  }, [sqliteDb]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,8 +86,6 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
     throw migrationState.error;
   }
 
-  // Gate children on completed migrations so nothing queries the
-  // database before its schema exists (matters on first launch).
   if (migrationState.status !== "ready") {
     return null;
   }

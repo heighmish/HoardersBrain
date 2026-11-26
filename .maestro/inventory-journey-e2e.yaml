@@ -223,7 +223,8 @@ name: Inventory, containers, items, and transfer end to end
 - tapOn:
     id: container-edit-action-6
 - extendedWaitUntil:
-    visible: "Fixed weight"
+    visible:
+      id: save-storage-button
     timeout: 30000
 - tapOn:
     id: storage-name-input
@@ -249,7 +250,6 @@ name: Inventory, containers, items, and transfer end to end
 - tapOn:
     id: delete-confirm-input
 - inputText: "Bag of Holding Two"
-- scroll
 - tapOn:
     id: delete-confirm-button
 - extendedWaitUntil:
