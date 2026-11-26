@@ -1,12 +1,16 @@
 appId: com.heighmish.HoardersBrain
 tags:
   - e2e
-  - delete-character
-name: Delete character end to end
+  - settings-and-characters
+name: Theme, character settings, rename, switch, and delete end to end
 ---
-# Renames the auto-seeded Sample Character to QA Alpha, creates QA Beta,
-# deletes the active (QA Beta) character, and confirms the app lands on the
-# remaining character with the deleted one gone from the switcher.
+# End-to-end settings & character management journey:
+# 1. Cold boot auto-seeds Sample Character.
+# 2. Switch theme preset (Tokyo Night) and mode (Dark), then relaunch without
+#    clearing state to verify kv-store persistence.
+# 3. Rename Sample Character -> QA Alpha, update max encumbrance, disable weight
+#    tracking, and confirm encumbrance-card disappears.
+# 4. Create QA Beta, delete QA Beta, and verify fallback to QA Alpha.
 - launchApp:
     appId: com.heighmish.HoardersBrain
     clearState: true
@@ -17,12 +21,49 @@ name: Delete character end to end
     timeout: 60000
 - assertVisible: ".*Sample Character.*"
 
-# Rename the seeded character so the remaining-character assertion is explicit.
+# Theme preset + dark mode
 - tapOn:
     id: settings-button
 - extendedWaitUntil:
+    visible: "Theme"
+    timeout: 30000
+- tapOn:
+    id: settings-theme-row
+- extendedWaitUntil:
+    visible: "Mind Flayer · System"
+    timeout: 30000
+- tapOn:
+    id: theme-preset-tokyo-night
+- assertVisible: "Tokyo Night · System"
+- tapOn:
+    id: theme-mode-dark
+- assertVisible: "Tokyo Night · Dark"
+
+# Relaunch without clearState to verify kv-store theme persistence
+- launchApp:
+    appId: com.heighmish.HoardersBrain
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: currency-card
+    timeout: 60000
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 30000
+- tapOn:
+    id: settings-theme-row
+- extendedWaitUntil:
+    visible: "Tokyo Night · Dark"
+    timeout: 30000
+- tapOn:
+    id: back-button
+- extendedWaitUntil:
     visible: "Rename or delete"
     timeout: 30000
+
+# Rename Sample Character -> QA Alpha
 - tapOn:
     id: manage-characters-row
 - extendedWaitUntil:
@@ -47,7 +88,25 @@ name: Delete character end to end
 - tapOn:
     id: back-button
 - extendedWaitUntil:
-    visible: "Rename or delete"
+    visible: "Encumbrance & weight"
+    timeout: 30000
+
+# Character encumbrance & weight tracking toggle
+- tapOn:
+    id: settings-encumbrance-row
+- extendedWaitUntil:
+    visible: "Max Encumbrance"
+    timeout: 30000
+- tapOn:
+    id: character-max-encumbrance-input
+- eraseText
+- inputText: "150"
+- tapOn:
+    id: character-weight-tracking-toggle
+- tapOn:
+    id: character-settings-save
+- extendedWaitUntil:
+    visible: "Encumbrance & weight"
     timeout: 30000
 - tapOn:
     id: back-button
@@ -55,14 +114,18 @@ name: Delete character end to end
     visible:
       id: currency-card
     timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: encumbrance-card
+    timeout: 30000
 
+# Create QA Beta, delete QA Beta, confirm fallback to QA Alpha
 - tapOn:
     id: character-switcher
 - extendedWaitUntil:
     visible: "Create new character"
     timeout: 30000
 - tapOn: "Create new character"
-
 - extendedWaitUntil:
     visible: "Please create a character"
     timeout: 30000
@@ -70,12 +133,10 @@ name: Delete character end to end
     id: character-name-input
 - inputText: "QA Beta"
 - tapOn: "Create Character"
-
 - extendedWaitUntil:
     visible: ".*QA Beta.*"
     timeout: 30000
 
-# Deleting lives on the character management screen.
 - tapOn:
     id: settings-button
 - extendedWaitUntil:
@@ -95,7 +156,6 @@ name: Delete character end to end
     timeout: 30000
 - tapOn:
     id: character-delete-confirm
-
 - extendedWaitUntil:
     visible: "Rename or delete"
     timeout: 30000
@@ -108,7 +168,6 @@ name: Delete character end to end
 - extendedWaitUntil:
     notVisible: ".*QA Beta.*"
     timeout: 30000
-
 - tapOn:
     id: character-switcher
 - extendedWaitUntil:

@@ -32,6 +32,7 @@ const Settings = () => {
   ) => (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       testID={testID}
       onPress={onPress}
       style={({ pressed }) => ({

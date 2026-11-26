@@ -1,4 +1,5 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
+import { loadSampleData } from "@/db/sampleData";
 import { Character, charactersTable, storageLocationsTable } from "@/db/schema";
 import { DEFAULT_CONTAINER_NAME } from "./containers";
 import { seedDefaultTagsInTransaction } from "./tags";
@@ -14,6 +15,41 @@ export const findActiveCharacterById = async (
       isNull(charactersTable.deleted_at),
     ),
   });
+
+export const resolveOrSeedInitialCharacter = async (
+  db: AppDatabase,
+  preferredCharacterId: number | null,
+): Promise<{ id: number; name: string; shouldPersist: boolean }> => {
+  if (preferredCharacterId !== null) {
+    const preferred = await findActiveCharacterById(db, preferredCharacterId);
+    if (preferred !== undefined) {
+      return {
+        id: preferred.character_id,
+        name: preferred.name,
+        shouldPersist: false,
+      };
+    }
+  }
+
+  const fallback = await db.query.charactersTable.findFirst({
+    where: isNull(charactersTable.deleted_at),
+    orderBy: asc(charactersTable.character_id),
+  });
+  if (fallback !== undefined) {
+    return {
+      id: fallback.character_id,
+      name: fallback.name,
+      shouldPersist: true,
+    };
+  }
+
+  const sample = await loadSampleData(db);
+  return {
+    id: sample.id,
+    name: sample.name,
+    shouldPersist: true,
+  };
+};
 
 export const createCharacterWithDefaultContainer = async (
   db: AppDatabase,

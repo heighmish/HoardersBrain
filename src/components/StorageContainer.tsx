@@ -48,6 +48,84 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
 
   const isStandaloneCard = isCollapsed || itemCount === 0;
 
+  const renderHeaderBody = () => {
+    if (isCollapsed) {
+      return null;
+    }
+    if (itemCount === 0) {
+      return <ThemedText variant="subhead">No items</ThemedText>;
+    }
+    if (isLargeText) {
+      return null;
+    }
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: theme.spacing.sm,
+          borderBottomWidth: theme.layout.hairline,
+          borderColor: theme.colors.border,
+          paddingBottom: theme.spacing.xs,
+        }}
+      >
+        <ThemedText
+          variant="caption"
+          numberOfLines={1}
+          style={{
+            flex: 1,
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+          }}
+        >
+          Name
+        </ThemedText>
+        {prefs.showQuantity ? (
+          <ThemedText
+            variant="caption"
+            numberOfLines={1}
+            style={{
+              width: colWidths.qty,
+              textAlign: "right",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Qty
+          </ThemedText>
+        ) : null}
+        {prefs.showWeight ? (
+          <ThemedText
+            variant="caption"
+            numberOfLines={1}
+            style={{
+              width: colWidths.weight,
+              textAlign: "right",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Weight
+          </ThemedText>
+        ) : null}
+        {prefs.showValue ? (
+          <ThemedText
+            variant="caption"
+            numberOfLines={1}
+            style={{
+              width: colWidths.value,
+              textAlign: "right",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Value
+          </ThemedText>
+        ) : null}
+      </View>
+    );
+  };
+
   return (
     <View
       style={{
@@ -137,74 +215,7 @@ export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
         </Pressable>
       </View>
 
-      {isCollapsed ? null : itemCount === 0 ? (
-        <ThemedText variant="subhead">No items</ThemedText>
-      ) : isLargeText ? null : (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: theme.spacing.sm,
-            borderBottomWidth: theme.layout.hairline,
-            borderColor: theme.colors.border,
-            paddingBottom: theme.spacing.xs,
-          }}
-        >
-          <ThemedText
-            variant="caption"
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            Name
-          </ThemedText>
-          {prefs.showQuantity ? (
-            <ThemedText
-              variant="caption"
-              numberOfLines={1}
-              style={{
-                width: colWidths.qty,
-                textAlign: "right",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              Qty
-            </ThemedText>
-          ) : null}
-          {prefs.showWeight ? (
-            <ThemedText
-              variant="caption"
-              numberOfLines={1}
-              style={{
-                width: colWidths.weight,
-                textAlign: "right",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              Weight
-            </ThemedText>
-          ) : null}
-          {prefs.showValue ? (
-            <ThemedText
-              variant="caption"
-              numberOfLines={1}
-              style={{
-                width: colWidths.value,
-                textAlign: "right",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              Value
-            </ThemedText>
-          ) : null}
-        </View>
-      )}
+      {renderHeaderBody()}
     </View>
   );
 };

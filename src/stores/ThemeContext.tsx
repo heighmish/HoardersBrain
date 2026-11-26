@@ -23,12 +23,15 @@ import {
   findCustomPalette,
   findThemePreset,
 } from "@/constants/themePresets";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import Storage from "expo-sqlite/kv-store";
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import { Appearance, useColorScheme } from "react-native";
@@ -39,9 +42,11 @@ type PersistedThemeSettings = {
   customPalettes: CustomPalette[];
 };
 
-type ThemeState =
-  | { status: "loading" }
-  | ({ status: "ready" } & PersistedThemeSettings);
+const DEFAULT_THEME_SETTINGS: PersistedThemeSettings = {
+  presetId: DEFAULT_PRESET_ID,
+  mode: "system",
+  customPalettes: [],
+};
 
 type ThemeContextType = {
   presetId: string;
@@ -126,134 +131,114 @@ const resolvePalette = (
   return { name: preset.name, semantics: preset[resolvedMode] };
 };
 
+const loadStoredSettings = (): PersistedThemeSettings => {
+  try {
+    const stored = Storage.getItemSync(THEME_SETTINGS);
+    if (stored !== null) {
+      return parseStoredSettings(stored);
+    }
+  } catch (error) {
+    console.error("[ThemeContext]: Error loading theme settings", error);
+  }
+  return DEFAULT_THEME_SETTINGS;
+};
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [state, setState] = useState<ThemeState>({ status: "loading" });
+  const [settings, setSettings] =
+    useState<PersistedThemeSettings>(loadStoredSettings);
   const systemColorScheme = useColorScheme();
+  const didMountRef = useRef(false);
 
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(THEME_SETTINGS);
-        if (stored !== null) {
-          const settings = parseStoredSettings(stored);
-          setState({ status: "ready", ...settings });
-          return;
-        }
-      } catch (error) {
-        console.error("[ThemeContext]: Error loading theme settings", error);
-      }
-      setState({
-        status: "ready",
-        presetId: DEFAULT_PRESET_ID,
-        mode: "system",
-        customPalettes: [],
-      });
-    };
-    loadSettings();
-  }, []);
-
-  useEffect(() => {
-    if (state.status === "loading") {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
       return;
     }
-    const settings: PersistedThemeSettings = {
-      presetId: state.presetId,
-      mode: state.mode,
-      customPalettes: state.customPalettes,
-    };
-    AsyncStorage.setItem(THEME_SETTINGS, JSON.stringify(settings)).catch(
-      (error: unknown) => {
-        console.error("[ThemeContext]: Error persisting theme settings", error);
-      },
-    );
-  }, [state]);
-
-  const activeMode = state.status === "ready" ? state.mode : "system";
+    try {
+      Storage.setItemSync(THEME_SETTINGS, JSON.stringify(settings));
+    } catch (error) {
+      console.error("[ThemeContext]: Error persisting theme settings", error);
+    }
+  }, [settings]);
 
   useEffect(() => {
     Appearance.setColorScheme(
-      activeMode === "system" ? "auto" : activeMode,
+      settings.mode === "system" ? "auto" : settings.mode,
     );
-  }, [activeMode]);
-
-  if (state.status === "loading") {
-    return null;
-  }
+  }, [settings.mode]);
 
   const resolvedMode: ResolvedThemeMode =
-    state.mode === "system"
+    settings.mode === "system"
       ? systemColorScheme === "dark"
         ? "dark"
         : "light"
-      : state.mode;
+      : settings.mode;
 
-  const palette = resolvePalette(
-    state.presetId,
-    resolvedMode,
-    state.customPalettes,
-  );
-  const colors = buildThemeColors(palette.semantics);
+  const selectPreset = useCallback((presetId: string) => {
+    setSettings((previous) => ({ ...previous, presetId }));
+  }, []);
 
-  const updateSettings = (partial: Partial<PersistedThemeSettings>) => {
-    setState((previous) =>
-      previous.status === "loading" ? previous : { ...previous, ...partial },
-    );
-  };
+  const setMode = useCallback((mode: ThemeMode) => {
+    setSettings((previous) => ({ ...previous, mode }));
+  }, []);
 
-  const selectPreset = (presetId: string) => {
-    updateSettings({ presetId });
-  };
-
-  const setMode = (mode: ThemeMode) => {
-    updateSettings({ mode });
-  };
-
-  const upsertCustomPalette = (palette: CustomPalette) => {
-    setState((previous) => {
-      if (previous.status === "loading") {
-        return previous;
-      }
+  const upsertCustomPalette = useCallback((nextPalette: CustomPalette) => {
+    setSettings((previous) => {
       const exists = previous.customPalettes.some(
-        (existing) => existing.id === palette.id,
+        (existing) => existing.id === nextPalette.id,
       );
       return {
         ...previous,
         customPalettes: exists
           ? previous.customPalettes.map((existing) =>
-              existing.id === palette.id ? palette : existing,
+              existing.id === nextPalette.id ? nextPalette : existing,
             )
-          : [...previous.customPalettes, palette],
+          : [...previous.customPalettes, nextPalette],
       };
     });
-  };
+  }, []);
+
+  const value = useMemo<ThemeContextType>(() => {
+    const palette = resolvePalette(
+      settings.presetId,
+      resolvedMode,
+      settings.customPalettes,
+    );
+    const colors = buildThemeColors(palette.semantics);
+    return {
+      presetId: settings.presetId,
+      presetName: palette.name,
+      mode: settings.mode,
+      resolvedMode,
+      colors,
+      type: buildTypography(colors),
+      spacing,
+      radius,
+      shadows,
+      motion,
+      layout,
+      opacity,
+      customPalettes: settings.customPalettes,
+      selectPreset,
+      setMode,
+      upsertCustomPalette,
+    };
+  }, [
+    settings.presetId,
+    settings.mode,
+    settings.customPalettes,
+    resolvedMode,
+    selectPreset,
+    setMode,
+    upsertCustomPalette,
+  ]);
 
   return (
-    <ThemeContext.Provider
-      value={{
-        presetId: state.presetId,
-        presetName: palette.name,
-        mode: state.mode,
-        resolvedMode,
-        colors,
-        type: buildTypography(colors),
-        spacing,
-        radius,
-        shadows,
-        motion,
-        layout,
-        opacity,
-        customPalettes: state.customPalettes,
-        selectPreset,
-        setMode,
-        upsertCustomPalette,
-      }}
-    >
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };
 
