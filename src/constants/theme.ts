@@ -35,13 +35,9 @@ export const layout = {
   touchMin: 44,
   controlSm: 36,
   controlMd: 50,
-  fab: 52,
-  searchPillMin: 48,
   hairline: 1,
-  contentMaxWidth: 640,
   icon: {
     xs: 12,
-    sm: 16,
     md: 20,
     lg: 24,
   },
@@ -49,7 +45,6 @@ export const layout = {
 
 export const opacity = {
   pressed: 0.7,
-  pressedSubtle: 0.6,
   disabled: 0.4,
 } as const;
 

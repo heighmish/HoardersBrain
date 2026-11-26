@@ -40,7 +40,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
             borderTopLeftRadius: theme.radius.md,
             borderBottomLeftRadius: theme.radius.md,
           },
-          pressed && { opacity: theme.opacity.pressedSubtle },
+          pressed && { opacity: theme.opacity.pressed },
         ]}
       >
         <Text
@@ -76,7 +76,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
             borderTopRightRadius: theme.radius.md,
             borderBottomRightRadius: theme.radius.md,
           },
-          pressed && { opacity: theme.opacity.pressedSubtle },
+          pressed && { opacity: theme.opacity.pressed },
         ]}
       >
         <Text

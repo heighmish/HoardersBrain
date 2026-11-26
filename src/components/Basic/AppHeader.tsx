@@ -35,7 +35,7 @@ const AppHeader = ({ title }: { title: string }) => {
           hitSlop={10}
           onPress={() => router.back()}
           style={({ pressed }) => ({
-            opacity: pressed ? theme.opacity.pressedSubtle : 1,
+            opacity: pressed ? theme.opacity.pressed : 1,
           })}
         >
           <AntDesign

@@ -31,6 +31,8 @@ import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { itemMatchesFilter, TagFilter } from "@/utils/inventoryFilter";
 
 const DEFAULT_DOCK_CLEARANCE = 96; // Initial bottom clearance before floating dock onLayout measures it
+const FAB_SIZE = 52; // Floating action button and Add Container row height
+const SEARCH_PILL_MIN_HEIGHT = 48; // Floating search pill minimum touch height
 
 type InventoryRow =
   | {
@@ -458,7 +460,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: theme.spacing.sm,
-                minHeight: theme.layout.fab,
+                minHeight: FAB_SIZE,
                 paddingVertical: theme.spacing.md,
                 paddingHorizontal: theme.spacing.md,
                 borderRadius: theme.radius.lg,
@@ -610,7 +612,7 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               borderWidth: 1,
               borderRadius: theme.radius.full,
               paddingHorizontal: theme.spacing.md,
-              minHeight: theme.layout.searchPillMin,
+              minHeight: SEARCH_PILL_MIN_HEIGHT,
               boxShadow: theme.shadows.raised,
             }}
           >
@@ -696,8 +698,8 @@ const InventoryContent = ({ character }: { character: SelectedCharacter }) => {
               router.push("/CreateItemForm");
             }}
             style={({ pressed }) => ({
-              width: theme.layout.fab,
-              height: theme.layout.fab,
+              width: FAB_SIZE,
+              height: FAB_SIZE,
               borderRadius: theme.radius.full,
               backgroundColor: theme.colors.accent,
               alignItems: "center",

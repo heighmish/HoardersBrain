@@ -18,7 +18,7 @@ import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const goBack = () => {
@@ -127,7 +127,8 @@ const ItemDetailBody = ({ item }: { item: Item }) => {
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: theme.spacing.md,
-        paddingBottom: insets.bottom + theme.spacing.lg,
+        paddingBottom:
+          theme.spacing.lg + (Platform.OS === "android" ? insets.bottom : 0),
         gap: theme.spacing.md,
       }}
     >

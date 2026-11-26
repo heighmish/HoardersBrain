@@ -10,7 +10,7 @@ import { useItem } from "@/hooks/useItem";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const goBack = () => {
@@ -109,7 +109,9 @@ const TransferItemPickerBody = ({ item }: { item: Item }) => {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{
             gap: theme.spacing.sm,
-            paddingBottom: insets.bottom + theme.spacing.md,
+            paddingBottom:
+              theme.spacing.md +
+              (Platform.OS === "android" ? insets.bottom : 0),
           }}
         >
           {targets.map((character) => (
