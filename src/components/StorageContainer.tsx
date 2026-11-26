@@ -5,41 +5,32 @@ import { useTheme } from "@/stores/ThemeContext";
 import { formatWeight } from "@/utils/encumbrance";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { Pressable, View } from "react-native";
 import ItemComponent, { getItemColumnWidths } from "./ItemComponent";
 
-interface StorageContainerProps {
+export const DEFAULT_VISIBLE_LIMIT = 5;
+
+export interface StorageContainerHeaderProps {
   storage: Storage;
-  items: readonly Item[];
-  tagsByItemId?: ReadonlyMap<number, Tag[]>;
-  isSearching?: boolean;
+  itemCount: number;
+  effectiveWeight: number;
+  isCollapsed: boolean;
+  isSearching: boolean;
+  onToggleCollapse: () => void;
 }
 
-const StorageContainer: React.FC<StorageContainerProps> = ({
+export const StorageContainerHeader: React.FC<StorageContainerHeaderProps> = ({
   storage,
-  items,
-  tagsByItemId,
-  isSearching = false,
+  itemCount,
+  effectiveWeight,
+  isCollapsed,
+  isSearching,
+  onToggleCollapse,
 }) => {
   const theme = useTheme();
   const { prefs } = useInventoryDisplay();
   const colWidths = getItemColumnWidths();
-
-  const [collapsed, setCollapsed] = useState(!storage.carrying);
-  const [expanded, setExpanded] = useState(false);
-
-  const isCollapsed = !isSearching && collapsed;
-  const visibleItems =
-    isSearching || expanded ? items : items.slice(0, 5);
-
-  const contentsWeight = items.reduce(
-    (sum, item) => sum + item.weight * item.quantity,
-    0,
-  );
-  const effectiveWeight = storage.is_fixed_weight
-    ? storage.weight
-    : storage.weight + contentsWeight;
 
   const metaParts: string[] = [];
   if (prefs.showWeight) {
@@ -51,16 +42,24 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
   if (!storage.carrying) {
     metaParts.push("Stowed");
   }
-  metaParts.push(items.length === 1 ? "1 item" : `${items.length} items`);
+  metaParts.push(itemCount === 1 ? "1 item" : `${itemCount} items`);
+
+  const isStandaloneCard = isCollapsed || itemCount === 0;
 
   return (
     <View
       style={{
         backgroundColor: theme.colors.surface,
-        boxShadow: theme.shadows.card,
-        borderRadius: theme.radius.lg,
+        boxShadow: isStandaloneCard ? theme.shadows.card : undefined,
+        borderTopLeftRadius: theme.radius.lg,
+        borderTopRightRadius: theme.radius.lg,
+        borderBottomLeftRadius: isStandaloneCard ? theme.radius.lg : 0,
+        borderBottomRightRadius: isStandaloneCard ? theme.radius.lg : 0,
         borderCurve: "continuous",
-        padding: theme.spacing.md,
+        paddingTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.md,
+        paddingBottom: isStandaloneCard ? theme.spacing.md : 0,
+        marginBottom: isStandaloneCard ? theme.spacing.sm : 0,
       }}
       testID={`container-card-${storage.storage_location_id}`}
     >
@@ -82,7 +81,7 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
               : `Collapse ${storage.name}`
           }
           disabled={isSearching}
-          onPress={() => setCollapsed((prev) => !prev)}
+          onPress={onToggleCollapse}
           style={({ pressed }) => ({
             flex: 1,
             flexDirection: "row",
@@ -136,115 +135,147 @@ const StorageContainer: React.FC<StorageContainerProps> = ({
         </Pressable>
       </View>
 
-      {isCollapsed ? null : (
-        <>
-          {items.length === 0 ? (
-            <ThemedText variant="subhead">No items</ThemedText>
-          ) : (
-            <>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: theme.spacing.sm,
-                  borderBottomWidth: 1,
-                  borderColor: theme.colors.border,
-                  paddingBottom: theme.spacing.xs,
-                }}
-              >
-                <ThemedText
-                  variant="caption"
-                  style={{
-                    flex: 1,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Name
-                </ThemedText>
-                {prefs.showQuantity ? (
-                  <ThemedText
-                    variant="caption"
-                    style={{
-                      width: colWidths.qty,
-                      textAlign: "right",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Qty
-                  </ThemedText>
-                ) : null}
-                {prefs.showWeight ? (
-                  <ThemedText
-                    variant="caption"
-                    style={{
-                      width: colWidths.weight,
-                      textAlign: "right",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Weight
-                  </ThemedText>
-                ) : null}
-                {prefs.showValue ? (
-                  <ThemedText
-                    variant="caption"
-                    style={{
-                      width: colWidths.value,
-                      textAlign: "right",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Value
-                  </ThemedText>
-                ) : null}
-              </View>
-              <View>
-                {visibleItems.map((item, index) => (
-                  <ItemComponent
-                    key={item.item_id}
-                    item={item}
-                    tags={tagsByItemId?.get(item.item_id)}
-                    isLast={index === visibleItems.length - 1}
-                  />
-                ))}
-              </View>
-            </>
-          )}
-
-          {!isSearching && items.length > 5 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                expanded
-                  ? "Show fewer items"
-                  : `Show ${items.length - 5} more items`
-              }
-              onPress={() => {
-                setExpanded((prev) => !prev);
+      {isCollapsed ? null : itemCount === 0 ? (
+        <ThemedText variant="subhead">No items</ThemedText>
+      ) : (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: theme.spacing.sm,
+            borderBottomWidth: 1,
+            borderColor: theme.colors.border,
+            paddingBottom: theme.spacing.xs,
+          }}
+        >
+          <ThemedText
+            variant="caption"
+            style={{
+              flex: 1,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Name
+          </ThemedText>
+          {prefs.showQuantity ? (
+            <ThemedText
+              variant="caption"
+              style={{
+                width: colWidths.qty,
+                textAlign: "right",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-                alignSelf: "flex-start",
-                paddingTop: theme.spacing.sm,
-              })}
-              testID={`container-expand-${storage.storage_location_id}`}
             >
-              <ThemedText
-                variant="subhead"
-                style={{ color: theme.colors.accent }}
-              >
-                {expanded ? "Show fewer" : `Show ${items.length - 5} more`}
-              </ThemedText>
-            </Pressable>
+              Qty
+            </ThemedText>
           ) : null}
-        </>
+          {prefs.showWeight ? (
+            <ThemedText
+              variant="caption"
+              style={{
+                width: colWidths.weight,
+                textAlign: "right",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+              }}
+            >
+              Weight
+            </ThemedText>
+          ) : null}
+          {prefs.showValue ? (
+            <ThemedText
+              variant="caption"
+              style={{
+                width: colWidths.value,
+                textAlign: "right",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+              }}
+            >
+              Value
+            </ThemedText>
+          ) : null}
+        </View>
       )}
     </View>
   );
 };
 
-export default StorageContainer;
+export interface StorageContainerItemRowProps {
+  item: Item;
+  tags?: readonly Tag[];
+  isLastItem: boolean;
+  isCardEnd: boolean;
+}
+
+export const StorageContainerItemRow: React.FC<
+  StorageContainerItemRowProps
+> = ({ item, tags, isLastItem, isCardEnd }) => {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        paddingHorizontal: theme.spacing.md,
+        paddingBottom: isCardEnd ? theme.spacing.md : 0,
+        borderBottomLeftRadius: isCardEnd ? theme.radius.lg : 0,
+        borderBottomRightRadius: isCardEnd ? theme.radius.lg : 0,
+        borderCurve: "continuous",
+        marginBottom: isCardEnd ? theme.spacing.sm : 0,
+      }}
+    >
+      <ItemComponent item={item} tags={tags} isLast={isLastItem} />
+    </View>
+  );
+};
+
+export interface StorageContainerFooterProps {
+  storageId: number;
+  hiddenCount: number;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}
+
+export const StorageContainerFooter: React.FC<StorageContainerFooterProps> = ({
+  storageId,
+  hiddenCount,
+  isExpanded,
+  onToggleExpand,
+}) => {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        paddingHorizontal: theme.spacing.md,
+        paddingBottom: theme.spacing.md,
+        borderBottomLeftRadius: theme.radius.lg,
+        borderBottomRightRadius: theme.radius.lg,
+        borderCurve: "continuous",
+        marginBottom: theme.spacing.sm,
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          isExpanded ? "Show fewer items" : `Show ${hiddenCount} more items`
+        }
+        onPress={onToggleExpand}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.7 : 1,
+          alignSelf: "flex-start",
+          paddingTop: theme.spacing.sm,
+        })}
+        testID={`container-expand-${storageId}`}
+      >
+        <ThemedText variant="subhead" style={{ color: theme.colors.accent }}>
+          {isExpanded ? "Show fewer" : `Show ${hiddenCount} more`}
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
+};
