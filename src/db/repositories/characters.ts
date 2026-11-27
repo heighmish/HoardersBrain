@@ -5,7 +5,7 @@ import { DEFAULT_CONTAINER_NAME } from "./containers";
 import { seedDefaultTagsInTransaction } from "./tags";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
-export const findActiveCharacterById = async (
+const findActiveCharacterById = async (
   db: AppDatabase,
   characterId: number,
 ): Promise<Character | undefined> =>

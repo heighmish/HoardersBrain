@@ -15,10 +15,10 @@ import {
 import type { CoinDenomination } from "@/utils/currency";
 import { eq } from "drizzle-orm";
 
-export const SAMPLE_CHARACTER_NAME = "Sample Character";
-export const SAMPLE_POUCH_NAME = "Pouch";
-export const SAMPLE_BAG_NAME = "Bag of Holding";
-export const SAMPLE_CHEST_NAME = "Camp Chest";
+const SAMPLE_CHARACTER_NAME = "Sample Character";
+const SAMPLE_POUCH_NAME = "Pouch";
+const SAMPLE_BAG_NAME = "Bag of Holding";
+const SAMPLE_CHEST_NAME = "Camp Chest";
 
 type SampleContainerKey = "equipped" | "pouch" | "bag" | "chest";
 

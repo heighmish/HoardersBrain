@@ -67,7 +67,6 @@ export type PaletteSemantics = {
 
 export type ThemeColors = PaletteSemantics & {
   accentText: string;
-  scrim: string;
 };
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
@@ -100,7 +99,6 @@ export const buildThemeColors = (
 ): ThemeColors => ({
   ...palette,
   accentText: readableTextColor(palette.accent),
-  scrim: "rgba(0, 0, 0, 0.4)",
 });
 
 export const buildTypography = (colors: ThemeColors) =>
@@ -119,15 +117,3 @@ const hexPattern = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 export const isHexColor = (value: string): boolean =>
   hexPattern.test(value.trim());
-
-export const normalizeHex = (value: string): string => {
-  const trimmed = value.trim().replace("#", "").toUpperCase();
-  const expanded =
-    trimmed.length === 3
-      ? trimmed
-          .split("")
-          .map((char) => char + char)
-          .join("")
-      : trimmed;
-  return `#${expanded}`;
-};
