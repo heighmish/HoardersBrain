@@ -185,14 +185,6 @@ export const createItem = async (
     return created;
   });
 
-export const loadItemById = async (
-  db: AppDatabase,
-  itemId: number,
-): Promise<Item | undefined> =>
-  db.query.itemsTable.findFirst({
-    where: and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)),
-  });
-
 export const updateItemDetails = async (
   db: AppDatabase,
   itemId: number,

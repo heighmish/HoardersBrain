@@ -1,6 +1,6 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
 import { Storage, storageLocationsTable } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export const DEFAULT_CONTAINER_NAME = "Equipped";
 
@@ -8,17 +8,6 @@ export type StorageInput = Omit<
   Storage,
   "storage_location_id" | "weight" | "deleted_at"
 >;
-
-export const findActiveStorageById = async (
-  db: AppDatabase,
-  storageId: number,
-): Promise<Storage | undefined> =>
-  db.query.storageLocationsTable.findFirst({
-    where: and(
-      eq(storageLocationsTable.storage_location_id, storageId),
-      isNull(storageLocationsTable.deleted_at),
-    ),
-  });
 
 export const createStorageContainer = async (
   db: AppDatabase,

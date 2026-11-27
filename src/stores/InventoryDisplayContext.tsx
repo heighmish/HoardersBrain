@@ -19,7 +19,7 @@ export interface InventoryDisplayPrefs {
   showQuickUse: boolean;
 }
 
-export const DEFAULT_INVENTORY_DISPLAY_PREFS: InventoryDisplayPrefs = {
+const DEFAULT_INVENTORY_DISPLAY_PREFS: InventoryDisplayPrefs = {
   showQuantity: true,
   showWeight: true,
   showValue: false,

@@ -17,7 +17,7 @@ type DefaultTagSeed = {
   children?: readonly { name: string; is_usable?: boolean }[];
 };
 
-export const DEFAULT_TAG_TREE: readonly DefaultTagSeed[] = [
+const DEFAULT_TAG_TREE: readonly DefaultTagSeed[] = [
   {
     name: "Consumable",
     is_usable: true,
@@ -87,7 +87,7 @@ export const seedDefaultTagsInTransaction = (
   return byName;
 };
 
-export const ensureDefaultTagsInTransaction = (
+const ensureDefaultTagsInTransaction = (
   tx: RepositoryTransaction,
   characterId: number,
 ): void => {
