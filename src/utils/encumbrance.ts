@@ -23,6 +23,26 @@ export interface CarriedItemRow {
 export const formatWeight = (value: number): string =>
   String(Number(value.toFixed(2)));
 
+export const calculateEncumbrancePercent = (
+  carrying: number,
+  maxEncumbrance: number,
+): number => {
+  if (maxEncumbrance <= 0) {
+    return carrying > 0 ? 100 : 0;
+  }
+  return Math.round((Math.max(0, carrying) / maxEncumbrance) * 100);
+};
+
+export const calculateEncumbranceFillRatio = (
+  carrying: number,
+  maxEncumbrance: number,
+): number => {
+  if (maxEncumbrance <= 0) {
+    return carrying > 0 ? 1 : 0;
+  }
+  return Math.min(1, Math.max(0, carrying / maxEncumbrance));
+};
+
 export const calculateCarriedItemsWeight = (
   rows: readonly CarriedItemRow[],
 ): number =>

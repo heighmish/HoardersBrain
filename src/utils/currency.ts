@@ -32,15 +32,13 @@ export const calculateTotalGoldValue = (coins: CoinPurse): number =>
   coins.platinum * 10 + coins.gold + coins.silver / 10 + coins.copper / 100;
 
 export const purseToCopper = (coins: CoinPurse): number =>
-  coins.platinum * 1000 +
-  coins.gold * 100 +
-  coins.silver * 10 +
-  coins.copper;
+  coins.platinum * 1000 + coins.gold * 100 + coins.silver * 10 + coins.copper;
 
 export const amountToCopper = (
   amount: number,
   denomination: CoinDenomination,
-): number => Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
+): number =>
+  Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
 
 export type PurseDeductionResult =
   | { status: "exact"; nextPurse: CoinPurse }
@@ -100,4 +98,13 @@ export const formatPurseSummary = (purse: CoinPurse): string => {
   if (purse.silver > 0) parts.push(`${purse.silver} sp`);
   if (purse.copper > 0) parts.push(`${purse.copper} cp`);
   return parts.length > 0 ? parts.join(", ") : "0 gp";
+};
+
+export const formatCompactPurse = (purse: CoinPurse): string => {
+  const parts: string[] = [];
+  if (purse.platinum > 0) parts.push(`${purse.platinum}p`);
+  if (purse.gold > 0) parts.push(`${purse.gold}g`);
+  if (purse.silver > 0) parts.push(`${purse.silver}s`);
+  if (purse.copper > 0) parts.push(`${purse.copper}c`);
+  return parts.length > 0 ? parts.join(" · ") : "0g";
 };
