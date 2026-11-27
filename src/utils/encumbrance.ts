@@ -4,6 +4,9 @@ export const determineEncumbranceTone = (
   carrying: number,
   maxEncumbrance: number,
 ): EncumbranceTone => {
+  if (maxEncumbrance <= 0) {
+    return carrying > 0 ? "error" : "success";
+  }
   if (carrying >= maxEncumbrance * 1.5) {
     return "error";
   }
@@ -22,6 +25,26 @@ export interface CarriedItemRow {
 
 export const formatWeight = (value: number): string =>
   String(Number(value.toFixed(2)));
+
+const rawEncumbranceRatio = (
+  carrying: number,
+  maxEncumbrance: number,
+): number => {
+  if (maxEncumbrance <= 0) {
+    return carrying > 0 ? 1 : 0;
+  }
+  return Math.max(0, carrying) / maxEncumbrance;
+};
+
+export const calculateEncumbrancePercent = (
+  carrying: number,
+  maxEncumbrance: number,
+): number => Math.round(rawEncumbranceRatio(carrying, maxEncumbrance) * 100);
+
+export const calculateEncumbranceFillRatio = (
+  carrying: number,
+  maxEncumbrance: number,
+): number => Math.min(1, rawEncumbranceRatio(carrying, maxEncumbrance));
 
 export const calculateCarriedItemsWeight = (
   rows: readonly CarriedItemRow[],

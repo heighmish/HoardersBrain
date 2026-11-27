@@ -3,8 +3,14 @@ import type { Item, Storage } from "@/db/schema";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/stores/ThemeContext";
-import { calculateTotalGoldValue } from "@/utils/currency";
 import {
+  calculateTotalGoldValue,
+  formatCompactPurse,
+  formatPurseSummary,
+} from "@/utils/currency";
+import {
+  calculateEncumbranceFillRatio,
+  calculateEncumbrancePercent,
   determineEncumbranceTone,
   formatWeight,
   sumCarriedWeight,
@@ -13,6 +19,165 @@ import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
+
+const TILE_PADDING = 12; // Compact tile inset between sm (8) and md (16)
+const RING_SIZE = 38; // Radial load gauge diameter sized to fit beside 2-line metrics
+const RING_HALF = RING_SIZE / 2;
+
+interface TileHeaderProps {
+  label: string;
+}
+
+const TileHeader: React.FC<TileHeaderProps> = ({ label }) => {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: theme.spacing.xs,
+      }}
+    >
+      <ThemedText
+        variant="caption"
+        numberOfLines={1}
+        style={{
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: "600",
+          flexShrink: 1,
+        }}
+      >
+        {label}
+      </ThemedText>
+      <AntDesign
+        name="right"
+        size={theme.layout.icon.xs}
+        color={theme.colors.textMuted}
+      />
+    </View>
+  );
+};
+
+interface EncumbranceRingProps {
+  ratio: number;
+  color: string;
+  trackColor: string;
+  strokeWidth: number;
+  radiusFull: number;
+}
+
+const EncumbranceRing: React.FC<EncumbranceRingProps> = ({
+  ratio,
+  color,
+  trackColor,
+  strokeWidth,
+  radiusFull,
+}) => {
+  const rightDeg = Math.min(ratio, 0.5) * 360;
+  const leftDeg = Math.max(0, ratio - 0.5) * 360;
+
+  if (ratio >= 1) {
+    return (
+      <View
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          width: RING_SIZE,
+          height: RING_SIZE,
+          borderRadius: radiusFull,
+          borderWidth: strokeWidth,
+          borderColor: color,
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+
+  return (
+    <View
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: RING_SIZE,
+        height: RING_SIZE,
+        position: "relative",
+        flexShrink: 0,
+      }}
+    >
+      <View
+        style={{
+          width: RING_SIZE,
+          height: RING_SIZE,
+          borderRadius: radiusFull,
+          borderWidth: strokeWidth,
+          borderColor: trackColor,
+        }}
+      />
+
+      {ratio > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: RING_HALF,
+            height: RING_SIZE,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: RING_SIZE,
+              height: RING_SIZE,
+              borderRadius: radiusFull,
+              borderWidth: strokeWidth,
+              borderColor: "transparent",
+              borderTopColor: color,
+              borderRightColor: color,
+              transform: [{ rotate: `${-135 + rightDeg}deg` }],
+            }}
+          />
+        </View>
+      ) : null}
+
+      {ratio > 0.5 ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: RING_HALF,
+            height: RING_SIZE,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: RING_SIZE,
+              height: RING_SIZE,
+              borderRadius: radiusFull,
+              borderWidth: strokeWidth,
+              borderColor: "transparent",
+              borderBottomColor: color,
+              borderLeftColor: color,
+              transform: [{ rotate: `${-135 + leftDeg}deg` }],
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+};
 
 interface InventorySummaryStripProps {
   characterId: number;
@@ -28,7 +193,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   encumbranceReady,
 }) => {
   const theme = useTheme();
-  const { isLargeText } = useLayout();
+  const { isCompactWidth, isLargeText, fontScale } = useLayout();
   const character = useCharacter(characterId);
 
   if (character.status === "error") {
@@ -51,153 +216,189 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
     return null;
   }
 
+  const stackTiles = isLargeText || (isCompactWidth && fontScale > 1.1);
   const goldValue = calculateTotalGoldValue(character.data);
+  const compactPurse = formatCompactPurse(character.data);
+  const currencyAccessibilityLabel = `Currency, ${goldValue.toFixed(2)} gp, ${formatPurseSummary(character.data)}`;
+
   const showEncumbrance = character.data.weight_tracking && encumbranceReady;
-  const totalCarriedWeight = showEncumbrance
-    ? sumCarriedWeight(items, containers)
-    : 0;
-  const encumbranceColor = showEncumbrance
-    ? theme.colors[
-        determineEncumbranceTone(
-          totalCarriedWeight,
-          character.data.max_encumbrance,
-        )
-      ]
-    : theme.colors.success;
+  const encumbrance = showEncumbrance
+    ? (() => {
+        const carried = sumCarriedWeight(items, containers);
+        const max = character.data.max_encumbrance;
+        const percent = calculateEncumbrancePercent(carried, max);
+        return {
+          carriedFormatted: formatWeight(carried),
+          max,
+          percent,
+          ratio: calculateEncumbranceFillRatio(carried, max),
+          color: theme.colors[determineEncumbranceTone(carried, max)],
+        };
+      })()
+    : null;
+
+  const tileBaseStyle = {
+    flex: stackTiles ? undefined : 1,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderWidth: theme.layout.hairline,
+    boxShadow: theme.shadows.card,
+    borderRadius: theme.radius.lg,
+    borderCurve: "continuous" as const,
+    padding: TILE_PADDING,
+    minHeight: theme.layout.touchMin,
+    justifyContent: "space-between" as const,
+    gap: theme.spacing.xs,
+  };
 
   return (
     <View
       style={{
-        backgroundColor: theme.colors.surface,
-        boxShadow: theme.shadows.card,
-        borderRadius: theme.radius.md,
-        borderCurve: "continuous",
-        flexDirection: isLargeText ? "column" : "row",
-        alignItems: isLargeText ? "stretch" : "center",
-        minHeight: theme.layout.touchMin,
-        overflow: "hidden",
+        flexDirection: stackTiles ? "column" : "row",
+        alignItems: "stretch",
+        gap: theme.spacing.sm,
       }}
       testID="inventory-summary-strip"
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Currency"
+        accessibilityLabel={currencyAccessibilityLabel}
         testID="currency-card"
         onPress={() => router.push("/UpdateCurrencySheet")}
         style={({ pressed }) => ({
-          flex: isLargeText ? undefined : 1,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          minHeight: theme.layout.touchMin,
-          gap: theme.spacing.xs,
+          ...tileBaseStyle,
           opacity: pressed ? theme.opacity.pressed : 1,
         })}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: isLargeText ? "wrap" : "nowrap",
-            alignItems: "center",
-            gap: theme.spacing.xs,
-            flex: 1,
-          }}
-        >
-          <ThemedText variant="caption" numberOfLines={1}>
-            Currency
-          </ThemedText>
-          <ThemedText
-            variant="subhead"
-            numberOfLines={1}
+        <TileHeader label="Currency" />
+
+        <View style={{ gap: theme.spacing.xs }}>
+          <View
             style={{
-              color: theme.colors.text,
-              fontWeight: "600",
-              fontVariant: ["tabular-nums"],
-              flexShrink: 1,
+              flexDirection: "row",
+              alignItems: "baseline",
+              gap: theme.spacing.xs,
+              flexWrap: stackTiles ? "wrap" : "nowrap",
             }}
           >
-            {goldValue.toFixed(2)} gp
-          </ThemedText>
-        </View>
-        <AntDesign
-          name="right"
-          size={theme.layout.icon.xs}
-          color={theme.colors.textMuted}
-        />
-      </Pressable>
-
-      {showEncumbrance ? (
-        <>
-          <View
-            style={
-              isLargeText
-                ? {
-                    height: theme.layout.hairline,
-                    marginHorizontal: theme.spacing.md,
-                    backgroundColor: theme.colors.border,
-                  }
-                : {
-                    width: theme.layout.hairline,
-                    alignSelf: "stretch",
-                    marginVertical: theme.spacing.sm,
-                    backgroundColor: theme.colors.border,
-                  }
-            }
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Encumbrance"
-            testID="encumbrance-card"
-            onPress={() => router.push("/CharacterSettings")}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: isLargeText ? "space-between" : "flex-start",
-              gap: theme.spacing.xs,
-              paddingHorizontal: theme.spacing.md,
-              paddingVertical: theme.spacing.sm,
-              minHeight: theme.layout.touchMin,
-              opacity: pressed ? theme.opacity.pressed : 1,
-            })}
-          >
-            <View
+            <ThemedText
+              variant="headline"
+              numberOfLines={1}
+              adjustsFontSizeToFit={!stackTiles}
+              minimumFontScale={0.75}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: theme.spacing.xs,
+                fontVariant: ["tabular-nums"],
                 flexShrink: 1,
               }}
             >
+              {goldValue.toFixed(2)}
+            </ThemedText>
+            <ThemedText variant="caption" numberOfLines={1}>
+              gp
+            </ThemedText>
+          </View>
+          <ThemedText
+            variant="caption"
+            numberOfLines={stackTiles ? 2 : 1}
+            style={{
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {compactPurse}
+          </ThemedText>
+        </View>
+      </Pressable>
+
+      {encumbrance !== null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Encumbrance, ${encumbrance.carriedFormatted} of ${encumbrance.max}, ${encumbrance.percent}% load`}
+          testID="encumbrance-card"
+          onPress={() => router.push("/CharacterSettings")}
+          style={({ pressed }) => ({
+            ...tileBaseStyle,
+            opacity: pressed ? theme.opacity.pressed : 1,
+          })}
+        >
+          <TileHeader label="Encumbrance" />
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: theme.spacing.sm,
+            }}
+          >
+            <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
               <View
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: theme.radius.full,
-                  backgroundColor: encumbranceColor,
-                }}
-              />
-              <ThemedText
-                variant="subhead"
-                numberOfLines={1}
-                style={{
-                  color: theme.colors.text,
-                  fontWeight: "600",
-                  fontVariant: ["tabular-nums"],
+                  flexDirection: "row",
+                  alignItems: "baseline",
+                  flexWrap: stackTiles ? "wrap" : "nowrap",
                 }}
               >
-                {formatWeight(totalCarriedWeight)}/
-                {character.data.max_encumbrance}
-              </ThemedText>
+                <ThemedText
+                  variant="headline"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={!stackTiles}
+                  minimumFontScale={0.75}
+                  style={{
+                    fontVariant: ["tabular-nums"],
+                    flexShrink: 1,
+                  }}
+                >
+                  {encumbrance.carriedFormatted}
+                </ThemedText>
+                <ThemedText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{
+                    fontVariant: ["tabular-nums"],
+                    flexShrink: 1,
+                  }}
+                >
+                  /{encumbrance.max}
+                </ThemedText>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: theme.spacing.xs,
+                }}
+              >
+                <View
+                  accessible={false}
+                  style={{
+                    width: 6, // Compact status dot beside load percentage
+                    height: 6,
+                    borderRadius: theme.radius.full,
+                    backgroundColor: encumbrance.color,
+                  }}
+                />
+                <ThemedText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{
+                    fontVariant: ["tabular-nums"],
+                    flexShrink: 1,
+                  }}
+                >
+                  {encumbrance.percent}% load
+                </ThemedText>
+              </View>
             </View>
-            <AntDesign
-              name="right"
-              size={theme.layout.icon.xs}
-              color={theme.colors.textMuted}
+
+            <EncumbranceRing
+              ratio={encumbrance.ratio}
+              color={encumbrance.color}
+              trackColor={theme.colors.border}
+              strokeWidth={theme.spacing.xs}
+              radiusFull={theme.radius.full}
             />
-          </Pressable>
-        </>
+          </View>
+        </Pressable>
       ) : null}
     </View>
   );

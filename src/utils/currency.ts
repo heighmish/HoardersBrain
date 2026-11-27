@@ -32,15 +32,13 @@ export const calculateTotalGoldValue = (coins: CoinPurse): number =>
   coins.platinum * 10 + coins.gold + coins.silver / 10 + coins.copper / 100;
 
 export const purseToCopper = (coins: CoinPurse): number =>
-  coins.platinum * 1000 +
-  coins.gold * 100 +
-  coins.silver * 10 +
-  coins.copper;
+  coins.platinum * 1000 + coins.gold * 100 + coins.silver * 10 + coins.copper;
 
 export const amountToCopper = (
   amount: number,
   denomination: CoinDenomination,
-): number => Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
+): number =>
+  Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
 
 export type PurseDeductionResult =
   | { status: "exact"; nextPurse: CoinPurse }
@@ -93,11 +91,26 @@ export const deductFromPurse = (
   };
 };
 
-export const formatPurseSummary = (purse: CoinPurse): string => {
-  const parts: string[] = [];
-  if (purse.platinum > 0) parts.push(`${purse.platinum} pp`);
-  if (purse.gold > 0) parts.push(`${purse.gold} gp`);
-  if (purse.silver > 0) parts.push(`${purse.silver} sp`);
-  if (purse.copper > 0) parts.push(`${purse.copper} cp`);
-  return parts.length > 0 ? parts.join(", ") : "0 gp";
+const formatPurseParts = (
+  purse: CoinPurse,
+  units: readonly [string, string, string, string],
+  separator: string,
+  emptyFallback: string,
+): string => {
+  const entries: readonly [number, string][] = [
+    [purse.platinum, units[0]],
+    [purse.gold, units[1]],
+    [purse.silver, units[2]],
+    [purse.copper, units[3]],
+  ];
+  const parts = entries.flatMap(([amount, unit]) =>
+    amount > 0 ? [`${amount}${unit}`] : [],
+  );
+  return parts.length > 0 ? parts.join(separator) : emptyFallback;
 };
+
+export const formatPurseSummary = (purse: CoinPurse): string =>
+  formatPurseParts(purse, [" pp", " gp", " sp", " cp"], ", ", "0 gp");
+
+export const formatCompactPurse = (purse: CoinPurse): string =>
+  formatPurseParts(purse, ["p", "g", "s", "c"], " · ", "0g");
