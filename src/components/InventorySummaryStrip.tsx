@@ -3,7 +3,11 @@ import type { Item, Storage } from "@/db/schema";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/stores/ThemeContext";
-import { calculateTotalGoldValue, formatCompactPurse } from "@/utils/currency";
+import {
+  calculateTotalGoldValue,
+  formatCompactPurse,
+  formatPurseSummary,
+} from "@/utils/currency";
 import {
   calculateEncumbranceFillRatio,
   calculateEncumbrancePercent,
@@ -20,6 +24,42 @@ const TILE_PADDING = 12; // Compact tile inset between sm (8) and md (16)
 const RING_SIZE = 38; // Radial load gauge diameter sized to fit beside 2-line metrics
 const RING_HALF = RING_SIZE / 2;
 
+interface TileHeaderProps {
+  label: string;
+}
+
+const TileHeader: React.FC<TileHeaderProps> = ({ label }) => {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: theme.spacing.xs,
+      }}
+    >
+      <ThemedText
+        variant="caption"
+        numberOfLines={1}
+        style={{
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: "600",
+          flexShrink: 1,
+        }}
+      >
+        {label}
+      </ThemedText>
+      <AntDesign
+        name="right"
+        size={theme.layout.icon.xs}
+        color={theme.colors.textMuted}
+      />
+    </View>
+  );
+};
+
 interface EncumbranceRingProps {
   ratio: number;
   color: string;
@@ -35,14 +75,15 @@ const EncumbranceRing: React.FC<EncumbranceRingProps> = ({
   strokeWidth,
   radiusFull,
 }) => {
-  const clamped = Math.min(1, Math.max(0, ratio));
-  const rightDeg = Math.min(clamped, 0.5) * 360;
-  const leftDeg = Math.max(0, clamped - 0.5) * 360;
+  const rightDeg = Math.min(ratio, 0.5) * 360;
+  const leftDeg = Math.max(0, ratio - 0.5) * 360;
 
-  if (clamped >= 1) {
+  if (ratio >= 1) {
     return (
       <View
         accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: RING_SIZE,
           height: RING_SIZE,
@@ -58,6 +99,8 @@ const EncumbranceRing: React.FC<EncumbranceRingProps> = ({
   return (
     <View
       accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: RING_SIZE,
         height: RING_SIZE,
@@ -75,7 +118,7 @@ const EncumbranceRing: React.FC<EncumbranceRingProps> = ({
         }}
       />
 
-      {clamped > 0 ? (
+      {ratio > 0 ? (
         <View
           style={{
             position: "absolute",
@@ -104,7 +147,7 @@ const EncumbranceRing: React.FC<EncumbranceRingProps> = ({
         </View>
       ) : null}
 
-      {clamped > 0.5 ? (
+      {ratio > 0.5 ? (
         <View
           style={{
             position: "absolute",
@@ -150,7 +193,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   encumbranceReady,
 }) => {
   const theme = useTheme();
-  const { isLargeText } = useLayout();
+  const { isCompactWidth, isLargeText, fontScale } = useLayout();
   const character = useCharacter(characterId);
 
   if (character.status === "error") {
@@ -173,35 +216,29 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
     return null;
   }
 
+  const stackTiles = isLargeText || (isCompactWidth && fontScale > 1.1);
   const goldValue = calculateTotalGoldValue(character.data);
   const compactPurse = formatCompactPurse(character.data);
+  const currencyAccessibilityLabel = `Currency, ${goldValue.toFixed(2)} gp, ${formatPurseSummary(character.data)}`;
+
   const showEncumbrance = character.data.weight_tracking && encumbranceReady;
-  const totalCarriedWeight = showEncumbrance
-    ? sumCarriedWeight(items, containers)
-    : 0;
-  const encumbrancePercent = showEncumbrance
-    ? calculateEncumbrancePercent(
-        totalCarriedWeight,
-        character.data.max_encumbrance,
-      )
-    : 0;
-  const encumbranceRatio = showEncumbrance
-    ? calculateEncumbranceFillRatio(
-        totalCarriedWeight,
-        character.data.max_encumbrance,
-      )
-    : 0;
-  const encumbranceColor = showEncumbrance
-    ? theme.colors[
-        determineEncumbranceTone(
-          totalCarriedWeight,
-          character.data.max_encumbrance,
-        )
-      ]
-    : theme.colors.success;
+  const encumbrance = showEncumbrance
+    ? (() => {
+        const carried = sumCarriedWeight(items, containers);
+        const max = character.data.max_encumbrance;
+        const percent = calculateEncumbrancePercent(carried, max);
+        return {
+          carriedFormatted: formatWeight(carried),
+          max,
+          percent,
+          ratio: calculateEncumbranceFillRatio(carried, max),
+          color: theme.colors[determineEncumbranceTone(carried, max)],
+        };
+      })()
+    : null;
 
   const tileBaseStyle = {
-    flex: isLargeText ? undefined : 1,
+    flex: stackTiles ? undefined : 1,
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.border,
     borderWidth: theme.layout.hairline,
@@ -217,7 +254,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
   return (
     <View
       style={{
-        flexDirection: isLargeText ? "column" : "row",
+        flexDirection: stackTiles ? "column" : "row",
         alignItems: "stretch",
         gap: theme.spacing.sm,
       }}
@@ -225,7 +262,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Currency"
+        accessibilityLabel={currencyAccessibilityLabel}
         testID="currency-card"
         onPress={() => router.push("/UpdateCurrencySheet")}
         style={({ pressed }) => ({
@@ -233,32 +270,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
           opacity: pressed ? theme.opacity.pressed : 1,
         })}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: theme.spacing.xs,
-          }}
-        >
-          <ThemedText
-            variant="caption"
-            numberOfLines={1}
-            style={{
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              fontWeight: "600",
-              flexShrink: 1,
-            }}
-          >
-            Currency
-          </ThemedText>
-          <AntDesign
-            name="right"
-            size={theme.layout.icon.xs}
-            color={theme.colors.textMuted}
-          />
-        </View>
+        <TileHeader label="Currency" />
 
         <View style={{ gap: theme.spacing.xs }}>
           <View
@@ -266,13 +278,13 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
               flexDirection: "row",
               alignItems: "baseline",
               gap: theme.spacing.xs,
-              flexWrap: isLargeText ? "wrap" : "nowrap",
+              flexWrap: stackTiles ? "wrap" : "nowrap",
             }}
           >
             <ThemedText
               variant="headline"
               numberOfLines={1}
-              adjustsFontSizeToFit={!isLargeText}
+              adjustsFontSizeToFit={!stackTiles}
               minimumFontScale={0.75}
               style={{
                 fontVariant: ["tabular-nums"],
@@ -287,7 +299,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
           </View>
           <ThemedText
             variant="caption"
-            numberOfLines={isLargeText ? 2 : 1}
+            numberOfLines={stackTiles ? 2 : 1}
             style={{
               fontVariant: ["tabular-nums"],
             }}
@@ -297,10 +309,10 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
         </View>
       </Pressable>
 
-      {showEncumbrance ? (
+      {encumbrance !== null ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Encumbrance"
+          accessibilityLabel={`Encumbrance, ${encumbrance.carriedFormatted} of ${encumbrance.max}, ${encumbrance.percent}% load`}
           testID="encumbrance-card"
           onPress={() => router.push("/CharacterSettings")}
           style={({ pressed }) => ({
@@ -308,32 +320,7 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
             opacity: pressed ? theme.opacity.pressed : 1,
           })}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: theme.spacing.xs,
-            }}
-          >
-            <ThemedText
-              variant="caption"
-              numberOfLines={1}
-              style={{
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                fontWeight: "600",
-                flexShrink: 1,
-              }}
-            >
-              Encumbrance
-            </ThemedText>
-            <AntDesign
-              name="right"
-              size={theme.layout.icon.xs}
-              color={theme.colors.textMuted}
-            />
-          </View>
+          <TileHeader label="Encumbrance" />
 
           <View
             style={{
@@ -348,27 +335,30 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
                 style={{
                   flexDirection: "row",
                   alignItems: "baseline",
-                  flexWrap: isLargeText ? "wrap" : "nowrap",
+                  flexWrap: stackTiles ? "wrap" : "nowrap",
                 }}
               >
                 <ThemedText
                   variant="headline"
                   numberOfLines={1}
-                  adjustsFontSizeToFit={!isLargeText}
+                  adjustsFontSizeToFit={!stackTiles}
                   minimumFontScale={0.75}
                   style={{
                     fontVariant: ["tabular-nums"],
                     flexShrink: 1,
                   }}
                 >
-                  {formatWeight(totalCarriedWeight)}
+                  {encumbrance.carriedFormatted}
                 </ThemedText>
                 <ThemedText
                   variant="caption"
                   numberOfLines={1}
-                  style={{ fontVariant: ["tabular-nums"] }}
+                  style={{
+                    fontVariant: ["tabular-nums"],
+                    flexShrink: 1,
+                  }}
                 >
-                  /{character.data.max_encumbrance}
+                  /{encumbrance.max}
                 </ThemedText>
               </View>
               <View
@@ -379,11 +369,12 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
                 }}
               >
                 <View
+                  accessible={false}
                   style={{
                     width: 6, // Compact status dot beside load percentage
                     height: 6,
                     borderRadius: theme.radius.full,
-                    backgroundColor: encumbranceColor,
+                    backgroundColor: encumbrance.color,
                   }}
                 />
                 <ThemedText
@@ -394,14 +385,14 @@ const InventorySummaryStrip: React.FC<InventorySummaryStripProps> = ({
                     flexShrink: 1,
                   }}
                 >
-                  {encumbrancePercent}% load
+                  {encumbrance.percent}% load
                 </ThemedText>
               </View>
             </View>
 
             <EncumbranceRing
-              ratio={encumbranceRatio}
-              color={encumbranceColor}
+              ratio={encumbrance.ratio}
+              color={encumbrance.color}
               trackColor={theme.colors.border}
               strokeWidth={theme.spacing.xs}
               radiusFull={theme.radius.full}
