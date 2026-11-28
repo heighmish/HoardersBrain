@@ -28,6 +28,16 @@ import {
   formatPurseSummary,
   purseToCopper,
 } from "@/utils/currency";
+import {
+  formatDecimal,
+  NonNegativeNumber,
+  parseClampedPositiveInt,
+  parseNonNegative,
+  parseOptionalNonNegative,
+  stepDecimalText,
+  stepIntText,
+  ZERO,
+} from "@/utils/numbers";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -159,7 +169,7 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
         }
       : null;
 
-  const parsedPaidAmount = Math.max(0, parseFloat(paidAmountText) || 0);
+  const parsedPaidAmount = parseNonNegative(paidAmountText);
   const availableCopper = purse !== null ? purseToCopper(purse) : 0;
   const deductionPreview =
     acquisitionKind === "bought" &&
@@ -174,12 +184,11 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
   };
 
   const adjustWeight = (delta: number) => {
-    setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
+    setWeightText((current) => stepDecimalText(current, delta));
   };
 
   const adjustQuantity = (delta: number) => {
-    const current = Number.parseInt(quantityText, 10) || 1;
-    setQuantityText(String(Math.max(1, current + delta)));
+    setQuantityText((current) => stepIntText(current, delta, { min: 1 }));
   };
 
   const toggleTag = (tagId: number) => {
@@ -191,15 +200,11 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
   };
 
   const parseOptionalValue = (): {
-    value: number | null;
+    value: NonNegativeNumber | null;
     value_currency: CoinDenomination | null;
   } => {
-    const trimmed = valueText.trim();
-    if (trimmed.length === 0) {
-      return { value: null, value_currency: null };
-    }
-    const parsed = parseFloat(trimmed);
-    if (!Number.isFinite(parsed) || parsed < 0) {
+    const parsed = parseOptionalNonNegative(valueText);
+    if (parsed === null) {
       return { value: null, value_currency: null };
     }
     return { value: parsed, value_currency: valueCurrency };
@@ -229,10 +234,8 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
       return;
     }
 
-    const quantity = Math.max(1, Number.parseInt(quantityText, 10) || 1);
-    const weight = weightTracking
-      ? Math.max(0, parseFloat(weightText) || 0)
-      : 0;
+    const quantity = parseClampedPositiveInt(quantityText);
+    const weight = weightTracking ? parseNonNegative(weightText) : ZERO;
     const { value, value_currency } = parseOptionalValue();
     const trimmedDescription = itemInput.description?.trim() ?? "";
     const acquisition = buildAcquisition();
@@ -685,7 +688,7 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
                             <Pressable
                               onPress={() => {
                                 setPaidAmountText(
-                                  String(availableCopper / 100),
+                                  formatDecimal(availableCopper / 100),
                                 );
                                 setPaidCurrency("gp");
                               }}

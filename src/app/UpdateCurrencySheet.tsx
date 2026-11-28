@@ -7,16 +7,21 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
+import {
+  NonNegativeInt,
+  parseNonNegativeInt,
+  toNonNegativeInt,
+} from "@/utils/numbers";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type CurrencyValues = {
-  platinum: number;
-  gold: number;
-  silver: number;
-  copper: number;
+  platinum: NonNegativeInt;
+  gold: NonNegativeInt;
+  silver: NonNegativeInt;
+  copper: NonNegativeInt;
 };
 
 const CURRENCY_KEYS = [
@@ -56,7 +61,12 @@ const UpdateCurrencySheet = () => {
 };
 
 interface CurrencyFormProps {
-  initial: CurrencyValues;
+  initial: {
+    platinum: number;
+    gold: number;
+    silver: number;
+    copper: number;
+  };
   characterId: number;
 }
 
@@ -68,20 +78,19 @@ const CurrencyForm: React.FC<CurrencyFormProps> = ({
   const insets = useSafeAreaInsets();
   const db = useDatabase();
   const [currencies, setCurrencies] = useState<CurrencyValues>({
-    platinum: initial.platinum,
-    gold: initial.gold,
-    silver: initial.silver,
-    copper: initial.copper,
+    platinum: toNonNegativeInt(initial.platinum),
+    gold: toNonNegativeInt(initial.gold),
+    silver: toNonNegativeInt(initial.silver),
+    copper: toNonNegativeInt(initial.copper),
   });
   const { submitting, error, run } = useAsyncAction({
     keepBusyOnSuccess: true,
   });
 
   const handleChange = (currency: keyof CurrencyValues, value: string) => {
-    const newValue = value === "" ? 0 : Math.max(0, parseInt(value) || 0);
     setCurrencies((prev) => ({
       ...prev,
-      [currency]: newValue,
+      [currency]: parseNonNegativeInt(value),
     }));
   };
 

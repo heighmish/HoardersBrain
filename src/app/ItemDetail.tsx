@@ -43,6 +43,16 @@ import {
   formatPurseSummary,
 } from "@/utils/currency";
 import { formatWeight } from "@/utils/encumbrance";
+import {
+  formatDecimal,
+  parseClampedPositiveInt,
+  parseNonNegative,
+  parseOptionalNonNegative,
+  parsePositiveInt,
+  stepDecimalText,
+  stepIntText,
+  toNonNegative,
+} from "@/utils/numbers";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useReducer, useRef, useState } from "react";
@@ -122,24 +132,6 @@ type DetailAction =
   | { type: "RESET_DROP_DRAFT" }
   | { type: "RESET_SPLIT_DRAFT" };
 
-const formatAmount = (amount: number): string =>
-  String(Number(amount.toFixed(2)));
-
-const parseQuantityText = (text: string, max: number): number =>
-  Math.min(max, Math.max(1, Number.parseInt(text, 10) || 1));
-
-const parseOptionalNumber = (text: string): number | null => {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) {
-    return null;
-  }
-  const parsed = Number.parseFloat(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return null;
-  }
-  return parsed;
-};
-
 const createInitialState = ({
   item,
   initialTagIds,
@@ -201,8 +193,9 @@ const detailReducer = (
       if (state.syncedItemQty === action.quantity) {
         return state;
       }
-      const maxQty = Math.max(1, action.quantity);
-      const maxSplit = Math.max(1, action.quantity - 1);
+      const maxQty = action.quantity > 1 ? action.quantity : 1;
+      const maxSplit = action.quantity > 1 ? action.quantity - 1 : 1;
+      const prevMaxSplit = state.syncedItemQty > 1 ? state.syncedItemQty - 1 : 1;
       // Only follow live quantity updates while the field still shows the
       // value it was last synced to, so unsaved typing is never overwritten.
       return {
@@ -213,15 +206,18 @@ const detailReducer = (
             ? String(action.quantity)
             : state.quantityText,
         sellQtyText:
-          parseQuantityText(state.sellQtyText, state.syncedItemQty) > maxQty
+          parseClampedPositiveInt(state.sellQtyText, state.syncedItemQty) >
+          maxQty
             ? String(maxQty)
             : state.sellQtyText,
         dropQtyText:
-          parseQuantityText(state.dropQtyText, state.syncedItemQty) > maxQty
+          parseClampedPositiveInt(state.dropQtyText, state.syncedItemQty) >
+          maxQty
             ? String(maxQty)
             : state.dropQtyText,
         splitAmountText:
-          parseQuantityText(state.splitAmountText, Math.max(1, state.syncedItemQty - 1)) > maxSplit
+          parseClampedPositiveInt(state.splitAmountText, prevMaxSplit) >
+          maxSplit
             ? String(maxSplit)
             : state.splitAmountText,
       };
@@ -246,19 +242,19 @@ const detailReducer = (
         action.unitValue !== null && action.unitValue > 0
           ? action.unitValue
           : null;
-      const previousQty = parseQuantityText(
+      const previousQty = parseClampedPositiveInt(
         state.sellQtyText,
         action.maxQuantity,
       );
-      const nextQty = parseQuantityText(action.value, action.maxQuantity);
+      const nextQty = parseClampedPositiveInt(action.value, action.maxQuantity);
       const trimmedAmount = state.sellAmountText.trim();
       let nextAmount = state.sellAmountText;
       if (unitValue !== null) {
         // Keep quick-picked (100% or 50%) prices in step with quantity without
         // overwriting a custom price the user typed themselves.
         for (const ratio of [1, 0.5] as const) {
-          if (trimmedAmount === formatAmount(unitValue * previousQty * ratio)) {
-            nextAmount = formatAmount(unitValue * nextQty * ratio);
+          if (trimmedAmount === formatDecimal(unitValue * previousQty * ratio)) {
+            nextAmount = formatDecimal(unitValue * nextQty * ratio);
             break;
           }
         }
@@ -515,12 +511,9 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
   const showWeight =
     characterQuery.status !== "ready" || characterQuery.data.weight_tracking;
 
-  const parsedQuantity = Math.max(
-    1,
-    Number.parseInt(draft.quantityText, 10) || 1,
-  );
-  const parsedWeight = Math.max(0, Number.parseFloat(draft.weightText) || 0);
-  const parsedDraftValue = parseOptionalNumber(draft.valueText);
+  const parsedQuantity = parseClampedPositiveInt(draft.quantityText);
+  const parsedWeight = parseNonNegative(draft.weightText);
+  const parsedDraftValue = parseOptionalNonNegative(draft.valueText);
 
   const normalizedDescription =
     draft.description.trim().length === 0 ? null : draft.description.trim();
@@ -557,11 +550,8 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
       ? "sell"
       : draft.removeKind;
 
-  const sellQty = parseQuantityText(draft.sellQtyText, item.quantity);
-  const parsedSellAmount = Math.max(
-    0,
-    Number.parseFloat(draft.sellAmountText) || 0,
-  );
+  const sellQty = parseClampedPositiveInt(draft.sellQtyText, item.quantity);
+  const parsedSellAmount = parseNonNegative(draft.sellAmountText);
   const sellTarget = item.quantity > 1 ? String(sellQty) : "item";
   const sellButtonTitle =
     parsedSellAmount > 0
@@ -576,13 +566,13 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
     parsedDraftValue !== null && parsedDraftValue > 0
       ? [
           {
-            label: `50% (${formatCoinAmount(parsedDraftValue * sellQty * 0.5, draft.valueCurrency)})`,
-            amount: formatAmount(parsedDraftValue * sellQty * 0.5),
+            label: `50% (${formatCoinAmount(toNonNegative(parsedDraftValue * sellQty * 0.5), draft.valueCurrency)})`,
+            amount: formatDecimal(parsedDraftValue * sellQty * 0.5),
             currency: draft.valueCurrency,
           },
           {
-            label: `100% (${formatCoinAmount(parsedDraftValue * sellQty, draft.valueCurrency)})`,
-            amount: formatAmount(parsedDraftValue * sellQty),
+            label: `100% (${formatCoinAmount(toNonNegative(parsedDraftValue * sellQty), draft.valueCurrency)})`,
+            amount: formatDecimal(parsedDraftValue * sellQty),
             currency: draft.valueCurrency,
           },
         ]
@@ -593,12 +583,12 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
       ? creditPurse(purse, parsedSellAmount, draft.sellCurrency)
       : null;
 
-  const dropQty = parseQuantityText(draft.dropQtyText, item.quantity);
+  const dropQty = parseClampedPositiveInt(draft.dropQtyText, item.quantity);
   const dropButtonTitle = item.quantity > 1 ? `Drop ${dropQty}` : "Drop item";
 
-  const parsedSplitAmount = Number.parseInt(draft.splitAmountText, 10) || 0;
+  const parsedSplitAmount = parsePositiveInt(draft.splitAmountText);
   const splitAmountValid =
-    parsedSplitAmount >= 1 && parsedSplitAmount <= item.quantity - 1;
+    parsedSplitAmount !== null && parsedSplitAmount <= item.quantity - 1;
   const splitMode =
     draft.moveMode === "split" &&
     item.quantity > 1 &&
@@ -629,7 +619,7 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
     ) {
       dispatch({
         type: "SET_SELL_AMOUNT_TEXT",
-        value: formatAmount(parsedDraftValue * sellQty),
+        value: formatDecimal(parsedDraftValue * sellQty),
       });
       dispatch({ type: "SET_SELL_CURRENCY", value: draft.valueCurrency });
     }
@@ -752,7 +742,11 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
   };
 
   const handleSplit = () => {
-    if (!splitAmountValid || validSplitDestinationId === null) {
+    if (
+      !splitAmountValid ||
+      parsedSplitAmount === null ||
+      validSplitDestinationId === null
+    ) {
       return;
     }
     const destinationId = validSplitDestinationId;
@@ -858,19 +852,16 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
   } as const;
 
   const adjustQuantity = (delta: number) => {
-    const current = Number.parseInt(draft.quantityText, 10) || 1;
     dispatch({
       type: "SET_QUANTITY_TEXT",
-      value: String(Math.max(1, current + delta)),
+      value: stepIntText(draft.quantityText, delta, { min: 1 }),
     });
   };
 
   const adjustWeight = (delta: number) => {
     dispatch({
       type: "SET_WEIGHT_TEXT",
-      value: String(
-        Math.max(0, (Number.parseFloat(draft.weightText) || 0) + delta),
-      ),
+      value: stepDecimalText(draft.weightText, delta),
     });
   };
 
@@ -884,25 +875,28 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
   };
 
   const adjustSellQty = (delta: number) => {
-    setSellQtyText(String(parseQuantityText(String(sellQty + delta), item.quantity)));
+    setSellQtyText(
+      stepIntText(draft.sellQtyText, delta, { min: 1, max: item.quantity }),
+    );
   };
 
   const adjustDropQty = (delta: number) => {
     dispatch({
       type: "SET_DROP_QTY_TEXT",
-      value: String(parseQuantityText(String(dropQty + delta), item.quantity)),
+      value: stepIntText(draft.dropQtyText, delta, {
+        min: 1,
+        max: item.quantity,
+      }),
     });
   };
 
   const adjustSplitAmount = (delta: number) => {
     dispatch({
       type: "SET_SPLIT_AMOUNT_TEXT",
-      value: String(
-        Math.min(
-          Math.max(1, item.quantity - 1),
-          Math.max(1, parsedSplitAmount + delta),
-        ),
-      ),
+      value: stepIntText(draft.splitAmountText, delta, {
+        min: 1,
+        max: item.quantity - 1,
+      }),
     });
   };
 

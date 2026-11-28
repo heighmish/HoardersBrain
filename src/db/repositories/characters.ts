@@ -3,6 +3,7 @@ import { loadSampleData } from "@/db/sampleData";
 import { Character, charactersTable, storageLocationsTable } from "@/db/schema";
 import { DEFAULT_CONTAINER_NAME } from "./containers";
 import { seedDefaultTagsInTransaction } from "./tags";
+import { NonNegativeInt, PositiveInt } from "@/utils/numbers";
 import { and, asc, eq, isNull } from "drizzle-orm";
 
 const findActiveCharacterById = async (
@@ -109,7 +110,12 @@ export const softDeleteCharacter = async (
 export const updateCharacterCurrency = async (
   db: AppDatabase,
   characterId: number,
-  values: { copper: number; silver: number; gold: number; platinum: number },
+  values: {
+    copper: NonNegativeInt;
+    silver: NonNegativeInt;
+    gold: NonNegativeInt;
+    platinum: NonNegativeInt;
+  },
 ): Promise<void> => {
   await db
     .update(charactersTable)
@@ -120,7 +126,7 @@ export const updateCharacterCurrency = async (
 export const updateCharacterSettings = async (
   db: AppDatabase,
   characterId: number,
-  values: { max_encumbrance: number; weight_tracking: boolean },
+  values: { max_encumbrance: PositiveInt; weight_tracking: boolean },
 ): Promise<void> => {
   await db
     .update(charactersTable)

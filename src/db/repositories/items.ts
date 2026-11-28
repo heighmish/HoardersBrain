@@ -19,29 +19,38 @@ import {
   deductFromPurse,
   formatCoinAmount,
 } from "@/utils/currency";
+import { NonNegativeNumber, PositiveInt } from "@/utils/numbers";
 import { and, eq, isNull } from "drizzle-orm";
 
 type RepositoryTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
 
-export type ItemDetails = Pick<
-  Item,
-  | "name"
-  | "description"
-  | "item_type"
-  | "weight"
-  | "rarity"
-  | "quantity"
-  | "value"
-  | "value_currency"
-  | "properties"
->;
+export type ItemDetails = Omit<
+  Pick<
+    Item,
+    | "name"
+    | "description"
+    | "item_type"
+    | "rarity"
+    | "value_currency"
+    | "properties"
+  >,
+  never
+> & {
+  weight: NonNegativeNumber;
+  quantity: PositiveInt;
+  value: NonNegativeNumber | null;
+};
 
 export type ItemCreateInput = Omit<
   typeof itemsTable.$inferInsert,
-  "item_id" | "deleted_at"
->;
+  "item_id" | "deleted_at" | "weight" | "quantity" | "value"
+> & {
+  weight: NonNegativeNumber;
+  quantity: PositiveInt;
+  value: NonNegativeNumber | null;
+};
 
 const loadItemByIdInTransaction = (
   tx: RepositoryTransaction,
@@ -91,7 +100,7 @@ export type ItemAcquisition =
   | { kind: "looted" | "found"; note?: string }
   | {
       kind: "bought";
-      amount: number;
+      amount: NonNegativeNumber;
       denomination: CoinDenomination;
       deductFromPurse: boolean;
       note?: string;
@@ -100,15 +109,15 @@ export type ItemAcquisition =
 export type ItemRemoval =
   | {
       kind: "sold";
-      quantity: number;
-      amount: number;
+      quantity: PositiveInt;
+      amount: NonNegativeNumber;
       denomination: CoinDenomination;
       addToPurse: boolean;
       note?: string;
     }
   | {
       kind: "dropped";
-      quantity: number;
+      quantity: PositiveInt;
       note?: string;
     };
 
@@ -307,7 +316,7 @@ const formatLedgerRemoval = (
 const creditCharacterPurseInTransaction = (
   tx: RepositoryTransaction,
   characterId: number,
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
 ): boolean => {
   if (amountToCopper(amount, denomination) <= 0) {
@@ -355,17 +364,8 @@ export const removeItemsFromStack = async (
     if (item === undefined) {
       throw new Error("Item not found");
     }
-    if (!Number.isInteger(removal.quantity) || removal.quantity < 1) {
-      throw new Error("Removal quantity must be at least 1");
-    }
     if (removal.quantity > item.quantity) {
       throw new Error("Removal quantity exceeds stack size");
-    }
-    if (
-      removal.kind === "sold" &&
-      (!Number.isFinite(removal.amount) || removal.amount < 0)
-    ) {
-      throw new Error("Sale amount must be a non-negative number");
     }
 
     const removedAll = removal.quantity === item.quantity;
@@ -406,16 +406,13 @@ export const removeItemsFromStack = async (
 export const splitItemStack = async (
   db: AppDatabase,
   itemId: number,
-  amount: number,
+  amount: PositiveInt,
   destinationStorageId: number,
 ): Promise<void> => {
   db.transaction((tx) => {
     const item = loadItemByIdInTransaction(tx, itemId);
     if (item === undefined) {
       throw new Error("Item not found");
-    }
-    if (!Number.isInteger(amount) || amount < 1) {
-      throw new Error("Split amount must be at least 1");
     }
     if (amount >= item.quantity) {
       throw new Error("Split amount must be less than the stack quantity");

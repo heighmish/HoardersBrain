@@ -1,3 +1,5 @@
+import { formatDecimal, NonNegativeNumber } from "@/utils/numbers";
+
 export interface CoinPurse {
   platinum: number;
   gold: number;
@@ -35,10 +37,9 @@ export const purseToCopper = (coins: CoinPurse): number =>
   coins.platinum * 1000 + coins.gold * 100 + coins.silver * 10 + coins.copper;
 
 export const amountToCopper = (
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
-): number =>
-  Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
+): number => Math.round(amount * DENOMINATION_TO_COPPER[denomination]);
 
 export type PurseDeductionResult =
   | { status: "exact"; nextPurse: CoinPurse }
@@ -47,7 +48,7 @@ export type PurseDeductionResult =
 
 export const deductFromPurse = (
   purse: CoinPurse,
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
 ): PurseDeductionResult => {
   const key = DENOMINATION_TO_KEY[denomination];
@@ -93,10 +94,10 @@ export const deductFromPurse = (
 
 export const creditPurse = (
   purse: CoinPurse,
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
 ): CoinPurse => {
-  if (!Number.isFinite(amount) || amount <= 0) {
+  if (amount <= 0) {
     return { ...purse };
   }
 
@@ -139,9 +140,9 @@ export const creditPurse = (
 };
 
 export const formatCoinAmount = (
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
-): string => `${Number(Math.max(0, amount).toFixed(2))} ${denomination}`;
+): string => `${formatDecimal(amount)} ${denomination}`;
 
 const formatPurseParts = (
   purse: CoinPurse,

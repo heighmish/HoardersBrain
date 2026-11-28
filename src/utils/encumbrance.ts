@@ -1,3 +1,5 @@
+import { formatDecimal } from "@/utils/numbers";
+
 export type EncumbranceTone = "success" | "warning" | "error";
 
 export const determineEncumbranceTone = (
@@ -23,8 +25,7 @@ export interface CarriedItemRow {
   isCarrying: boolean;
 }
 
-export const formatWeight = (value: number): string =>
-  String(Number(value.toFixed(2)));
+export const formatWeight = (value: number): string => formatDecimal(value);
 
 const rawEncumbranceRatio = (
   carrying: number,

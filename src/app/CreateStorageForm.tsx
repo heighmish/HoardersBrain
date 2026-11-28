@@ -22,6 +22,7 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
+import { parseNonNegative, stepDecimalText } from "@/utils/numbers";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -123,7 +124,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
   const [rarityExpanded, setRarityExpanded] = useState(false);
 
   const adjustWeight = (delta: number) => {
-    setWeightText(String(Math.max(0, (parseFloat(weightText) || 0) + delta)));
+    setWeightText((current) => stepDecimalText(current, delta));
   };
 
   const submit = () => {
@@ -138,7 +139,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
       ...storageInput,
       name: trimmedName,
       description: trimmedDescription.length > 0 ? trimmedDescription : null,
-      weight: Math.max(0, parseFloat(weightText) || 0),
+      weight: parseNonNegative(weightText),
     };
 
     run(async () => {

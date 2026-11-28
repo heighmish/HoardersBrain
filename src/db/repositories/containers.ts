@@ -1,5 +1,6 @@
 import type { AppDatabase } from "@/db/DatabaseProvider";
 import { Storage, storageLocationsTable } from "@/db/schema";
+import { NonNegativeNumber } from "@/utils/numbers";
 import { eq } from "drizzle-orm";
 
 export const DEFAULT_CONTAINER_NAME = "Equipped";
@@ -11,7 +12,7 @@ export type StorageInput = Omit<
 
 export const createStorageContainer = async (
   db: AppDatabase,
-  values: StorageInput & { weight: number },
+  values: StorageInput & { weight: NonNegativeNumber },
 ): Promise<Storage> => {
   const inserted = await db
     .insert(storageLocationsTable)
@@ -27,7 +28,7 @@ export const createStorageContainer = async (
 export const updateStorageContainer = async (
   db: AppDatabase,
   storageId: number,
-  values: StorageInput & { weight: number },
+  values: StorageInput & { weight: NonNegativeNumber },
 ): Promise<void> => {
   await db
     .update(storageLocationsTable)
