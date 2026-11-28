@@ -46,7 +46,7 @@ theme.upsertCustomPalette(palette)
 ```
 
 `ThemeProvider` lives at the root (`src/app/_layout.tsx`); every screen can call
-`useTheme()`. Settings persist app-level via AsyncStorage.
+`useTheme()`. Settings persist app-level via `expo-sqlite/kv-store`.
 
 ## Semantic colors
 
@@ -275,9 +275,7 @@ presets, and primitives in their own idiom.
   numerals, long character names). Wrap, stack, or shrink deliberately — never
   let content clip.
 - Compare the new layout against the previous one for width and height
-  regressions before finishing. The inventory summary cards (Currency /
-  Carrying) are a deliberately temporary stacked arrangement pending an owner
-  design pass — do not restyle them without owner direction.
+  regressions before finishing.
 
 ## Verify
 

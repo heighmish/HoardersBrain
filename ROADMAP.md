@@ -2,207 +2,195 @@
 
 Inventory & encumbrance tracker for tabletop RPGs (D&D 5e, Pathfinder, and friends).
 
-**North star:** sensible defaults out of the box, deep customization underneath. A player creates a character and gets a working 5e-style inventory with no setup. A table running homebrew can change currencies, rarities, item types, tags, attributes, and encumbrance to fit their campaign.
-
-Customizable things (currencies, rarities, item types, tags, custom attributes, encumbrance bands) become data keyed to the **character** first; campaigns (Phase 9) group characters and share definitions.
+**North star:** sensible defaults out of the box, deep customization underneath. A player creates a character and gets a working 5e-style inventory with no setup. We build and polish the core tabletop loop first (inventory, currency & services, ledger, sorting, templates), then layer deep homebrew customization (custom currencies, rarities, attributes, encumbrance bands, campaigns) underneath once the core experience is rock-solid.
 
 ## Current state (Nov 2026)
 
-**Working end-to-end:** Phase 0, 0.5, and 1 are implemented — character create/rename/delete/switch/remember, auto-created "On Person" container, containers (create/edit/soft-delete, weight, rarity, carrying, fixed-weight flags, expandable item lists), items (create/edit/soft-delete, detail screen, stack split/move/transfer), currency display + edit, encumbrance card with configurable `max_encumbrance` and `weight_tracking` toggle, theme presets + light/dark/system mode, sample data fixture, migrations, and Maestro E2E coverage.
+**Working end-to-end:**
+- Character create, switch, remember, rename, and soft-delete; auto-created "On Person" carrying container.
+- Containers: create, edit, soft-delete (with type-name confirmation), weight, rarity, carrying & fixed-weight flags, inline collapsible cards, and `ContainerMenuSheet`.
+- Items: create (with Looted / Found / Bought acquisition + purse deduction), unified `ItemDetail` inline editing, move/split stacks, transfer between characters, quick use (`-1` on rows, `Use 1` in detail), item value, Sell (50%/100% quick picks + purse credit), Drop, and instant soft-delete.
+- Hierarchical tags (global or character-scoped, one-level nesting, `is_usable` flag) managed in Settings → Tags.
+- Virtualized inventory list, floating search pill + `Usable` / tag filter chips, display column/row toggles (`InventoryDisplaySheet`), and side-by-side Currency & Encumbrance summary tiles.
+- Theme presets + System/Light/Dark mode, sample data fixture, SQLite migrations, `expo-sqlite/kv-store` preferences, and Maestro E2E coverage.
 
-**Stubbed or missing:** Phase 1.5 UX polish (item/container detail ergonomics, instant soft-delete without confirmation friction). `ledger` table is in the schema and receives transfer entries, but has no UI and doesn't record other mutations yet. `item_type` is still hardcoded to `"consumable"`. Currencies are hardcoded columns (`pp/gp/sp/cp`), rarities a hardcoded TS union. No creation presets or seed data beyond the testing fixture.
+**Next up / missing:**
+- Small Phase 1.5 cleanups: drop legacy `item_type` column and require typing the character name on character delete.
+- Currency Spend/Receive flow for immediately resolved in-game transactions (services, tavern, bribes, rewards) reusing the Buy/Sell purse-preview pattern.
+- Ledger tab (second tab) + structured deltas — `ledger` already records Buy, Sell, Drop, Use, and Transfer rows, but has no UI yet and doesn't log currency/container changes.
+- Inventory sorting (name, weight, value, rarity).
+- Deep homebrew customization (data-driven currencies, rarities, custom attributes, configurable encumbrance, campaigns, creation presets) — intentionally sequenced later.
 
 ---
 
-## Phase 0 — Foundations *(S)*
+## Phase 0 — Foundations *(S)* — Done
 
 - [x] Fix column naming: `items.container_id` → `items.storage_location_id` (done in the squashed baseline migration)
 - [x] Include `ledger` in the exported schema object so migrations can manage it
 - [x] Rewrite README: what the app is, how to run, how migrations work
 
-## Phase 0.5 — Design foundation & theming *(L)*
+## Phase 0.5 — Design foundation & theming *(L)* — Done
 
-Pulled forward from Phase 13 so every screen Phase 1+ adds builds on real tokens instead of the Expo starter palette. Themes are data, like every other customizable thing: curated presets plus user-built custom palettes, app-scoped for now; character/campaign scoping follows the Phase 9 pattern later.
+Pulled forward so every screen builds on real tokens instead of the Expo starter palette. Themes are data, with curated presets plus a persisted System/Light/Dark override.
 
 - [x] Semantic token layer (background, surface, text, accent, feedback, border) + ThemeProvider honoring `userInterfaceStyle: "automatic"`, with a persisted System/Light/Dark override
-- [x] Presets as data: a mind-flayer-purple default plus well-known palettes (Dracula, Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants where the source palette defines them
-- [ ] Custom palettes: deferred (Nov 2026) — data layer and ThemeContext API stay in as the baseline; the editor UI is dropped until presets and dark mode mature
-- [x] Theme settings sheet: mode switch, preset picker (custom palette editor removed with the deferral)
-- [x] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges) with expo-design-system / expo-native-ui guidance
-- [x] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme (Phase 3 data-drives them)
-- [x] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood, flavor naming, empty-state copy. No icon or image asset work in this phase
-- [x] TOKENS.md theming guide so Phase 1 screens consume the token API from day one
+- [x] Presets as data: mind-flayer-purple default plus well-known palettes (Tokyo Night, Catppuccin Mocha/Latte, Nord, Gruvbox), light and dark variants
+- [ ] Custom palettes: deferred (Nov 2026) — data layer and ThemeContext API stay in as the baseline; editor UI dropped until presets and dark mode mature
+- [x] Theme settings screen: mode switch, preset picker
+- [x] Visual pass over all existing screens (type scale, cards, buttons + press states, inputs, badges, Dynamic Type, WCAG AA contrast)
+- [x] Migrate every screen and component off raw `Colours` literals; rarity colors split out of the theme
+- [x] Brand concept woven through the visual identity: "a brain in a treasure chest" — mind-flayer hoarding loot; purple-forward accent mood
+- [x] `TOKENS.md` theming guide
 
-## Phase 1 — CRUD completeness *(M)*
+## Phase 1 — CRUD completeness *(M)* — Done
 
-Edit and delete for all existing entities; no schema changes. All FKs are `ON DELETE no action` with `PRAGMA foreign_keys = ON` enforced, so every delete flow handles child rows explicitly.
-
-- [x] Edit + delete items (deleting a stacked item: remove all vs decrement, by choice)
-- [x] Edit + delete containers (policy superseded Nov 2026 by soft deletion — see Decisions)
-- [x] Edit character name; delete character (child rows now survive as soft-deleted data)
+- [x] Edit + soft-delete items
+- [x] Edit + soft-delete containers
+- [x] Rename character; soft-delete character
 - [x] Item detail screen: full description, stats, edit/delete entry points
-- [x] Remove the 5-item cap on container cards (expandable, or full list on a container detail screen)
-- [x] Move items between containers; split stacks (3 potions, give 1 away)
+- [x] Expandable container item lists (no hard 5-item cap)
+- [x] Move items between containers; split stacks
 - [x] Transfer items between characters (both sides get ledger entries)
-- [x] Auto-create an "On Person" container with each character (`carrying = true`, weight 0, fixed weight)
-- [x] Editable `max_encumbrance` in a character settings area
-- [x] Weight tracking toggle per character: when off, hide the Carrying card and weight steppers (decided: new `weight_tracking` boolean column, default on)
+- [x] Auto-create an "On Person" container with each character (`carrying = true`, weight 0)
+- [x] Editable `max_encumbrance` in character settings
+- [x] Weight tracking toggle per character (`weight_tracking` boolean column, default on)
 
-## Phase 1.5 — CRUD UX pass *(M)*
+## Phase 1.5 — Core UX, Tags, Pricing & Buy/Sell *(L)* — Nearly Done
 
-Phase 1 checkboxes mean *implemented*, not *finished*. These core features work
-but are not shaped the way a person would want to use them. Soft deletion makes
-most of the current friction (confirmations, re-home warnings, undeletable
-containers) unnecessary — nothing is destroyed, so the UI can stop guarding.
+Core tabletop inventory ergonomics, hierarchical tags replacing `item_type`, item pricing with Buy/Sell flows, and search/display options.
 
-- [ ] Container cards lose the permanent AddItem/Edit/Delete row; tapping a card opens a container detail page with the item list and actions; long-press offers quick actions
-- [ ] Item detail demotes Split/Move/Transfer into an overflow menu behind one primary Edit action; Delete becomes a single destructive row
-- [ ] Delete confirmations removed everywhere; deletion is instant and reversible in data (restore/undo UI arrives with the Phase 12 ledger)
-- [ ] Rename character surfaced near the character switcher instead of three screens deep
-- [ ] Item and storage forms reviewed for length, ordering, and defaults
+- [x] Inline collapsible container cards with `ContainerMenuSheet` (`...`) for Edit and Delete (with type-name confirmation)
+- [x] Unified `ItemDetail` with inline editing, move/split stack, quick use (`Use 1`), and collapsible Remove section (Sell / Drop / Transfer / instant Delete)
+- [x] Redesigned item and storage creation forms with disclosure sections and sensible defaults
+- [x] Hierarchical tags (`tags` + `item_tags`: character or global scope, one-level nesting, `is_usable` flag), seeded with 5e-flavored defaults (`Consumable → Potion/Scroll/Ammunition/Food & Drink`, `Weapon`, `Armor`, `Magic`, `Tool`, `Treasure`, `Misc`) and managed in Settings → Tags
+- [x] Quick use (`-1` button on inventory rows + `Use 1` in `ItemDetail`) decrementing quantity and writing ledger entries
+- [x] Item `value` + `value_currency`, Buy flow in `CreateItemForm` (with purse deduction & change preview), Sell flow in `ItemDetail` (50%/100% quick picks + purse credit), plus Looted / Found / Drop notes
+- [x] Virtualized inventory list, floating search pill (searches name, description, rarity, and parent/child tags), `Usable` & tag filter chips, display column/row toggles (`InventoryDisplaySheet`), and side-by-side Currency & Encumbrance summary tiles
+- [ ] Drop legacy `item_type` column from `items` (YAGNI — tags replace item types)
+- [ ] Require typing the character name to delete a character in `ManageCharacters` (matching container delete friction)
 
-## Phase 2 — Data-driven currencies *(L)*
+---
 
-Currencies become data instead of hardcoded columns. Definitions and balances are keyed to the character; a campaign can own definitions later without moving balances.
+## Phase 2 — Currency Transactions & Services *(M)*
 
-- [ ] Schema: currency **definitions** (name, abbreviation, value-in-gold as real, sort order) and **balances**, keyed to the character
-- [ ] Migration: seed each existing character with the 5e set (pp/gp/sp/cp, base-10 chain), carry over balances from the old columns, drop the columns
-- [ ] New characters get the default set seeded
-- [ ] Currency management UI: add custom (e.g. electrum at 0.5 gp), rename, remove defaults, reorder
-- [ ] Adjust-by-delta with a source note (+50 gp, "loot from the ogre cave"), not just absolute-value editing
-- [ ] Currency card and total-in-gold math read definitions
-- [ ] Rework `UpdateCurrencySheet` to handle N currencies
-- [ ] Currency changes write ledger rows (structured deltas land in Phase 12)
+Make spending and receiving coins at the table fast, especially for things that resolve immediately in play without creating an inventory item (inn rooms, tavern rounds, bribes, spellcasting services, quest rewards, looted coin piles).
 
-## Phase 3 — Data-driven rarities *(M)*
+- [ ] Re-use the Buy/Sell purse-preview pattern inside the currency flow for **Spend** (services/expenses) and **Receive** (loot/rewards) with optional reason/source notes
+- [ ] Keep direct exact-balance editing available alongside quick Spend / Receive
+- [ ] Write ledger entries for all currency transactions and balance edits
 
-Rarities become data, same pattern as currencies. Additive change, so it can be done before Phase 2.
+## Phase 3 — Ledger *(M)*
 
-- [ ] Schema: rarity definitions per character (name, color, sort order)
-- [ ] Seed 5e defaults (Common, Uncommon, Rare, Very Rare, Legendary) with the current palette colors
-- [ ] Drop the `items_rarity_valid` / `storage_rarity_valid` CHECK constraints once rarities live in a table
-- [ ] Rarity management UI: add, rename, recolor, remove, reorder
-- [ ] Badge component and rarity pickers read from data instead of the `Rarity` union + hardcoded `Colours` map
-- [ ] Items and containers reference rarity definitions by id
+Surface the character's activity history — Buy, Sell, Drop, Use, and Transfer are already writing rows to `ledger`.
 
-## Phase 4 — Data-driven item types & quick use *(M)*
-
-- [ ] Data-driven item types with a `usable` flag; propose a 5e-flavored default set (e.g. Weapon, Armor, Potion, Scroll, Wand, Ring, Ammunition, Tool, Food, Treasure, Other — needs a decision, see open questions)
-- [ ] Type picker replaces the hardcoded `"consumable"` in the item form; defaults seeded per character/campaign
-- [ ] Equipped state on items (worn/wielded) — system-agnostic, unlike attunement (see decisions); toggle on the item, shown on the row
-- [ ] Quick use action: use a usable item → decrement quantity → ledger entry
-- [ ] Gain flow: add quantity with an optional source note ("×2, looted from the ogre cave") → ledger entry
-- [ ] Item detail screen reflects type (charges for wands, etc. → icebox)
-
-## Phase 5 — Item prices, buy & sell *(M)*
-
-Items get a value; wealth stops being coins-only.
-
-- [ ] Price field on items, denominated in a currency definition (Phase 2)
-- [ ] Sell flow: remove item and add currency in one action (ledger entry covers both sides)
-- [ ] Buy flow: deduct currency, add item
-- [ ] Inventory value total (sum of item prices) alongside the currency card
-
-## Phase 6 — Tags, filters & sorting *(M)*
-
-- [ ] Schema: tags + item-tag join table; tag CRUD; scoped per character like other definitions
-- [ ] Tag picker in the item form (multi-select, create tags inline)
-- [ ] Flat all-items view alongside the per-container cards (filtering needs a list that spans containers)
-- [ ] Filter by type, tag, rarity, and equipped state, combinable ("all consumables", "all scrolls", "potions with the climbing tag")
-- [ ] Sorting: name, weight, value, rarity, type
-- [ ] Saved filter views, with a default "usable items" view shipping out of the box
-
-## Phase 7 — Custom attributes *(M)*
-
-User-defined attributes on items. Attunement is the canonical case — a 5e-flavored boolean attribute, not a hardcoded feature (see decisions).
-
-- [ ] Schema: attribute definitions per character/campaign (name, value type: text / number / boolean) + values on items (the unused `properties` JSON column or a join table — decide)
-- [ ] Assign and edit attributes in the item form and item detail
-- [ ] Filter by attribute ("show everything requiring attunement")
-- [ ] Ship an "attunement" boolean in the default definitions so 5e users get it for free
-
-## Phase 8 — Item library *(M)*
-
-Items a user creates become reusable templates; adding a second Health Potion is one tap.
-
-- [ ] Schema: `item_templates` app-global (name, description, type, weight, rarity, price, default tags, default attributes)
-- [ ] "Add from library" in the item form: search and pick a template to prefill the form
-- [ ] "Save to library" from the item form — decide explicit save vs auto-save with dedupe by name
-- [ ] Template management: edit, delete
-
-## Phase 9 — Campaigns *(L)*
-
-Characters either own their definitions or inherit a campaign's. Balances and inventory stay per character.
-
-- [ ] Campaign entity: name, description, owns currency, rarity, item type, tag, attribute, and encumbrance-band definitions
-- [ ] Characters can join/leave a campaign; definitions follow the campaign
-- [ ] "Create campaign from this character's settings": copies a character's definitions to a shared campaign ruleset
-- [ ] Character switcher groups characters by campaign
-- [ ] Inheritance policy: definitions are owned by exactly one scope — character XOR campaign; switching scopes replaces them, no partial overrides to start
-
-## Phase 10 — Configurable encumbrance *(M)*
-
-Encumbrance bands become data instead of fixed thresholds.
-
-- [ ] Bands as data: N thresholds with labels and colors; the current fixed set (warning ≥ max, error ≥ 1.5× max) becomes the default
-- [ ] Optional stat field on the character (e.g. Strength) so bands can calculate from it (5e: max = STR × 15)
-- [ ] Per-container capacity limits with over-limit warning (bag of holding = 500 lb) — character-level `max_encumbrance` already exists; this is the container-level limit
-- [ ] Band editor UI per character/campaign
-- [ ] 5e variant preset (×15/×10/×5) as the shipped default; PF2e bulk preset ships with the PF2e pack
-- [ ] Carrying card renders bands from data
-
-## Phase 11 — Creation presets *(S)*
-
-Pick a starting point at character creation. No persistent game-system entity — presets only seed data (see decisions).
-
-- [ ] "Start from" picker at character creation: 5e default / blank (PF2e later via the pack)
-- [ ] The 5e preset seeds currencies, rarities, item types, encumbrance bands, and an attunement attribute
-- [ ] Everything editable after seeding
-
-## Phase 12 — Ledger *(M)*
-
-History of item and currency changes per character.
-
-- [ ] Finalize ledger schema: message, character, timestamp + structured deltas (item id, quantity change, currency id, amount)
-- [ ] Every mutation writes an entry: item created/gained/used/moved/transferred, container added, currency changed, sold/bought
+- [ ] Finalize ledger schema: message, character, timestamp + structured deltas (kind, item id, quantity change, coin delta)
+- [ ] Ensure all key mutations write entries: item bought/looted/found/used/sold/dropped/transferred, services & currency changes, container created/deleted
 - [ ] Ledger screen (second tab): reverse-chronological, grouped by day, human-readable messages
-- [ ] Per-item history view: tap an item for everything that ever happened to it (structured deltas make it a filter)
 - [ ] Filter by kind (items / currency / containers)
+- [ ] Per-item history view: view everything that happened to an item from `ItemDetail`
+- [ ] Soft-delete restore / undo flow (recover deleted items or containers)
 - [ ] Group-by-session as a follow-up (day grouping first)
 
-## Phase 13 — Polish *(S per pass)*
+## Phase 4 — Sorting & Inventory Polish *(S–M)*
 
-- [ ] Dark theme — moved to Phase 0.5
+- [ ] Sorting on the inventory list: name, weight, value, rarity (accessible via display options or search dock)
+- [ ] Optional filter refinements (e.g., rarity filter, multi-tag filtering, or flat all-items view if needed during play)
+- [ ] Total inventory value sum (sum of item values — pick the right placement once Currency/Ledger settles)
 - [ ] Empty states and first-run polish
-- [ ] Search across all items
+
+## Phase 5 — Item Library *(M)*
+
+Items a user creates can become reusable templates; adding a second Health Potion is one tap.
+
+- [ ] Schema: `item_templates` app-global (name, description, weight, rarity, value, default tags)
+- [ ] "Add from library" in `CreateItemForm`: search and pick a template to prefill the form
+- [ ] "Save to library" from item form/detail — decide explicit save vs auto-save with dedupe by name
+- [ ] Template management: edit, delete
+
+---
+
+## Later — Deep Customization & Homebrew Layer
+
+Intentionally sequenced after the core tabletop loop is proven and polished. Customizable definitions follow the character/global scoping pattern until Campaigns arrive.
+
+### Phase 6 — Data-driven currencies *(L)*
+
+Currencies become data instead of hardcoded columns (`pp/gp/sp/cp`).
+
+- [ ] Schema: currency **definitions** (name, abbreviation, value-in-gold as real, sort order) and **balances**
+- [ ] Migration: seed each existing character with the 5e set (pp/gp/sp/cp, base-10 chain), carry over balances from the old columns, drop the old columns
+- [ ] New characters get the default set seeded
+- [ ] Currency management UI: add custom (e.g. electrum at 0.5 gp), rename, remove defaults, reorder
+- [ ] Wire Currency tile, Spend/Receive/Edit sheet, item values, and Buy/Sell flows to N currency definitions
+
+### Phase 7 — Data-driven rarities *(M)*
+
+- [ ] Schema: rarity definitions (name, color, sort order) seeded with 5e defaults (Common, Uncommon, Rare, Very Rare, Legendary)
+- [ ] Drop `items_rarity_valid` / `storage_rarity_valid` CHECK constraints once rarities live in a table
+- [ ] Rarity management UI: add, rename, recolor, remove, reorder
+- [ ] Badges and rarity pickers read from data instead of the hardcoded `Rarity` union + `src/constants/rarity.ts`
+
+### Phase 8 — Custom attributes *(M)*
+
+User-defined attributes on items. Attunement is the canonical case — a 5e-flavored boolean attribute, not a hardcoded feature.
+
+- [ ] Schema: attribute definitions (name, value type: text / number / boolean) + values on items (`properties` JSON or join table)
+- [ ] Assign and edit attributes in the item form and `ItemDetail`
+- [ ] Filter by attribute ("show everything requiring attunement")
+- [ ] Ship an "Attunement" boolean in the default definitions so 5e users get it for free
+
+### Phase 9 — Configurable encumbrance *(M)*
+
+- [ ] Bands as data: N thresholds with labels and colors (current fixed warning ≥ max, error ≥ 1.5× max becomes the default)
+- [ ] Optional stat field on character (e.g. Strength) so bands can calculate from it (5e: max = STR × 15)
+- [ ] Per-container capacity limits with over-limit warning (e.g. Bag of Holding = 500 lb)
+- [ ] Band editor UI; Carrying/Encumbrance tile renders bands from data
+
+### Phase 10 — Campaigns & Creation Presets *(L)*
+
+Characters either own their definitions or inherit a campaign's. Balances and inventory stay per character. No persistent game-system entity — presets only seed editable data.
+
+- [ ] Campaign entity: name, description, owns currency, rarity, tag, attribute, and encumbrance-band definitions
+- [ ] Characters can join/leave a campaign; "Create campaign from this character's settings"
+- [ ] Character switcher groups characters by campaign
+- [ ] Inheritance policy: definitions owned by character XOR campaign (no partial overrides to start)
+- [ ] "Start from" picker at character creation: 5e default / blank (PF2e later via pack), seeding editable definitions
 
 ---
 
 ## Icebox
 
-- **5.1 SRD item catalog** — ship the 5.1 SRD (CC-BY-4.0, needs only attribution) as preloaded templates in the Phase 8 library.
+- **5.1 SRD item catalog** — ship the 5.1 SRD (CC-BY-4.0, needs only attribution) as preloaded templates in the Item Library.
 - **Pathfinder 2e pack** — bulk instead of pounds, item levels, PF2e rarity semantics (common/uncommon/rare/unique), same base-10 coin chain; ships as a creation preset.
-- **Multiplayer campaign sync + party view** — needs a proper backend (API + auth); party view shows all characters in a campaign with combined carry capacity for dividing loot. Favors UUIDs for ids early.
+- **Multiplayer campaign sync + party view** — needs a proper backend (API + auth); party view shows all characters in a campaign with combined carry capacity for dividing loot.
 - **Export/import** — JSON backup of a character or campaign; sharing between devices.
 - **Magic item charge tracking** (may end up covered by custom attributes), gems/art quick-add with value, dice roller, weight unit preference (lbs/kg).
 
 ## Open design questions
 
-1. **Campaign timing** — this plan ships character-scoped customization first and adds campaigns in Phase 9. Alternative: campaigns first, so the migration happens once. Decide before Phase 2 starts.
-2. **Default item types** — which set ships as the default, and which are flagged usable? "Show me all consumables" vs "show me scrolls" suggests either a category level above types (consumable → potion/scroll) or flat types with broad ones included. Needs a proposal before Phase 4.
-3. **Ledger granularity** — every quantity edit a ledger row, or only explicit gain/use actions?
+1. **Ledger granularity** — should direct quantity edits in `ItemDetail` write ledger rows, or only explicit actions (Buy, Sell, Drop, Use, Transfer, Spend/Receive)?
+2. **Inventory value total placement** — where does total item value fit best (inside the currency sheet/screen, as secondary info on the Currency tile, or elsewhere)?
+3. **Campaign timing** — before Phase 6 (data-driven currencies) starts, decide whether to keep character/global scoping first (matching tags) or introduce Campaigns earlier so the schema migration happens once.
 
 ## Decisions
 
-- **Game-system handling** (Nov 2026) — creation-time presets only, no persistent system entity. Picking a system seeds definitions; everything stays editable after. See Phase 11.
-- **Attunement** (Nov 2026) — not a first-class feature; system-specific mechanics belong to custom attributes (Phase 7), with an attunement boolean in the default definitions. Equipped IS first-class (worn/wielded is system-agnostic) — Phase 4.
+- **Core tabletop loop before deep customization** (Nov 2026) — ship services/currency transactions, Ledger, sorting, and item library first on the 5e foundation; push data-driven currencies/rarities, custom attributes, configurable encumbrance, and campaigns toward the end so the core app is great before taking on heavy customization complexity.
+- **Services & resolved coin transactions** (Nov 2026) — reuse the Buy/Sell purse-preview pattern for immediately resolved non-item transactions (inn, tavern, services, quest rewards) so they deduct/credit the purse and log to the ledger without creating dummy items.
+- **Tags replace item types** (Nov 2026) — hierarchical tags (`tags` + `item_tags` with `parent_tag_id` and `is_usable`) replace the legacy `item_type` column (YAGNI). Tag creation and editing stay centralized in Settings → Tags rather than inline in item forms.
+- **Equipped state dropped** (Nov 2026) — YAGNI as a first-class item field; players who want it can tag items (or use custom attributes later).
+- **No separate Gain +N flow** (Nov 2026) — increasing quantity directly in `ItemDetail` and saving is enough; no extra stack-gain modal/section needed.
+- **Tiered deletion friction** (Nov 2026) — items and tags delete quickly without confirmation; containers and characters require typing the name to confirm so users don't accidentally wipe a whole container or character. All deletes remain soft-deletes (`deleted_at`).
+- **Character rename stays in Settings** (Nov 2026) — renaming a character is rare (once or twice ever) and belongs in Settings → Manage Characters, not in the character switcher.
+- **Inline container cards** (Nov 2026) — containers expand/collapse inline on the Inventory screen with a `ContainerMenuSheet` (`...`) for Edit/Delete; no separate Container Detail screen needed.
+- **Game-system handling** (Nov 2026) — creation-time presets only, no persistent system entity. Picking a system seeds definitions; everything stays editable after.
+- **Attunement** (Nov 2026) — not a first-class feature; system-specific mechanics belong to custom attributes (Phase 8), with an attunement boolean in the default definitions.
 - **Party view** (Nov 2026) — deferred until the networking/auth chapter, together with multiplayer sync (icebox).
-- **Container deletion** (Nov 2026, revised) — soft deletion only: rows are flagged with `deleted_at`, never removed; every container is deletable including the carrying one; items stay attached to a soft-deleted container. The name-based "On Person" protection and item re-homing are removed; item transfer targets the carrying-role container (`carrying = true`), creating one only as a fallback.
-- **Checkbox semantics** (Nov 2026) — ROADMAP checkboxes record implementation, not UX quality. Phase 1.5 exists because shipped-but-unusable is not done.
-- **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on) ships with Phase 1 despite the phase's no-schema note.
-- **Design direction** (Nov 2026) — polished native iOS base; themes are data: a mind-flayer-purple default plus curated well-known palettes (Dracula, Tokyo Night, Catppuccin, Nord, Gruvbox) and user-built custom palettes, app-scoped for now. Dark mode pulled forward from Phase 13 into Phase 0.5. Brand concept (not an asset task): an open fantasy chest holding a brain amid scattered loot.
-- **Testing architecture** (Nov 2026, revised) — owner decision: agents do not write tests and the jest unit suite was removed entirely (`__tests__/`, `src/testing/`, jest config/deps). Verification is `npm run check` plus on-device checks on the owner's Android dev build; Maestro E2E remains a coordinator-run merge gate against a stable Release build. No CI E2E yet.
-- **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach. The inventory summary arrangement stays the owner's original compact side-by-side cards until a proper design pass; encumbrance stays optional-tier (Phase 1's weight-tracking toggle hides the Carrying card).
-- **Custom palettes deferred** (Nov 2026) — editor UI dropped to keep the theme sheet simple; presets + mode switching are the focus for now. The palette data layer and ThemeContext API remain, so custom themes can return without schema work.
-- **Agent-written copy banned** (Nov 2026) — agents write functional labels and placeholders only; taglines, flavor, and empty-state prose are owner-written or approved. The Phase 0.5 flavor strings were removed.
-- **Encumbrance scope** (Nov 2026) — only containers with `carrying = true` (and items inside them unless `is_fixed_weight = true`) contribute to a character's carried weight. Uncarried containers (e.g., camp chests or stowed bags) do not encumber the character.
+- **Container deletion** (Nov 2026, revised) — soft deletion only: rows are flagged with `deleted_at`, never removed; every container is deletable including the carrying one; items stay attached to a soft-deleted container. Item transfer targets the carrying-role container (`carrying = true`), creating one only as a fallback.
+- **Checkbox semantics** (Nov 2026) — ROADMAP checkboxes record implementation, not UX quality.
+- **Weight tracking** (Nov 2026) — per-character `weight_tracking` boolean column (default on).
+- **Design direction** (Nov 2026) — polished native iOS base; themes are data (mind-flayer-purple default + curated palettes). Brand concept (not an asset task): an open fantasy chest holding a brain amid scattered loot.
+- **Testing architecture** (Nov 2026, revised) — owner decision: agents do not write tests and the jest unit suite was removed entirely. Verification is `npm run check` plus on-device checks on the owner's Android dev build; Maestro E2E remains a coordinator-run merge gate against a stable Release build.
+- **Currency UX priority** (Nov 2026) — currency is a first-class surface: balances readable at a glance, spend/gain flows fast to reach; encumbrance stays optional-tier via the weight-tracking toggle.
+- **Custom palettes deferred** (Nov 2026) — editor UI dropped to keep the theme screen simple; presets + mode switching are the focus for now.
+- **Agent-written copy banned** (Nov 2026) — agents write functional labels and placeholders only; taglines, flavor, and empty-state prose are owner-written or approved.
+- **Encumbrance scope** (Nov 2026) — only containers with `carrying = true` (and items inside them unless `is_fixed_weight = true`) contribute to a character's carried weight.
