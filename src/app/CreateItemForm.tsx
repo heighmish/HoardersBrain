@@ -10,7 +10,6 @@ import {
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import ThemedText from "@/components/Basic/ThemedText";
-import PurseTransactionFields from "@/components/PurseTransactionFields";
 import RarityPicker from "@/components/RarityPicker";
 import { useDatabase } from "@/db/DatabaseProvider";
 import { createItem, ItemAcquisition } from "@/db/repositories";
@@ -22,7 +21,13 @@ import { useCharacterTags } from "@/hooks/useCharacterTags";
 import { useLayout } from "@/hooks/useLayout";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
-import { COIN_DENOMINATIONS, CoinDenomination } from "@/utils/currency";
+import {
+  COIN_DENOMINATIONS,
+  CoinDenomination,
+  deductFromPurse,
+  formatPurseSummary,
+  purseToCopper,
+} from "@/utils/currency";
 import { parseIdParam } from "@/utils/params";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -31,6 +36,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   View,
 } from "react-native";
 
@@ -154,6 +160,14 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
       : null;
 
   const parsedPaidAmount = Math.max(0, parseFloat(paidAmountText) || 0);
+  const availableCopper = purse !== null ? purseToCopper(purse) : 0;
+  const deductionPreview =
+    acquisitionKind === "bought" &&
+    shouldDeductFromPurse &&
+    parsedPaidAmount > 0 &&
+    purse !== null
+      ? deductFromPurse(purse, parsedPaidAmount, paidCurrency)
+      : null;
 
   const toggleSection = (section: Exclude<ExpandedSection, null>) => {
     setExpanded((prev) => (prev === section ? null : section));
@@ -524,28 +538,181 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
                 </View>
 
                 {acquisitionKind === "bought" ? (
-                  <PurseTransactionFields
-                    mode="deduct"
-                    amountText={paidAmountText}
-                    onChangeAmountText={setPaidAmountText}
-                    currency={paidCurrency}
-                    onChangeCurrency={setPaidCurrency}
-                    purse={purse}
-                    applyToPurse={shouldDeductFromPurse}
-                    onChangeApplyToPurse={setShouldDeductFromPurse}
-                    note={acquisitionNote}
-                    onChangeNote={setAcquisitionNote}
-                    amountPlaceholder="Amount paid"
-                    notePlaceholder="Note (optional)"
-                    testIds={{
-                      amountInput: "item-paid-amount-input",
-                      unitPrefix: "item-paid-unit",
-                      toggle: "item-deduct-purse-toggle",
-                      dontDeduct: "item-dont-deduct-button",
-                      useAvailable: "item-use-available-button",
-                      noteInput: "item-acquisition-note-input",
-                    }}
-                  />
+                  <View style={{ gap: theme.spacing.sm }}>
+                    <View
+                      style={
+                        isLargeText
+                          ? { gap: theme.spacing.sm }
+                          : {
+                              flexDirection: "row",
+                              gap: theme.spacing.sm,
+                              alignItems: "center",
+                            }
+                      }
+                    >
+                      <View style={isLargeText ? undefined : { flex: 1 }}>
+                        <Input
+                          keyboardType="decimal-pad"
+                          placeholder="Amount paid"
+                          value={paidAmountText}
+                          onChangeText={setPaidAmountText}
+                          testID="item-paid-amount-input"
+                        />
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: theme.spacing.xs,
+                        }}
+                      >
+                        {COIN_DENOMINATIONS.map((unit) => (
+                          <Pressable
+                            key={`item-paid-unit-${unit}`}
+                            onPress={() => setPaidCurrency(unit)}
+                            accessibilityRole="button"
+                            accessibilityState={{
+                              selected: paidCurrency === unit,
+                            }}
+                            style={({ pressed }) => ({
+                              opacity: pressed ? theme.opacity.pressed : 1,
+                            })}
+                            testID={`item-paid-unit-${unit}`}
+                          >
+                            <Badge
+                              text={unit}
+                              color={
+                                paidCurrency === unit
+                                  ? theme.colors.accent
+                                  : theme.colors.border
+                              }
+                              filled={paidCurrency === unit}
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+
+                    {purse !== null ? (
+                      <ThemedText
+                        variant="caption"
+                        style={{ fontVariant: ["tabular-nums"] }}
+                      >
+                        Purse: {formatPurseSummary(purse)}
+                      </ThemedText>
+                    ) : null}
+
+                    {parsedPaidAmount > 0 ? (
+                      <Pressable
+                        style={({ pressed }) => ({
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: theme.spacing.md,
+                          opacity: pressed ? theme.opacity.pressed : 1,
+                        })}
+                        accessibilityRole="switch"
+                        accessibilityState={{
+                          checked: shouldDeductFromPurse,
+                        }}
+                        onPress={() =>
+                          setShouldDeductFromPurse((prev) => !prev)
+                        }
+                        testID="item-deduct-purse-toggle"
+                      >
+                        <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                          <ThemedText variant="body">
+                            Deduct from purse
+                          </ThemedText>
+                          <ThemedText variant="caption">
+                            Turn off if another party member paid
+                          </ThemedText>
+                        </View>
+                        <Switch
+                          accessible={false}
+                          value={shouldDeductFromPurse}
+                          onValueChange={setShouldDeductFromPurse}
+                          trackColor={{
+                            false: theme.colors.border,
+                            true: theme.colors.accent,
+                          }}
+                        />
+                      </Pressable>
+                    ) : null}
+
+                    {deductionPreview?.status === "change" ? (
+                      <ThemedText
+                        variant="caption"
+                        style={{ fontVariant: ["tabular-nums"] }}
+                      >
+                        After purchase:{" "}
+                        {formatPurseSummary(deductionPreview.nextPurse)}
+                      </ThemedText>
+                    ) : null}
+
+                    {deductionPreview?.status === "insufficient" ? (
+                      <View style={{ gap: theme.spacing.xs }}>
+                        <ThemedText
+                          variant="caption"
+                          style={{ color: theme.colors.warning }}
+                        >
+                          Exceeds purse (
+                          {deductionPreview.availableGold.toFixed(2)} gp
+                          available) — purse will not be changed
+                        </ThemedText>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: theme.spacing.xs,
+                          }}
+                        >
+                          <Pressable
+                            onPress={() => setShouldDeductFromPurse(false)}
+                            accessibilityRole="button"
+                            style={({ pressed }) => ({
+                              opacity: pressed ? theme.opacity.pressed : 1,
+                            })}
+                            testID="item-dont-deduct-button"
+                          >
+                            <Badge
+                              text="Don't deduct"
+                              color={theme.colors.accent}
+                              filled={false}
+                            />
+                          </Pressable>
+                          {availableCopper > 0 ? (
+                            <Pressable
+                              onPress={() => {
+                                setPaidAmountText(
+                                  String(availableCopper / 100),
+                                );
+                                setPaidCurrency("gp");
+                              }}
+                              accessibilityRole="button"
+                              style={({ pressed }) => ({
+                                opacity: pressed ? theme.opacity.pressed : 1,
+                              })}
+                              testID="item-use-available-button"
+                            >
+                              <Badge
+                                text="Use available"
+                                color={theme.colors.accent}
+                                filled={false}
+                              />
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    <Input
+                      placeholder="Note (optional)"
+                      value={acquisitionNote}
+                      onChangeText={setAcquisitionNote}
+                      testID="item-acquisition-note-input"
+                    />
+                  </View>
                 ) : null}
 
                 {acquisitionKind === "looted" ||

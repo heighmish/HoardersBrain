@@ -11,9 +11,6 @@ import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import PurseTransactionFields, {
-  QuickAmountOption,
-} from "@/components/PurseTransactionFields";
 import RarityPicker from "@/components/RarityPicker";
 import { Rarity } from "@/constants/databaseTypes";
 import { rarityColors } from "@/constants/rarity";
@@ -41,7 +38,9 @@ import {
   COIN_DENOMINATIONS,
   CoinDenomination,
   CoinPurse,
+  creditPurse,
   formatCoinAmount,
+  formatPurseSummary,
 } from "@/utils/currency";
 import { formatWeight } from "@/utils/encumbrance";
 import { parseIdParam } from "@/utils/params";
@@ -53,6 +52,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -568,7 +568,11 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
       ? `Sell ${sellTarget} for ${formatCoinAmount(parsedSellAmount, draft.sellCurrency)}`
       : `Sell ${sellTarget}`;
 
-  const quickAmounts: QuickAmountOption[] =
+  const quickAmounts: readonly {
+    label: string;
+    amount: string;
+    currency: CoinDenomination;
+  }[] =
     parsedDraftValue !== null && parsedDraftValue > 0
       ? [
           {
@@ -583,6 +587,11 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
           },
         ]
       : [];
+
+  const creditedPurse =
+    purse !== null && draft.addToPurse && parsedSellAmount > 0
+      ? creditPurse(purse, parsedSellAmount, draft.sellCurrency)
+      : null;
 
   const dropQty = parseQuantityText(draft.dropQtyText, item.quantity);
   const dropButtonTitle = item.quantity > 1 ? `Drop ${dropQty}` : "Drop item";
@@ -1368,37 +1377,140 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
                           </View>
                         </View>
                       ) : null}
-                      <PurseTransactionFields
-                        mode="credit"
-                        amountText={draft.sellAmountText}
-                        onChangeAmountText={(text) =>
-                          dispatch({
-                            type: "SET_SELL_AMOUNT_TEXT",
-                            value: text,
-                          })
+                      <View
+                        style={
+                          isLargeText
+                            ? { gap: theme.spacing.sm }
+                            : {
+                                flexDirection: "row",
+                                gap: theme.spacing.sm,
+                                alignItems: "center",
+                              }
                         }
-                        currency={draft.sellCurrency}
-                        onChangeCurrency={(unit) =>
-                          dispatch({ type: "SET_SELL_CURRENCY", value: unit })
-                        }
-                        purse={purse}
-                        applyToPurse={draft.addToPurse}
-                        onChangeApplyToPurse={(value) =>
-                          dispatch({ type: "SET_ADD_TO_PURSE", value })
-                        }
-                        note={draft.sellNote}
-                        onChangeNote={(text) =>
+                      >
+                        <View style={isLargeText ? undefined : { flex: 1 }}>
+                          <Input
+                            keyboardType="decimal-pad"
+                            placeholder="Sale price"
+                            value={draft.sellAmountText}
+                            onChangeText={(text) =>
+                              dispatch({
+                                type: "SET_SELL_AMOUNT_TEXT",
+                                value: text,
+                              })
+                            }
+                            testID="sell-amount-input"
+                          />
+                        </View>
+                        <View style={chipRow}>
+                          {COIN_DENOMINATIONS.map((unit) => {
+                            const selected = draft.sellCurrency === unit;
+                            return (
+                              <Chip
+                                key={`sell-unit-${unit}`}
+                                label={unit}
+                                onPress={() =>
+                                  dispatch({
+                                    type: "SET_SELL_CURRENCY",
+                                    value: unit,
+                                  })
+                                }
+                                selected={selected}
+                                color={unitChipColor(selected)}
+                                testID={`sell-unit-${unit}`}
+                              />
+                            );
+                          })}
+                        </View>
+                      </View>
+                      {quickAmounts.length > 0 ? (
+                        <View style={chipRow}>
+                          {quickAmounts.map((option) => {
+                            const selected =
+                              draft.sellAmountText.trim() === option.amount &&
+                              draft.sellCurrency === option.currency;
+                            return (
+                              <Chip
+                                key={`sell-quick-${option.label}`}
+                                label={option.label}
+                                onPress={() => {
+                                  dispatch({
+                                    type: "SET_SELL_AMOUNT_TEXT",
+                                    value: option.amount,
+                                  });
+                                  dispatch({
+                                    type: "SET_SELL_CURRENCY",
+                                    value: option.currency,
+                                  });
+                                }}
+                                selected={selected}
+                                color={theme.colors.accent}
+                              />
+                            );
+                          })}
+                        </View>
+                      ) : null}
+                      {purse !== null ? (
+                        <ThemedText
+                          variant="caption"
+                          style={{ fontVariant: ["tabular-nums"] }}
+                        >
+                          Purse: {formatPurseSummary(purse)}
+                        </ThemedText>
+                      ) : null}
+                      {parsedSellAmount > 0 ? (
+                        <Pressable
+                          accessibilityRole="switch"
+                          accessibilityState={{ checked: draft.addToPurse }}
+                          onPress={() =>
+                            dispatch({
+                              type: "SET_ADD_TO_PURSE",
+                              value: !draft.addToPurse,
+                            })
+                          }
+                          testID="sell-add-purse-toggle"
+                          style={({ pressed }) => ({
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: theme.spacing.md,
+                            opacity: pressed ? theme.opacity.pressed : 1,
+                          })}
+                        >
+                          <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                            <ThemedText variant="body">Add to purse</ThemedText>
+                            <ThemedText variant="caption">
+                              Turn off if coins go to party loot
+                            </ThemedText>
+                          </View>
+                          <Switch
+                            accessible={false}
+                            value={draft.addToPurse}
+                            onValueChange={(value) =>
+                              dispatch({ type: "SET_ADD_TO_PURSE", value })
+                            }
+                            trackColor={{
+                              false: theme.colors.border,
+                              true: theme.colors.accent,
+                            }}
+                          />
+                        </Pressable>
+                      ) : null}
+                      {creditedPurse !== null ? (
+                        <ThemedText
+                          variant="caption"
+                          style={{ fontVariant: ["tabular-nums"] }}
+                        >
+                          After sale: {formatPurseSummary(creditedPurse)}
+                        </ThemedText>
+                      ) : null}
+                      <Input
+                        placeholder="Buyer / note (optional)"
+                        value={draft.sellNote}
+                        onChangeText={(text) =>
                           dispatch({ type: "SET_SELL_NOTE", value: text })
                         }
-                        amountPlaceholder="Sale price"
-                        notePlaceholder="Buyer / note (optional)"
-                        quickAmounts={quickAmounts}
-                        testIds={{
-                          amountInput: "sell-amount-input",
-                          unitPrefix: "sell-unit",
-                          toggle: "sell-add-purse-toggle",
-                          noteInput: "sell-note-input",
-                        }}
+                        testID="sell-note-input"
                       />
                       <Button
                         title={sellButtonTitle}
