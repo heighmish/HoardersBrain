@@ -108,7 +108,6 @@ const ItemFormBody = ({ characterId, storageId }: ItemFormBodyProps) => {
     character_id: characterId,
     properties: null,
     quantity: 1,
-    item_type: "consumable",
   });
   const [weightText, setWeightText] = useState("1");
   const [quantityText, setQuantityText] = useState("1");

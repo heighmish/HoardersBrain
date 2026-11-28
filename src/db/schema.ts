@@ -39,7 +39,6 @@ export const itemsTable = sqliteTable(
       .notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    item_type: text("item_type").notNull(),
     weight: real("weight").notNull(),
     rarity: text("rarity").$type<Rarity>().notNull().default("Common"),
     properties: text("properties", { mode: "json" }),

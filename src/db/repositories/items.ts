@@ -31,7 +31,6 @@ export type ItemDetails = Omit<
     Item,
     | "name"
     | "description"
-    | "item_type"
     | "rarity"
     | "value_currency"
     | "properties"
@@ -443,7 +442,6 @@ export const splitItemStack = async (
         character_id: item.character_id,
         name: item.name,
         description: item.description,
-        item_type: item.item_type,
         weight: item.weight,
         rarity: item.rarity,
         properties: item.properties,
