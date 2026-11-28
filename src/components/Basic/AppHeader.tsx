@@ -1,11 +1,17 @@
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ThemedText from "@/components/Basic/ThemedText";
 import { useTheme } from "@/stores/ThemeContext";
 
-const AppHeader = ({ title }: { title: string }) => {
+interface AppHeaderProps {
+  title: string;
+  rightAction?: ReactNode;
+}
+
+const AppHeader = ({ title, rightAction }: AppHeaderProps) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -47,6 +53,9 @@ const AppHeader = ({ title }: { title: string }) => {
         <ThemedText variant="headline" numberOfLines={1} style={{ flex: 1 }}>
           {title}
         </ThemedText>
+        {rightAction != null ? (
+          <View style={{ flexShrink: 0 }}>{rightAction}</View>
+        ) : null}
       </View>
     </View>
   );

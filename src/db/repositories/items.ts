@@ -13,32 +13,44 @@ import {
   setItemTagsInTransaction,
 } from "./tags";
 import {
+  amountToCopper,
   CoinDenomination,
+  creditPurse,
   deductFromPurse,
+  formatCoinAmount,
 } from "@/utils/currency";
+import { NonNegativeNumber, PositiveInt } from "@/utils/numbers";
 import { and, eq, isNull } from "drizzle-orm";
 
 type RepositoryTransaction = Parameters<
   Parameters<AppDatabase["transaction"]>[0]
 >[0];
 
-export type ItemDetails = Pick<
-  Item,
-  | "name"
-  | "description"
-  | "item_type"
-  | "weight"
-  | "rarity"
-  | "quantity"
-  | "value"
-  | "value_currency"
-  | "properties"
->;
+export type ItemDetails = Omit<
+  Pick<
+    Item,
+    | "name"
+    | "description"
+    | "item_type"
+    | "rarity"
+    | "value_currency"
+    | "properties"
+  >,
+  never
+> & {
+  weight: NonNegativeNumber;
+  quantity: PositiveInt;
+  value: NonNegativeNumber | null;
+};
 
 export type ItemCreateInput = Omit<
   typeof itemsTable.$inferInsert,
-  "item_id" | "deleted_at"
->;
+  "item_id" | "deleted_at" | "weight" | "quantity" | "value"
+> & {
+  weight: NonNegativeNumber;
+  quantity: PositiveInt;
+  value: NonNegativeNumber | null;
+};
 
 const loadItemByIdInTransaction = (
   tx: RepositoryTransaction,
@@ -88,9 +100,24 @@ export type ItemAcquisition =
   | { kind: "looted" | "found"; note?: string }
   | {
       kind: "bought";
-      amount: number;
+      amount: NonNegativeNumber;
       denomination: CoinDenomination;
       deductFromPurse: boolean;
+      note?: string;
+    };
+
+export type ItemRemoval =
+  | {
+      kind: "sold";
+      quantity: PositiveInt;
+      amount: NonNegativeNumber;
+      denomination: CoinDenomination;
+      addToPurse: boolean;
+      note?: string;
+    }
+  | {
+      kind: "dropped";
+      quantity: PositiveInt;
       note?: string;
     };
 
@@ -192,9 +219,21 @@ export const updateItemDetails = async (
   tagIds?: readonly number[],
 ): Promise<void> => {
   db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      throw new Error("Item not found");
+    }
+
+    const trimmedDescription =
+      details.description === null ? null : details.description.trim();
+    const description =
+      trimmedDescription !== null && trimmedDescription.length === 0
+        ? null
+        : trimmedDescription;
+
     tx.update(itemsTable)
-      .set(details)
-      .where(eq(itemsTable.item_id, itemId))
+      .set({ ...details, description })
+      .where(and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)))
       .run();
     if (tagIds !== undefined) {
       setItemTagsInTransaction(tx, itemId, tagIds);
@@ -242,15 +281,6 @@ const decrementItemInTransaction = (
   }
 };
 
-export const removeOneFromStack = async (
-  db: AppDatabase,
-  itemId: number,
-): Promise<void> => {
-  db.transaction((tx) => {
-    decrementItemInTransaction(tx, itemId);
-  });
-};
-
 export const useOneFromItem = async (
   db: AppDatabase,
   itemId: number,
@@ -260,19 +290,129 @@ export const useOneFromItem = async (
   });
 };
 
+const formatLedgerRemoval = (
+  name: string,
+  quantity: number,
+  removal: ItemRemoval,
+  credited: boolean,
+): string => {
+  const qtyLabel = `${name} x${quantity}`;
+  const note = removal.note?.trim();
+  const noteSuffix = note && note.length > 0 ? ` — ${note}` : "";
+
+  if (removal.kind === "dropped") {
+    return `Dropped ${qtyLabel}${noteSuffix}`;
+  }
+  if (removal.amount <= 0) {
+    return `Sold ${qtyLabel}${noteSuffix}`;
+  }
+
+  const pricePart = formatCoinAmount(removal.amount, removal.denomination);
+  return credited
+    ? `Sold ${qtyLabel} for ${pricePart}${noteSuffix}`
+    : `Sold ${qtyLabel} (${pricePart}, not added to purse${noteSuffix})`;
+};
+
+const creditCharacterPurseInTransaction = (
+  tx: RepositoryTransaction,
+  characterId: number,
+  amount: NonNegativeNumber,
+  denomination: CoinDenomination,
+): boolean => {
+  if (amountToCopper(amount, denomination) <= 0) {
+    return false;
+  }
+
+  const character = tx
+    .select()
+    .from(charactersTable)
+    .where(
+      and(
+        eq(charactersTable.character_id, characterId),
+        isNull(charactersTable.deleted_at),
+      ),
+    )
+    .get();
+  if (character === undefined) {
+    return false;
+  }
+
+  const nextPurse = creditPurse(
+    {
+      platinum: character.platinum,
+      gold: character.gold,
+      silver: character.silver,
+      copper: character.copper,
+    },
+    amount,
+    denomination,
+  );
+  tx.update(charactersTable)
+    .set(nextPurse)
+    .where(eq(charactersTable.character_id, characterId))
+    .run();
+  return true;
+};
+
+export const removeItemsFromStack = async (
+  db: AppDatabase,
+  itemId: number,
+  removal: ItemRemoval,
+): Promise<{ removedAll: boolean }> =>
+  db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      throw new Error("Item not found");
+    }
+    if (removal.quantity > item.quantity) {
+      throw new Error("Removal quantity exceeds stack size");
+    }
+
+    const removedAll = removal.quantity === item.quantity;
+    tx.update(itemsTable)
+      .set(
+        removedAll
+          ? { deleted_at: new Date() }
+          : { quantity: item.quantity - removal.quantity },
+      )
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
+
+    const credited =
+      removal.kind === "sold" && removal.addToPurse && removal.amount > 0
+        ? creditCharacterPurseInTransaction(
+            tx,
+            item.character_id,
+            removal.amount,
+            removal.denomination,
+          )
+        : false;
+
+    tx.insert(ledgerTable)
+      .values({
+        character_id: item.character_id,
+        message: formatLedgerRemoval(
+          item.name,
+          removal.quantity,
+          removal,
+          credited,
+        ),
+      })
+      .run();
+
+    return { removedAll };
+  });
+
 export const splitItemStack = async (
   db: AppDatabase,
   itemId: number,
-  amount: number,
+  amount: PositiveInt,
   destinationStorageId: number,
 ): Promise<void> => {
   db.transaction((tx) => {
     const item = loadItemByIdInTransaction(tx, itemId);
     if (item === undefined) {
       throw new Error("Item not found");
-    }
-    if (!Number.isInteger(amount) || amount < 1) {
-      throw new Error("Split amount must be at least 1");
     }
     if (amount >= item.quantity) {
       throw new Error("Split amount must be less than the stack quantity");

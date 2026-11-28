@@ -1,3 +1,5 @@
+import { formatDecimal, NonNegativeNumber } from "@/utils/numbers";
+
 export interface CoinPurse {
   platinum: number;
   gold: number;
@@ -35,10 +37,9 @@ export const purseToCopper = (coins: CoinPurse): number =>
   coins.platinum * 1000 + coins.gold * 100 + coins.silver * 10 + coins.copper;
 
 export const amountToCopper = (
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
-): number =>
-  Math.round(Math.max(0, amount) * DENOMINATION_TO_COPPER[denomination]);
+): number => Math.round(amount * DENOMINATION_TO_COPPER[denomination]);
 
 export type PurseDeductionResult =
   | { status: "exact"; nextPurse: CoinPurse }
@@ -47,7 +48,7 @@ export type PurseDeductionResult =
 
 export const deductFromPurse = (
   purse: CoinPurse,
-  amount: number,
+  amount: NonNegativeNumber,
   denomination: CoinDenomination,
 ): PurseDeductionResult => {
   const key = DENOMINATION_TO_KEY[denomination];
@@ -90,6 +91,58 @@ export const deductFromPurse = (
     nextPurse: { platinum, gold, silver, copper },
   };
 };
+
+export const creditPurse = (
+  purse: CoinPurse,
+  amount: NonNegativeNumber,
+  denomination: CoinDenomination,
+): CoinPurse => {
+  if (amount <= 0) {
+    return { ...purse };
+  }
+
+  if (Number.isInteger(amount)) {
+    const key = DENOMINATION_TO_KEY[denomination];
+    return { ...purse, [key]: purse[key] + amount };
+  }
+
+  const addCp = amountToCopper(amount, denomination);
+  if (addCp <= 0) {
+    return { ...purse };
+  }
+
+  const next = { ...purse };
+  let remainingCp = addCp;
+
+  // Break fractional amounts down into smaller denominations without minting
+  // coins higher than the denomination being credited.
+  if (denomination === "pp") {
+    const platinum = Math.floor(remainingCp / 1000);
+    next.platinum += platinum;
+    remainingCp -= platinum * 1000;
+  }
+
+  if (denomination === "pp" || denomination === "gp") {
+    const gold = Math.floor(remainingCp / 100);
+    next.gold += gold;
+    remainingCp -= gold * 100;
+  }
+
+  if (denomination !== "cp") {
+    const silver = Math.floor(remainingCp / 10);
+    next.silver += silver;
+    remainingCp -= silver * 10;
+  }
+
+  next.copper += remainingCp;
+
+  return next;
+};
+
+export const formatCoinAmount = (
+  amount: NonNegativeNumber,
+  denomination: CoinDenomination,
+): string => `${formatDecimal(amount)} ${denomination}`;
 
 const formatPurseParts = (
   purse: CoinPurse,

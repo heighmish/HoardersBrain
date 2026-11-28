@@ -9,20 +9,13 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useCharacter } from "@/hooks/useCharacter";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
+import { parsePositiveInt, stepIntText } from "@/utils/numbers";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Switch, View } from "react-native";
 
 const returnToInventory = () =>
   router.canGoBack() ? router.back() : router.replace("/(tabs)");
-
-const parseMaxEncumbrance = (value: string): number | null => {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-  return parsed;
-};
 
 const CharacterSettings = () => {
   const theme = useTheme();
@@ -92,16 +85,14 @@ const CharacterSettingsForm: React.FC<CharacterSettingsFormProps> = ({
     keepBusyOnSuccess: true,
   });
 
-  const parsedMaxEncumbrance = parseMaxEncumbrance(maxEncumbranceInput);
+  const parsedMaxEncumbrance = parsePositiveInt(maxEncumbranceInput);
 
   const stepMaxEncumbrance = (delta: number) => {
-    setMaxEncumbranceInput((current) => {
-      const parsed = parseMaxEncumbrance(current);
-      if (parsed === null) {
-        return current;
-      }
-      return Math.max(1, parsed + delta).toFixed(0);
-    });
+    setMaxEncumbranceInput((current) =>
+      parsePositiveInt(current) === null
+        ? current
+        : stepIntText(current, delta, { min: 1 }),
+    );
   };
 
   const saveSettings = () => {

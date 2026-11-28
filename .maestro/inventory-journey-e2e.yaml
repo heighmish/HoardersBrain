@@ -7,7 +7,7 @@ name: Inventory, containers, items, and transfer end to end
 # End-to-end inventory journey:
 # 1. Cold boot auto-seeds Sample Character; create a fresh character (QA Hero).
 # 2. Create a container (Bag of Holding, Uncommon), add a stacked item, edit it,
-#    decrement quantity, and remove all.
+#    drop one from the stack, then delete the rest.
 # 3. Add another item, create a second character (QA Second), transfer the item
 #    to QA Second, and verify it appears under QA Second's Equipped container.
 # 4. Switch back to QA Hero, rename the container, and delete it.
@@ -97,30 +97,74 @@ name: Inventory, containers, items, and transfer end to end
 - assertVisible: "Quantity"
 - assertVisible: "Bag of Holding"
 
-- tapOn:
-    id: edit-item-button
-- extendedWaitUntil:
-    visible:
-      id: item-name-input
-    timeout: 30000
+# Inline edit: the name field lives on ItemDetail, save sits in the header.
 - tapOn:
     id: item-name-input
 - eraseText
 - inputText: "Rope of Climbing II"
-- scroll
 - tapOn:
     id: save-item-button
 - extendedWaitUntil:
     visible: "Rope of Climbing II"
     timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: save-item-button
+    timeout: 30000
 
+# Drop 1 of 3 (qty 3 -> 2)
+- scrollUntilVisible:
+    element:
+      id: item-remove-row
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    id: remove-one-button
+    id: item-remove-row
+- scrollUntilVisible:
+    element:
+      id: item-remove-drop
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: item-remove-drop
+- scrollUntilVisible:
+    element:
+      id: confirm-drop-button
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: confirm-drop-button
+- scrollUntilVisible:
+    element:
+      id: item-quantity-input
+    direction: UP
+    timeout: 30000
 - extendedWaitUntil:
     visible: "2"
     timeout: 30000
+
+# Delete the remaining stack
+- scrollUntilVisible:
+    element:
+      id: item-remove-row
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    id: remove-all-button
+    id: item-remove-row
+- scrollUntilVisible:
+    element:
+      id: item-remove-delete
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: item-remove-delete
+- scrollUntilVisible:
+    element:
+      id: delete-item-button
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: delete-item-button
 - extendedWaitUntil:
     visible: ".*Bag of Holding.*"
     timeout: 30000
@@ -181,13 +225,32 @@ name: Inventory, containers, items, and transfer end to end
     visible:
       id: item-detail-screen
     timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: item-remove-row
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    id: transfer-item-button
-- extendedWaitUntil:
-    visible:
-      id: transfer-picker-screen
+    id: item-remove-row
+- scrollUntilVisible:
+    element:
+      id: item-remove-transfer
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: item-remove-transfer
+- scrollUntilVisible:
+    element: "QA Second"
+    direction: DOWN
     timeout: 30000
 - tapOn: "QA Second"
+- scrollUntilVisible:
+    element:
+      id: confirm-transfer-button
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: confirm-transfer-button
 - extendedWaitUntil:
     notVisible: "Healing Potion"
     timeout: 30000
