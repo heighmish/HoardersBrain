@@ -281,6 +281,70 @@ export const useOneFromItem = async (
   });
 };
 
+const formatLedgerRemoval = (
+  name: string,
+  quantity: number,
+  removal: ItemRemoval,
+  credited: boolean,
+): string => {
+  const qtyLabel = `${name} x${quantity}`;
+  const note = removal.note?.trim();
+  const noteSuffix = note && note.length > 0 ? ` — ${note}` : "";
+
+  if (removal.kind === "dropped") {
+    return `Dropped ${qtyLabel}${noteSuffix}`;
+  }
+  if (removal.amount <= 0) {
+    return `Sold ${qtyLabel}${noteSuffix}`;
+  }
+
+  const pricePart = formatCoinAmount(removal.amount, removal.denomination);
+  return credited
+    ? `Sold ${qtyLabel} for ${pricePart}${noteSuffix}`
+    : `Sold ${qtyLabel} (${pricePart}, not added to purse${noteSuffix})`;
+};
+
+const creditCharacterPurseInTransaction = (
+  tx: RepositoryTransaction,
+  characterId: number,
+  amount: number,
+  denomination: CoinDenomination,
+): boolean => {
+  if (amountToCopper(amount, denomination) <= 0) {
+    return false;
+  }
+
+  const character = tx
+    .select()
+    .from(charactersTable)
+    .where(
+      and(
+        eq(charactersTable.character_id, characterId),
+        isNull(charactersTable.deleted_at),
+      ),
+    )
+    .get();
+  if (character === undefined) {
+    return false;
+  }
+
+  const nextPurse = creditPurse(
+    {
+      platinum: character.platinum,
+      gold: character.gold,
+      silver: character.silver,
+      copper: character.copper,
+    },
+    amount,
+    denomination,
+  );
+  tx.update(charactersTable)
+    .set(nextPurse)
+    .where(eq(charactersTable.character_id, characterId))
+    .run();
+  return true;
+};
+
 export const removeItemsFromStack = async (
   db: AppDatabase,
   itemId: number,
@@ -291,94 +355,50 @@ export const removeItemsFromStack = async (
     if (item === undefined) {
       throw new Error("Item not found");
     }
-
-    const requestedQty = Number.isFinite(removal.quantity)
-      ? Math.floor(removal.quantity)
-      : 1;
-    const qty = Math.min(item.quantity, Math.max(1, requestedQty));
-    const removedAll = qty >= item.quantity;
-
-    if (removedAll) {
-      tx.update(itemsTable)
-        .set({ deleted_at: new Date() })
-        .where(eq(itemsTable.item_id, itemId))
-        .run();
-    } else {
-      tx.update(itemsTable)
-        .set({ quantity: item.quantity - qty })
-        .where(eq(itemsTable.item_id, itemId))
-        .run();
+    if (!Number.isInteger(removal.quantity) || removal.quantity < 1) {
+      throw new Error("Removal quantity must be at least 1");
     }
-
-    const note = removal.note?.trim();
-    const noteSuffix = note && note.length > 0 ? ` — ${note}` : "";
-    const saleAmount =
+    if (removal.quantity > item.quantity) {
+      throw new Error("Removal quantity exceeds stack size");
+    }
+    if (
       removal.kind === "sold" &&
-      Number.isFinite(removal.amount) &&
-      removal.amount > 0
-        ? removal.amount
-        : 0;
-    const saleCopper =
-      removal.kind === "sold" && saleAmount > 0
-        ? amountToCopper(saleAmount, removal.denomination)
-        : 0;
-    let credited = false;
-
-    if (removal.kind === "sold" && removal.addToPurse && saleCopper > 0) {
-      const character = tx
-        .select()
-        .from(charactersTable)
-        .where(
-          and(
-            eq(charactersTable.character_id, item.character_id),
-            isNull(charactersTable.deleted_at),
-          ),
-        )
-        .get();
-      if (character !== undefined) {
-        const nextPurse = creditPurse(
-          {
-            platinum: character.platinum,
-            gold: character.gold,
-            silver: character.silver,
-            copper: character.copper,
-          },
-          saleAmount,
-          removal.denomination,
-        );
-        tx.update(charactersTable)
-          .set(nextPurse)
-          .where(eq(charactersTable.character_id, item.character_id))
-          .run();
-        credited = true;
-      }
+      (!Number.isFinite(removal.amount) || removal.amount < 0)
+    ) {
+      throw new Error("Sale amount must be a non-negative number");
     }
 
-    if (removal.kind === "dropped") {
-      tx.insert(ledgerTable)
-        .values({
-          character_id: item.character_id,
-          message: `Dropped ${item.name} x${qty}${noteSuffix}`,
-        })
-        .run();
-    } else if (saleAmount > 0) {
-      const pricePart = formatCoinAmount(saleAmount, removal.denomination);
-      tx.insert(ledgerTable)
-        .values({
-          character_id: item.character_id,
-          message: credited
-            ? `Sold ${item.name} x${qty} for ${pricePart}${noteSuffix}`
-            : `Sold ${item.name} x${qty} (${pricePart}, not added to purse${noteSuffix})`,
-        })
-        .run();
-    } else {
-      tx.insert(ledgerTable)
-        .values({
-          character_id: item.character_id,
-          message: `Sold ${item.name} x${qty}${noteSuffix}`,
-        })
-        .run();
-    }
+    const removedAll = removal.quantity === item.quantity;
+    tx.update(itemsTable)
+      .set(
+        removedAll
+          ? { deleted_at: new Date() }
+          : { quantity: item.quantity - removal.quantity },
+      )
+      .where(eq(itemsTable.item_id, itemId))
+      .run();
+
+    const credited =
+      removal.kind === "sold" && removal.addToPurse && removal.amount > 0
+        ? creditCharacterPurseInTransaction(
+            tx,
+            item.character_id,
+            removal.amount,
+            removal.denomination,
+          )
+        : false;
+
+    tx.insert(ledgerTable)
+      .values({
+        character_id: item.character_id,
+        message: formatLedgerRemoval(
+          item.name,
+          removal.quantity,
+          removal,
+          credited,
+        ),
+      })
+      .run();
 
     return { removedAll };
   });
