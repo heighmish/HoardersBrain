@@ -91,6 +91,58 @@ export const deductFromPurse = (
   };
 };
 
+export const creditPurse = (
+  purse: CoinPurse,
+  amount: number,
+  denomination: CoinDenomination,
+): CoinPurse => {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ...purse };
+  }
+
+  if (Number.isInteger(amount)) {
+    const key = DENOMINATION_TO_KEY[denomination];
+    return { ...purse, [key]: purse[key] + amount };
+  }
+
+  const addCp = amountToCopper(amount, denomination);
+  if (addCp <= 0) {
+    return { ...purse };
+  }
+
+  const next = { ...purse };
+  let remainingCp = addCp;
+
+  // Break fractional amounts down into smaller denominations without minting
+  // coins higher than the denomination being credited.
+  if (denomination === "pp") {
+    const platinum = Math.floor(remainingCp / 1000);
+    next.platinum += platinum;
+    remainingCp -= platinum * 1000;
+  }
+
+  if (denomination === "pp" || denomination === "gp") {
+    const gold = Math.floor(remainingCp / 100);
+    next.gold += gold;
+    remainingCp -= gold * 100;
+  }
+
+  if (denomination !== "cp") {
+    const silver = Math.floor(remainingCp / 10);
+    next.silver += silver;
+    remainingCp -= silver * 10;
+  }
+
+  next.copper += remainingCp;
+
+  return next;
+};
+
+export const formatCoinAmount = (
+  amount: number,
+  denomination: CoinDenomination,
+): string => `${Number(Math.max(0, amount).toFixed(2))} ${denomination}`;
+
 const formatPurseParts = (
   purse: CoinPurse,
   units: readonly [string, string, string, string],

@@ -1,12 +1,16 @@
 import AppHeader from "@/components/Basic/AppHeader";
-import Badge from "@/components/Basic/Badge";
 import Button from "@/components/Basic/Button";
+import {
+  CardDivider,
+  DisclosureCard,
+  DisclosureRow,
+  SectionLabel,
+} from "@/components/Basic/DisclosureSection";
 import Input from "@/components/Basic/Input";
 import NumericInput from "@/components/Basic/NumericInput";
 import ScreenState from "@/components/Basic/ScreenState";
 import ThemedText from "@/components/Basic/ThemedText";
-import { RarityArray } from "@/constants/databaseTypes";
-import { rarityColors } from "@/constants/rarity";
+import RarityPicker from "@/components/RarityPicker";
 import { useDatabase } from "@/db/DatabaseProvider";
 import {
   createStorageContainer,
@@ -19,7 +23,6 @@ import { useContainer } from "@/hooks/useContainer";
 import { useSelectedCharacter } from "@/stores/CharacterContext";
 import { useTheme } from "@/stores/ThemeContext";
 import { parseIdParam } from "@/utils/params";
-import { AntDesign } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -129,9 +132,12 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
       return;
     }
 
+    const trimmedDescription = storageInput.description?.trim() ?? "";
+
     const values = {
       ...storageInput,
       name: trimmedName,
+      description: trimmedDescription.length > 0 ? trimmedDescription : null,
       weight: Math.max(0, parseFloat(weightText) || 0),
     };
 
@@ -148,18 +154,6 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
       router.back();
     }, "Failed to save container.");
   };
-
-  const sectionLabel = (label: string) => (
-    <ThemedText
-      variant="caption"
-      style={{
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-      }}
-    >
-      {label}
-    </ThemedText>
-  );
 
   return (
     <KeyboardAvoidingView
@@ -194,7 +188,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         </View>
 
         <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Weight")}
+          <SectionLabel label="Weight" />
           <NumericInput
             value={weightText}
             testID="storage-weight-input"
@@ -205,17 +199,8 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
         </View>
 
         <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Encumbrance")}
-          <View
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-              borderWidth: 1,
-              borderRadius: theme.radius.md,
-              borderCurve: "continuous",
-              overflow: "hidden",
-            }}
-          >
+          <SectionLabel label="Encumbrance" />
+          <DisclosureCard>
             <Pressable
               style={({ pressed }) => ({
                 flexDirection: "row",
@@ -224,8 +209,8 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
                 gap: theme.spacing.md,
                 paddingHorizontal: theme.spacing.md,
                 paddingVertical: theme.spacing.sm,
-                minHeight: 44,
-                opacity: pressed ? 0.7 : 1,
+                minHeight: theme.layout.touchMin,
+                opacity: pressed ? theme.opacity.pressed : 1,
               })}
               accessibilityRole="switch"
               accessibilityState={{ checked: storageInput.carrying }}
@@ -258,12 +243,7 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
               />
             </Pressable>
 
-            <View
-              style={{
-                height: 1,
-                backgroundColor: theme.colors.border,
-              }}
-            />
+            <CardDivider />
 
             <Pressable
               style={({ pressed }) => ({
@@ -273,8 +253,8 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
                 gap: theme.spacing.md,
                 paddingHorizontal: theme.spacing.md,
                 paddingVertical: theme.spacing.sm,
-                minHeight: 44,
-                opacity: pressed ? 0.7 : 1,
+                minHeight: theme.layout.touchMin,
+                opacity: pressed ? theme.opacity.pressed : 1,
               })}
               accessibilityRole="switch"
               accessibilityState={{ checked: storageInput.is_fixed_weight }}
@@ -306,104 +286,43 @@ const StorageForm = ({ initialStorage }: StorageFormProps) => {
                 testID="fixed-weight-toggle"
               />
             </Pressable>
-          </View>
+          </DisclosureCard>
         </View>
 
         <View style={{ gap: theme.spacing.xs }}>
-          {sectionLabel("Optional details")}
-          <View
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-              borderWidth: 1,
-              borderRadius: theme.radius.md,
-              borderCurve: "continuous",
-              overflow: "hidden",
-            }}
-          >
-            <Pressable
+          <SectionLabel label="Optional details" />
+          <DisclosureCard>
+            <DisclosureRow
+              label="Rarity"
+              summary={storageInput.rarity}
+              highlighted={storageInput.rarity !== "Common"}
+              isOpen={rarityExpanded}
               onPress={() => {
                 Keyboard.dismiss();
                 setRarityExpanded((prev) => !prev);
               }}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: rarityExpanded }}
               testID="storage-rarity-row"
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-                minHeight: 44,
-                gap: theme.spacing.sm,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <ThemedText variant="body">Rarity</ThemedText>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: theme.spacing.xs,
-                  flexShrink: 1,
-                }}
-              >
-                <ThemedText
-                  variant="subhead"
-                  numberOfLines={1}
-                  style={{
-                    color:
-                      storageInput.rarity !== "Common"
-                        ? theme.colors.accent
-                        : theme.colors.textMuted,
-                  }}
-                >
-                  {storageInput.rarity}
-                </ThemedText>
-                <AntDesign
-                  name={rarityExpanded ? "up" : "down"}
-                  size={12}
-                  color={theme.colors.textMuted}
-                />
-              </View>
-            </Pressable>
+            />
             {rarityExpanded ? (
               <View
                 style={{
                   paddingHorizontal: theme.spacing.md,
                   paddingBottom: theme.spacing.md,
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: theme.spacing.xs,
                 }}
               >
-                {RarityArray.map((rarity) => (
-                  <Pressable
-                    onPress={() => {
-                      setStorageInput((prev) => ({
-                        ...prev,
-                        rarity,
-                      }));
-                    }}
-                    key={`create-storage-rarity-${rarity}`}
-                    accessibilityRole="button"
-                    accessibilityState={{
-                      selected: storageInput.rarity === rarity,
-                    }}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                    testID={`storage-rarity-${rarity}`}
-                  >
-                    <Badge
-                      text={rarity}
-                      color={rarityColors[rarity]}
-                      filled={storageInput.rarity === rarity}
-                    />
-                  </Pressable>
-                ))}
+                <RarityPicker
+                  value={storageInput.rarity}
+                  onChange={(rarity) =>
+                    setStorageInput((prev) => ({
+                      ...prev,
+                      rarity,
+                    }))
+                  }
+                  testIdPrefix="storage-rarity"
+                />
               </View>
             ) : null}
-          </View>
+          </DisclosureCard>
         </View>
 
         {error !== null && (

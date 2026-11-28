@@ -13,8 +13,11 @@ import {
   setItemTagsInTransaction,
 } from "./tags";
 import {
+  amountToCopper,
   CoinDenomination,
+  creditPurse,
   deductFromPurse,
+  formatCoinAmount,
 } from "@/utils/currency";
 import { and, eq, isNull } from "drizzle-orm";
 
@@ -91,6 +94,21 @@ export type ItemAcquisition =
       amount: number;
       denomination: CoinDenomination;
       deductFromPurse: boolean;
+      note?: string;
+    };
+
+export type ItemRemoval =
+  | {
+      kind: "sold";
+      quantity: number;
+      amount: number;
+      denomination: CoinDenomination;
+      addToPurse: boolean;
+      note?: string;
+    }
+  | {
+      kind: "dropped";
+      quantity: number;
       note?: string;
     };
 
@@ -192,9 +210,21 @@ export const updateItemDetails = async (
   tagIds?: readonly number[],
 ): Promise<void> => {
   db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      throw new Error("Item not found");
+    }
+
+    const trimmedDescription =
+      details.description === null ? null : details.description.trim();
+    const description =
+      trimmedDescription !== null && trimmedDescription.length === 0
+        ? null
+        : trimmedDescription;
+
     tx.update(itemsTable)
-      .set(details)
-      .where(eq(itemsTable.item_id, itemId))
+      .set({ ...details, description })
+      .where(and(eq(itemsTable.item_id, itemId), isNull(itemsTable.deleted_at)))
       .run();
     if (tagIds !== undefined) {
       setItemTagsInTransaction(tx, itemId, tagIds);
@@ -242,15 +272,6 @@ const decrementItemInTransaction = (
   }
 };
 
-export const removeOneFromStack = async (
-  db: AppDatabase,
-  itemId: number,
-): Promise<void> => {
-  db.transaction((tx) => {
-    decrementItemInTransaction(tx, itemId);
-  });
-};
-
 export const useOneFromItem = async (
   db: AppDatabase,
   itemId: number,
@@ -259,6 +280,108 @@ export const useOneFromItem = async (
     decrementItemInTransaction(tx, itemId, (item) => `Used ${item.name}`);
   });
 };
+
+export const removeItemsFromStack = async (
+  db: AppDatabase,
+  itemId: number,
+  removal: ItemRemoval,
+): Promise<{ removedAll: boolean }> =>
+  db.transaction((tx) => {
+    const item = loadItemByIdInTransaction(tx, itemId);
+    if (item === undefined) {
+      throw new Error("Item not found");
+    }
+
+    const requestedQty = Number.isFinite(removal.quantity)
+      ? Math.floor(removal.quantity)
+      : 1;
+    const qty = Math.min(item.quantity, Math.max(1, requestedQty));
+    const removedAll = qty >= item.quantity;
+
+    if (removedAll) {
+      tx.update(itemsTable)
+        .set({ deleted_at: new Date() })
+        .where(eq(itemsTable.item_id, itemId))
+        .run();
+    } else {
+      tx.update(itemsTable)
+        .set({ quantity: item.quantity - qty })
+        .where(eq(itemsTable.item_id, itemId))
+        .run();
+    }
+
+    const note = removal.note?.trim();
+    const noteSuffix = note && note.length > 0 ? ` — ${note}` : "";
+    const saleAmount =
+      removal.kind === "sold" &&
+      Number.isFinite(removal.amount) &&
+      removal.amount > 0
+        ? removal.amount
+        : 0;
+    const saleCopper =
+      removal.kind === "sold" && saleAmount > 0
+        ? amountToCopper(saleAmount, removal.denomination)
+        : 0;
+    let credited = false;
+
+    if (removal.kind === "sold" && removal.addToPurse && saleCopper > 0) {
+      const character = tx
+        .select()
+        .from(charactersTable)
+        .where(
+          and(
+            eq(charactersTable.character_id, item.character_id),
+            isNull(charactersTable.deleted_at),
+          ),
+        )
+        .get();
+      if (character !== undefined) {
+        const nextPurse = creditPurse(
+          {
+            platinum: character.platinum,
+            gold: character.gold,
+            silver: character.silver,
+            copper: character.copper,
+          },
+          saleAmount,
+          removal.denomination,
+        );
+        tx.update(charactersTable)
+          .set(nextPurse)
+          .where(eq(charactersTable.character_id, item.character_id))
+          .run();
+        credited = true;
+      }
+    }
+
+    if (removal.kind === "dropped") {
+      tx.insert(ledgerTable)
+        .values({
+          character_id: item.character_id,
+          message: `Dropped ${item.name} x${qty}${noteSuffix}`,
+        })
+        .run();
+    } else if (saleAmount > 0) {
+      const pricePart = formatCoinAmount(saleAmount, removal.denomination);
+      tx.insert(ledgerTable)
+        .values({
+          character_id: item.character_id,
+          message: credited
+            ? `Sold ${item.name} x${qty} for ${pricePart}${noteSuffix}`
+            : `Sold ${item.name} x${qty} (${pricePart}, not added to purse${noteSuffix})`,
+        })
+        .run();
+    } else {
+      tx.insert(ledgerTable)
+        .values({
+          character_id: item.character_id,
+          message: `Sold ${item.name} x${qty}${noteSuffix}`,
+        })
+        .run();
+    }
+
+    return { removedAll };
+  });
 
 export const splitItemStack = async (
   db: AppDatabase,
