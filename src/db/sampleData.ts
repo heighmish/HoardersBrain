@@ -25,7 +25,6 @@ type SampleContainerKey = "equipped" | "pouch" | "bag" | "chest";
 type SampleItem = {
   name: string;
   description?: string;
-  item_type: string;
   weight: number;
   quantity: number;
   rarity?: Rarity;
@@ -48,7 +47,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   // Equipped (6)
   {
     name: "Breastplate",
-    item_type: "armor",
     weight: 20,
     quantity: 1,
     value: 400,
@@ -58,7 +56,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Greatsword",
-    item_type: "weapon",
     weight: 6,
     quantity: 1,
     value: 50,
@@ -68,7 +65,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Longbow",
-    item_type: "weapon",
     weight: 2,
     quantity: 1,
     value: 50,
@@ -78,7 +74,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Arrows",
-    item_type: "consumable",
     weight: 0.05,
     quantity: 20,
     value: 1,
@@ -88,7 +83,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Cloak of Protection",
-    item_type: "gear",
     weight: 1,
     quantity: 1,
     rarity: "Uncommon",
@@ -99,7 +93,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Signet Ring",
-    item_type: "gear",
     weight: 0,
     quantity: 1,
     value: 5,
@@ -111,7 +104,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   // Pouch (6)
   {
     name: "Potion of Cure Light Wounds",
-    item_type: "consumable",
     weight: 0.5,
     quantity: 3,
     rarity: "Uncommon",
@@ -122,7 +114,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Scroll of Flaming Hands",
-    item_type: "consumable",
     weight: 0.1,
     quantity: 2,
     rarity: "Uncommon",
@@ -133,7 +124,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Antitoxin Vial",
-    item_type: "consumable",
     weight: 0.2,
     quantity: 2,
     value: 50,
@@ -143,7 +133,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Thieves' Tools",
-    item_type: "tool",
     weight: 1,
     quantity: 1,
     value: 25,
@@ -153,7 +142,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Tinderbox",
-    item_type: "tool",
     weight: 1,
     quantity: 1,
     value: 5,
@@ -163,7 +151,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Chalk",
-    item_type: "misc",
     weight: 0,
     quantity: 5,
     value: 1,
@@ -175,7 +162,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   // Bag of Holding (8)
   {
     name: "Rations (1 day)",
-    item_type: "consumable",
     weight: 2,
     quantity: 7,
     value: 5,
@@ -185,7 +171,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Waterskin",
-    item_type: "consumable",
     weight: 5,
     quantity: 2,
     value: 2,
@@ -195,7 +180,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Rope of Climbing",
-    item_type: "gear",
     weight: 3,
     quantity: 1,
     rarity: "Uncommon",
@@ -206,7 +190,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Torch",
-    item_type: "consumable",
     weight: 1,
     quantity: 8,
     value: 1,
@@ -216,7 +199,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Potion of Greater Healing",
-    item_type: "consumable",
     weight: 0.5,
     quantity: 2,
     rarity: "Rare",
@@ -227,7 +209,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Scroll of Feather Fall",
-    item_type: "consumable",
     weight: 0.1,
     quantity: 1,
     rarity: "Uncommon",
@@ -238,7 +219,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Ruby Gemstone",
-    item_type: "treasure",
     weight: 0.1,
     quantity: 3,
     rarity: "Rare",
@@ -249,7 +229,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Crowbar",
-    item_type: "tool",
     weight: 5,
     quantity: 1,
     value: 2,
@@ -261,7 +240,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   // Camp Chest (6 — stowed)
   {
     name: "Two-Person Tent",
-    item_type: "gear",
     weight: 20,
     quantity: 1,
     value: 2,
@@ -271,7 +249,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Bedroll",
-    item_type: "gear",
     weight: 7,
     quantity: 1,
     value: 1,
@@ -281,7 +258,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Chain Mail (Spare)",
-    item_type: "armor",
     weight: 55,
     quantity: 1,
     value: 75,
@@ -291,7 +267,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Silver Trade Bar",
-    item_type: "treasure",
     weight: 1,
     quantity: 4,
     value: 5,
@@ -301,7 +276,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Sun Blade Hilt",
-    item_type: "weapon",
     weight: 1,
     quantity: 1,
     rarity: "Very Rare",
@@ -310,7 +284,6 @@ const SAMPLE_ITEMS: SampleItem[] = [
   },
   {
     name: "Silvered Arrows",
-    item_type: "consumable",
     weight: 0.05,
     quantity: 12,
     rarity: "Uncommon",
@@ -455,7 +428,6 @@ export const loadSampleData = async (
           ),
           name: item.name,
           description: item.description ?? null,
-          item_type: item.item_type,
           weight: item.weight,
           quantity: item.quantity,
           rarity: item.rarity ?? "Common",

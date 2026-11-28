@@ -697,7 +697,6 @@ const ItemDetailBody = ({ item, initialTagIds }: ItemDetailBodyProps) => {
           {
             name: draft.name.trim(),
             description: normalizedDescription,
-            item_type: item.item_type,
             weight: parsedWeight,
             rarity: draft.rarity,
             quantity: parsedQuantity,

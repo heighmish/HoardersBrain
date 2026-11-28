@@ -19,6 +19,7 @@ const ManageCharacters = () => {
   const { state, selectCharacter, clearCharacter } = useCharacterContext();
   const [action, setAction] = useState<ManagementAction>("none");
   const [renameInput, setRenameInput] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const renameAction = useAsyncAction();
   const deleteAction = useAsyncAction({ keepBusyOnSuccess: true });
   const submitting = renameAction.submitting || deleteAction.submitting;
@@ -28,6 +29,7 @@ const ManageCharacters = () => {
   }
 
   const character = state.character;
+  const confirmMatches = deleteConfirmText.trim() === character.name.trim();
 
   const saveRename = () => {
     const trimmed = renameInput.trim();
@@ -43,6 +45,10 @@ const ManageCharacters = () => {
   };
 
   const confirmDelete = () => {
+    if (!confirmMatches) {
+      return;
+    }
+
     deleteAction.run(async () => {
       const next = await softDeleteCharacter(db, character.id);
 
@@ -53,6 +59,7 @@ const ManageCharacters = () => {
       }
 
       selectCharacter({ id: next.character_id, name: next.name });
+      setDeleteConfirmText("");
       setAction("none");
       router.back();
     }, "Failed to update character.");
@@ -89,6 +96,7 @@ const ManageCharacters = () => {
               fullWidth
               testID="delete-character-button"
               onPress={() => {
+                setDeleteConfirmText("");
                 setAction("deleting");
               }}
             />
@@ -135,6 +143,16 @@ const ManageCharacters = () => {
 
         {action === "deleting" && (
           <View style={{ gap: theme.spacing.sm }}>
+            <ThemedText variant="headline">Delete character?</ThemedText>
+            <ThemedText variant="subhead">
+              Type the character name to confirm.
+            </ThemedText>
+            <Input
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder={character.name}
+              testID="character-delete-confirm-input"
+            />
             {deleteAction.error !== null && (
               <ThemedText
                 variant="caption"
@@ -148,7 +166,7 @@ const ManageCharacters = () => {
               testID="character-delete-confirm"
               onPress={confirmDelete}
               loading={submitting}
-              disabled={submitting}
+              disabled={submitting || !confirmMatches}
             />
             <Button
               title="Cancel"
@@ -156,6 +174,7 @@ const ManageCharacters = () => {
               testID="character-delete-cancel"
               onPress={() => {
                 deleteAction.clearError();
+                setDeleteConfirmText("");
                 setAction("none");
               }}
               disabled={submitting}
