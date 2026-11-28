@@ -15,7 +15,6 @@ Inventory & encumbrance tracker for tabletop RPGs (D&D 5e, Pathfinder, and frien
 - Theme presets + System/Light/Dark mode, sample data fixture, SQLite migrations, `expo-sqlite/kv-store` preferences, and Maestro E2E coverage.
 
 **Next up / missing:**
-- Small Phase 1.5 cleanups: drop legacy `item_type` column and require typing the character name on character delete.
 - Currency Spend/Receive flow for immediately resolved in-game transactions (services, tavern, bribes, rewards) reusing the Buy/Sell purse-preview pattern.
 - Ledger tab (second tab) + structured deltas — `ledger` already records Buy, Sell, Drop, Use, and Transfer rows, but has no UI yet and doesn't log currency/container changes.
 - Inventory sorting (name, weight, value, rarity).
@@ -55,7 +54,7 @@ Pulled forward so every screen builds on real tokens instead of the Expo starter
 - [x] Editable `max_encumbrance` in character settings
 - [x] Weight tracking toggle per character (`weight_tracking` boolean column, default on)
 
-## Phase 1.5 — Core UX, Tags, Pricing & Buy/Sell *(L)* — Nearly Done
+## Phase 1.5 — Core UX, Tags, Pricing & Buy/Sell *(L)* — Done
 
 Core tabletop inventory ergonomics, hierarchical tags replacing `item_type`, item pricing with Buy/Sell flows, and search/display options.
 
@@ -66,8 +65,8 @@ Core tabletop inventory ergonomics, hierarchical tags replacing `item_type`, ite
 - [x] Quick use (`-1` button on inventory rows + `Use 1` in `ItemDetail`) decrementing quantity and writing ledger entries
 - [x] Item `value` + `value_currency`, Buy flow in `CreateItemForm` (with purse deduction & change preview), Sell flow in `ItemDetail` (50%/100% quick picks + purse credit), plus Looted / Found / Drop notes
 - [x] Virtualized inventory list, floating search pill (searches name, description, rarity, and parent/child tags), `Usable` & tag filter chips, display column/row toggles (`InventoryDisplaySheet`), and side-by-side Currency & Encumbrance summary tiles
-- [ ] Drop legacy `item_type` column from `items` (YAGNI — tags replace item types)
-- [ ] Require typing the character name to delete a character in `ManageCharacters` (matching container delete friction)
+- [x] Drop legacy `item_type` column from `items` (YAGNI — tags replace item types)
+- [x] Require typing the character name to delete a character in `ManageCharacters` (matching container delete friction)
 
 ---
 

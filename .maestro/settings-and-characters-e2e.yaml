@@ -152,8 +152,11 @@ name: Theme, character settings, rename, switch, and delete end to end
     id: delete-character-button
 - extendedWaitUntil:
     visible:
-      id: character-delete-confirm
+      id: character-delete-confirm-input
     timeout: 30000
+- tapOn:
+    id: character-delete-confirm-input
+- inputText: "QA Beta"
 - tapOn:
     id: character-delete-confirm
 - extendedWaitUntil:
